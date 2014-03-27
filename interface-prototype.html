@@ -16,25 +16,26 @@
         <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
         <!-- Code for socket.io and device orientation handling -->
         <script>
-            var socket = io.connect();
-            // Send data through socket
+        
+        var socket = io.connect();
+        // Send data through socket
+        
+        var starboard;
             
-            var starboard;
+        var numLeds = 9;
+        var numPecks = 1;
             
-            var numLeds = 9;
-            var numPecks = 1;
+        d3.json("starboard", function(error, json) {
+        if (error) console.warn(error);
+        starboard = json;
+            drawInterface();
+            update();
+        });
             
-            d3.json("starboard_json", function(error, json) {
-                if (error) console.warn(error);
-                starboard = json;
-                drawInterface();
-                update();
-            });
-            
-            socket.on('updateState', function(data) {
-                sync(data);
-                update();
-            });
+        socket.on('updateState', function(data) {
+            peckSync(data);
+            update();
+        });
             
         
         </script>
@@ -48,233 +49,207 @@
         </div>
     </body>
     <script>
-    var svg;
-
-    function drawInterface(){
-        var w = window.innerWidth * 0.7;
-        var h = w * 0.5626;
-        
-        var xLedScale = d3.scale.ordinal()
-                       .domain(d3.range(numLeds))
-                       .rangeRoundBands([0, w], 0.15);
-                       
-        var xOmniScale = d3.scale.ordinal()
-                       .domain(d3.range(numLeds/3))
-                       .rangeRoundBands([0, w], 0.05);
-        
-        var xPeckScale = d3.scale.ordinal()
-                       .domain(d3.range(numPecks))
-                       .rangeRoundBands([0, w], 0.02);
-                       
-        var yScale = d3.scale.ordinal()
-                    .domain(d3.range(5))
-                    .rangeRoundBands([0,h], 0.1)
-        
-        svg = d3.select("#page1")
-                    .append("svg")
-                    .attr("width", w)
-                    .attr("height", h)
-                    .attr("display","block")
-                    .attr("style", "margin-left: auto; margin-right: auto")
-                    .attr("margin-right","auto");
-            
-        svg.selectAll(".led")
-                .data(d3.values(starboard), function(d) {
-                return d.name;
-            })
-                .enter()
-                .append("rect")
-                .filter(function(d) {
-                if (d.type == "led") return d;
-            })
-                .attr("class", "led")
-                .attr("x", function(d, i) {
-                     return xLedScale(i);
-            })
-                .attr("y", yScale(2))
-                .attr("width", xLedScale.rangeBand())
-                .attr("height", yScale.rangeBand())
-                .attr("fill", function(d, i) {
-                    var color = getColor(0, i);
-                return color;
-            })
-                .attr("stroke", function(d, i) {
-                var color = getColor(1, i);
-                return color;
-            })
-                .attr("stroke-width", "0")
-                .attr("style", "cursor:pointer")
-                .on("mouseover", function() {
-                return d3.select(this).attr("stroke-width", "2");
-            })
-                .on("mouseout", function() {
-                return d3.select(this).attr("stroke-width", "0");
-            })
-            .on("click", function(d, i) {
-                if (d.state == 0) {
-                    d.state = 1;
-                    updateServer();
-                } else {
-                    d.state = 0;
-                    updateServer();
-                }
-            });
-            
-            svg.selectAll(".omni")
-                .data(d3.values(starboard))
-                .enter()
-                .append("rect")
-            .filter(function(d){if (d.color == "red") return d;})
-                .attr("class", "omni")
-                .attr("x", function(d, i) {
-                    return xOmniScale(i);
-                 })
-                .attr("y", yScale(1))
-                .attr("width", xOmniScale.rangeBand())
-                .attr("height", yScale.rangeBand())
-                .attr("fill", "black");
-                
-                    
-        svg.selectAll(".peck")
-                .data(d3.values(starboard), function(d) {
-                return d.name;
-            })
-                .enter()
-                .append("rect")
-                .filter(function(d) {
-                if (d.type == "beambreak") return d;
-            })
-                .attr("class", "peck")
-                .attr("x", function(d,i) {
-                    return xPeckScale(i);
-                })
-                .attr("y", yScale(3) )
-                .attr("width",  xPeckScale.rangeBand())
-                .attr("height", yScale.rangeBand())
-                .attr("color", "black")
-                .attr("stroke", "orange")
-                .attr("stroke-width", "0")
-                .attr("style", "cursor:pointer")
-                .on("mouseover", function() {
-                return d3.select(this).attr("stroke-width", "2");
-            })
-                .on("mouseout", function() {
-                return d3.select(this).attr("stroke-width", "0");
-            })
-                .on("click", function(d) {
-                if (d == 0) {
-                    d.state = 0;
-                    updateServer();
-                } else {
-                    d.state = 1;
-                    updateServer();
-                }
-            });
-            
-    }
-        function countType(data, targetType) {
-            var i = 0;
-            var count = 0;
-            
-            var data = d3.values(data);
-            
-            for (i; i <= data.length; i++) {
-                if (data[i].type == "led") count += 1;
-            }
-            return count;
-        }
-
-        function updateServer() {
-            //update(dataset);
-            socket.emit("updateServer", starboard);
-        }
-        
-        function getColor(d, i) {
-            var color;
-            var brightness;
-            
-            if (d.state == 1 || d == 1) brightness = 225;
-            else brightness = 90
-            
-            if (d.color == "red" || i % 3 == 0) color = [brightness,0,0];
-            else if (d.color == "green" || i % 3 == 1) color = [0,brightness,0];
-            else if (d.color == "blue" || i % 3 == 2) color = [0,0,brightness];
-            
-            return "rgb("+color+")";
-        }
-        
-        function updateOmni() {    
-
-            var left = [225*starboard.lcr.state,
-                        225*starboard.lcg.state,
-                        225*starboard.lcb.state];
-                        
-            var center = [225*starboard.ccr.state,
-                          225*starboard.ccg.state,
-                          225*starboard.ccb.state];
-            
-            var right = [225*starboard.rcr.state,
-                          225*starboard.rcg.state,
-                          225*starboard.rcb.state];
-            
-            svg.selectAll(".omni")
-                .attr("fill", function(d,i){
-                    if (i == 0) return "rgb("+left+")";
-                    else if (i==1) return "rgb("+center+")";
-                    else return "rgb("+right+")"
-            });
-        }
-        
-        function updatePeck() {
-            svg.selectAll(".peck")
-            .attr("fill", function(){
-                    if (starboard.cp.state == 1) return "black";
-                    else return "orange";
-                });
-        }
     
-        function sync(data) {
-                starboard.rcr.state = data.rcr.state;
-                starboard.rcr.abstract_state = data.rcr.abstract_state;
-                
-                starboard.rcg.state = data.rcg.state;
-                starboard.rcg.abstract_state = data.rcg.abstract_state;
-                
-                starboard.rcb.state = data.rcb.state;
-                starboard.rcb.abstract_state = data.rcb.abstract_state;
-                
-                starboard.ccr.state = data.ccr.state;
-                starboard.ccr.abstract_state = data.ccr.abstract_state;
-                
-                starboard.ccg.state = data.ccg.state;
-                starboard.ccg.abstract_state = data.ccg.abstract_state;
-                
-                starboard.ccb.state = data.ccb.state;
-                starboard.ccb.abstract_state = data.ccb.abstract_state;
-                
-                starboard.lcr.state = data.lcr.state;
-                starboard.lcr.abstract_state = data.ccr.abstract_state;
-                
-                starboard.lcg.state = data.lcg.state;
-                starboard.lcg.abstract_state = data.lcg.abstract_state;
-                
-                starboard.lcb.state = data.lcb.state;
-                starboard.lcb.abstract_state = data.lcb.abstract_state;
-                
-                starboard.cp.state = data.cp.state;
-                starboard.cp.abstract_state = data.cp.state;
-            }
+        var svg;
     
-        function update() {
+        function drawInterface(){
+            var w = window.innerWidth * 0.7;
+            var h = w * 0.5626;
+            
+            var xLedScale = d3.scale.ordinal()
+                           .domain(d3.range(numLeds))
+                           .rangeRoundBands([0, w], 0.15);
+                           
+            var xOmniScale = d3.scale.ordinal()
+                           .domain(d3.range(numLeds/3))
+                           .rangeRoundBands([0, w], 0.05);
+            
+            var xPeckScale = d3.scale.ordinal()
+                           .domain(d3.range(numPecks))
+                           .rangeRoundBands([0, w], 0.02);
+                           
+            var yScale = d3.scale.ordinal()
+                        .domain(d3.range(5))
+                        .rangeRoundBands([0,h], 0.1)
+            
+            svg = d3.select("#page1")
+                        .append("svg")
+                        .attr("width", w)
+                        .attr("height", h)
+                        .attr("display","block")
+                        .attr("style", "margin-left: auto; margin-right: auto")
+                        .attr("margin-right","auto");
+                
             svg.selectAll(".led")
-                .attr("fill", function(d,i){
-                    
-                    var color = getColor(d,i);
+                    .data(d3.values(starboard), function(d) {
+                    return d.name;
+                })
+                    .enter()
+                    .append("rect")
+                    .filter(function(d) {
+                    if (d.type == "led") return d;
+                })
+                    .attr("class", "led")
+                    .attr("x", function(d, i) {
+                         return xLedScale(i);
+                })
+                    .attr("y", yScale(2))
+                    .attr("width", xLedScale.rangeBand())
+                    .attr("height", yScale.rangeBand())
+                    .attr("fill", function(d, i) {
+                        var color = getColor(0, i);
                     return color;
-            });
-            updateOmni();
-            updatePeck();
+                })
+                    .attr("stroke", function(d, i) {
+                    var color = getColor(1, i);
+                    return color;
+                })
+                    .attr("stroke-width", "0")
+                    .attr("style", "cursor:pointer")
+                    .on("mouseover", function() {
+                    return d3.select(this).attr("stroke-width", "2");
+                })
+                    .on("mouseout", function() {
+                    return d3.select(this).attr("stroke-width", "0");
+                })
+                .on("click", function(d, i) {
+                    if (d.state == 0) {
+                        d.state = 1;
+                        updateServer();
+                    } else {
+                        d.state = 0;
+                        updateServer();
+                    }
+                });
+                
+                svg.selectAll(".omni")
+                    .data(d3.values(starboard))
+                    .enter()
+                    .append("rect")
+                .filter(function(d){if (d.color == "red") return d;})
+                    .attr("class", "omni")
+                    .attr("x", function(d, i) {
+                        return xOmniScale(i);
+                     })
+                    .attr("y", yScale(1))
+                    .attr("width", xOmniScale.rangeBand())
+                    .attr("height", yScale.rangeBand())
+                    .attr("fill", "black");
+                    
+                        
+            svg.selectAll(".peck")
+                    .data(d3.values(starboard), function(d) {
+                    return d.name;
+                })
+                    .enter()
+                    .append("rect")
+                    .filter(function(d) {
+                    if (d.type == "beambreak") return d;
+                })
+                    .attr("class", "peck")
+                    .attr("x", function(d,i) {
+                        return xPeckScale(i);
+                    })
+                    .attr("y", yScale(3) )
+                    .attr("width",  xPeckScale.rangeBand())
+                    .attr("height", yScale.rangeBand())
+                    .attr("color", "black")
+                    .attr("stroke", "orange")
+                    .attr("stroke-width", "0")
+                    .attr("style", "cursor:pointer")
+                    .on("mouseover", function() {
+                    return d3.select(this).attr("stroke-width", "2");
+                })
+                    .on("mouseout", function() {
+                    return d3.select(this).attr("stroke-width", "0");
+                })
+                    .on("click", function(d) {
+                    if (d == 0) {
+                        d.state = 0;
+                        updateServer();
+                    } else {
+                        d.state = 1;
+                        updateServer();
+                    }
+                });
+                
         }
+        
+        function countType(data, targetType) {
+                var i = 0;
+                var count = 0;
+                
+                var data = d3.values(data);
+                
+                for (i; i <= data.length; i++) {
+                    if (data[i].type == "led") count += 1;
+                }
+                return count;
+            }
+    
+        function updateServer() {
+                socket.emit("updateServer", starboard);
+                
+            }
+            
+        function getColor(d, i) {
+                var color;
+                var brightness;
+                
+                if (d.state == 1 || d == 1) brightness = 225;
+                else brightness = 90
+                
+                if (d.color == "red" || i % 3 == 0) color = [brightness,0,0];
+                else if (d.color == "green" || i % 3 == 1) color = [0,brightness,0];
+                else if (d.color == "blue" || i % 3 == 2) color = [0,0,brightness];
+                
+                return "rgb("+color+")";
+            }
+            
+        function updateOmni() {    
+                var left = [225*starboard.lcr.state,
+                            225*starboard.lcg.state,
+                            225*starboard.lcb.state];
+                            
+                var center = [225*starboard.ccr.state,
+                              225*starboard.ccg.state,
+                              225*starboard.ccb.state];
+                
+                var right = [225*starboard.rcr.state,
+                              225*starboard.rcg.state,
+                              225*starboard.rcb.state];
+                
+                svg.selectAll(".omni")
+                    .attr("fill", function(d,i){
+                        if (i == 0) return "rgb("+left+")";
+                        else if (i==1) return "rgb("+center+")";
+                        else return "rgb("+right+")"
+                });
+            }
+            
+        function updatePeck() {
+                svg.selectAll(".peck")
+                .attr("fill", function(d,i){
+                        if (d.state == 1) return "black";
+                        else return "orange";
+                    });
+            }
+        
+        function peckSync(data) {
+                    starboard.cp.state = data.cp.state;
+                    starboard.cp.abstract_state = data.cp.state;
+                }
+        
+        function update() {
+                svg.selectAll(".led")
+                    .attr("fill", function(d,i){
+                        
+                        var color = getColor(d,i);
+                        return color;
+                });
+                updateOmni();
+                updatePeck();
+            }
 
     </script>
 
