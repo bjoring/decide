@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+    
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black">
+        <title>Starboard Control Panel</title>
+        <!-- jQuery and jQuery Mobile -->
+        <link rel="stylesheet" href="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.css"
+        />
+        <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+        <script src="http://code.jquery.com/mobile/1.3.1/jquery.mobile-1.3.1.min.js"></script>
+        <script src="/socket.io/socket.io.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+        <!-- Code for socket.io and device orientation handling -->
+        <script>
+            var socket = io.connect();
+            // Send data through socket
+
+            var initialState = [0,0,0,0,0,0];
+            
+ var starboard = {    // the  six leds
+                    "rcr": { // right red
+                            "name": "right red led",
+                            "type": "led",
+                            "color": "red",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "rcg":{ // right green
+                            "name": "right green led",
+                            "type": "led",
+                            "color": "green",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "rcb":{ //right blue
+                            "name": "right blue led",
+                            "color": "blue",
+                            "type": "led",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    }, 
+                    "ccr":{ // center red
+                            "name": "center red led",
+                            "type": "led",
+                            "color": "red",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    }, 
+                    "ccg":{ // center green
+                            "name": "center green led",
+                            "type": "led",
+                            "color": "green",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "ccb":{ //center blue
+                            "name": "center blue led",
+                            "type": "led",
+                            "color": "blue",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    },
+                     
+                    // the beam break detectors (pecks)
+                    "cp": { // center peck
+                            "name": "center peck",
+                            "type": "beambreak",
+                            "state": 1,
+                            "abstract_state": "nopeck"
+                    }
+            }
+            
+            socket.on('updateState', function(data) {
+                sync(data);
+                update();
+            });
+            
+        
+        </script>
+    </head>
+    
+    <body>
+        <div data-role="page" id="page1">
+            <div data-role="header">
+                <h3>Starboard Control Panel</h3>
+            </div>
+        </div>
+    </body>
+    <script>
+        var svg = d3.select("#page1")
+                    .append("svg")
+                    .attr("width", "25%")
+                    .attr("height", "40%")
+                    .attr("display","block")
+                    .attr("style", "margin-left: auto; margin-right: auto")
+                    .attr("margin-right","auto");
+            
+        svg.selectAll(".led")
+                .data(d3.values(starboard), function(d) {
+                return d.name;
+            })
+                .enter()
+                .append("rect")
+                .filter(function(d) {
+                if (d.type == "led") return d;
+            })
+                .attr("class", "led")
+                .attr("x", function(d, i) {
+                if (i < 3) {
+                    return (i * 26) + 40;
+                } else {
+                    return (i * 26) + 50;
+                }
+            })
+                .attr("y", 60)
+                .attr("width", 20)
+                .attr("height", 20)
+                .attr("fill", function(d, i) {
+                var color = getColor(0, i);
+                return color;
+            })
+                .attr("stroke", function(d, i) {
+                var color = getColor(1, i);
+                return color;
+            })
+                .attr("stroke-width", "0")
+                .attr("style", "cursor:pointer")
+                .on("mouseover", function() {
+                return d3.select(this).attr("stroke-width", "2");
+            })
+                .on("mouseout", function() {
+                return d3.select(this).attr("stroke-width", "0");
+            })
+            .on("click", function(d, i) {
+                if (d.state == 0) {
+                    d.state = 1;
+                    updateServer();
+                } else {
+                    d.state = 0;
+                    updateServer();
+                }
+            });
+            
+            svg.selectAll(".omni")
+                .data(d3.values(starboard))
+                .enter()
+                .append("rect")
+            .filter(function(d){if (d.color == "red") return d;})
+                .attr("class", "omni")
+                .attr("x", function (d, i) {
+                if (i == 0) return 40;
+                else return 128;
+            })
+                .attr("y", 35)
+                .attr("width", 72)
+                .attr("height", 20)
+                .attr("fill", "black");
+                
+                    
+        svg.selectAll(".peck")
+                .data(d3.values(starboard), function(d) {
+                return d.name;
+            })
+                .enter()
+                .append("rect")
+                .filter(function(d) {
+                if (d.type == "beambreak") return d;
+            })
+                .attr("class", "peck")
+                .attr("x", 40)
+                .attr("y", 87)
+                .attr("width", 161)
+                .attr("height", 20)
+                .attr("color", "black")
+                .attr("stroke", "orange")
+                .attr("stroke-width", "0")
+                .attr("style", "cursor:pointer")
+                .on("mouseover", function() {
+                return d3.select(this).attr("stroke-width", "1");
+            })
+                .on("mouseout", function() {
+                return d3.select(this).attr("stroke-width", "0");
+            })
+                .on("click", function(d) {
+                if (d == 0) {
+                    d.state = 0;
+                    updateServer();
+                } else {
+                    d.state = 1;
+                    updateServer();
+                }
+            });
+
+
+        function updateServer() {
+            //update(dataset);
+            socket.emit("updateServer", starboard);
+        }
+        
+        function getColor(d, i) {
+            color = [0,0,0];
+            if (i > 2) i -= 3;
+            if (d.state == 1 || d == 1) {
+                color[i] = 225;
+                return "rgb("+color+")";
+            } else {
+                color[i] = 90;
+                return "rgb("+color+")";
+            }
+        }
+        
+        function updateOmni() {    
+
+            var right = [225*starboard.rcr.state,
+                        225*starboard.rcg.state,
+                        225*starboard.rcb.state];
+            var center = [225*starboard.ccr.state,
+                          225*starboard.ccg.state,
+                          225*starboard.ccb.state];
+            
+            svg.selectAll(".omni")
+                .attr("fill", function(d,i){
+                    if (i == 0) return "rgb("+right+")";
+                    else return "rgb("+center+")"
+            });
+        }
+        
+        function updatePeck() {
+            svg.selectAll(".peck")
+            .attr("fill", function(){
+                    if (starboard.cp.state == 1) return "black";
+                    else return "orange";
+                });
+        }
+    
+        function sync(data) {
+                starboard.rcr.state = data.rcr.state;
+                starboard.rcr.abstract_state = data.rcr.abstract_state;
+                starboard.rcg.state = data.rcg.state;
+                starboard.rcg.abstract_state = data.rcg.abstract_state;
+                starboard.rcb.state = data.rcb.state;
+                starboard.rcb.abstract_state = data.rcb.abstract_state;
+                starboard.ccr.state = data.ccr.state;
+                starboard.ccr.abstract_state = data.ccr.abstract_state;
+                starboard.ccg.state = data.ccg.state;
+                starboard.ccg.abstract_state = data.ccg.abstract_state;
+                starboard.ccb.state = data.ccb.state;
+                starboard.ccb.abstract_state = data.ccb.abstract_state;
+                
+                starboard.cp.state = data.cp.state;
+                starboard.cp.abstract_state = data.cp.state;
+            }
+    
+        function update() {
+            svg.selectAll(".led")
+                .attr("fill", function(d,i){
+                    
+                    var color = getColor(d,i);
+                    return color;
+            });
+            updateOmni();
+            updatePeck();
+        }
+
+    </script>
+
+</html>
