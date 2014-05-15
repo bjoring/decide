@@ -25,8 +25,8 @@ function controller(params) {
   };
   util.update(par, params);
 
-  var io = require("socket.io")(server);
-
+  var io = require("socket.io").listen(server);
+io.set('log level', 1);
   var state = {
     host_name: null,
     online: false,
@@ -45,8 +45,8 @@ function controller(params) {
   var pubc = io.of("/PUB");
   var reqc = io.of("/REQ");
 
-  // playground 
-    
+  // playground
+
     var clientio = require('socket.io-client');
     var host = clientio.connect('http://mino.local:8027');
     host.on("connection", function(data, data2) {
@@ -59,7 +59,7 @@ function controller(params) {
     });
 
     host.on("test", function(){console.log("private message received"); host.emit("msg","hello")});
-    
+
     function host_msg(msg) {
     }
  //
@@ -69,7 +69,7 @@ function controller(params) {
     // forward to connected clients
     pubc.emit("msg", msg);
     // forward to host
-    host.emit("msg",msg);
+    //host.emit("msg",msg);
   };
 
   // no requests expected from apparatus

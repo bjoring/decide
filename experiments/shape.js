@@ -125,7 +125,7 @@ function trial(next_trial) {
 					trial_data.end = Date.now();
 
 					t.log_data(trial_data, function() {
-						next_trial();
+					    next_trial();
 					});
 				}
 			});
@@ -187,7 +187,7 @@ function trial(next_trial) {
 		t.cue(cue_select).off();
 		t.hopper(feed_select).feed(par.feed_duration, function() {
 			trial_data.fed = true;
-			setTimeout(end_trial, 500);
+			end_trial();
 		});
 	}
 

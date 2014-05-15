@@ -44,10 +44,10 @@
                   })
                   drawInterface();
                 }
-                else if (data.event == "log") {
+                else if (msg.event == "log") {
                   appendConsole(data.reason, "applog");
                 }
-                else if (data.event == "trial-data") {
+                else if (msg.event == "trial-data") {
                   //     trialStatusUpdate("shapelog",msg,meta);
                 }
               });
