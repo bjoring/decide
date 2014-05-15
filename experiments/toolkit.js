@@ -346,8 +346,7 @@ function mail(subject, message, callback) {
 	from: active_program+"@"+require('os').hostname(),
 	to: mail_list,
 	subject: subject,
-	text: message,
-	date: Date.now()
+	text: message
     }, function(){
 	if (callback) callback();
     });
