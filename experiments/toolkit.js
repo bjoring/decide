@@ -13,11 +13,10 @@ var mailer = require('nodemailer').createTransport();
 */
 
 /* Toolkit Variables */
-var active_program;				// string, name of program using toolkit
+var active_program;				// name of program using toolkit
 var use_clock;					// flag, lights are set by clock
-var blink_timers = {};				// array of timers, allowing more than one blinking LED
-var mail_disconnect;				// flag, send email when disconnected from bbb-server
-var mail_list;					// string/string-array, addresses to mail on disconnect
+var mail_disaster;				// flag, send email when bad stuff happens
+var mail_list;					// address(es) to mail when terribleness strikes
 
 /* State Machine Setup*/
 var state = {
@@ -95,9 +94,9 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 	}
 }
 
-function mail_on_disconnect(list) {
+function mail_on_disaster(list) {
     mail_list = list;
-    mail_disconnect = true;
+    mail_disaster = true;
 }
 
 /* Apparatus Manipulation Functions */
@@ -116,7 +115,6 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 			}, duration);
 		},
 		off: function (duration, callback) {
-			clearInterval(blink_timers[which]);
 			if (duration) setTimeout(function () {
 				cue(which).on();
 				if (callback) callback();
@@ -366,7 +364,7 @@ process.on('exit', function(code) {
 
 process.on('uncaughtException', function(err) {
     var message = 'Caught exception: ' + err;
-    mail(message, null, process.exit);
+    if (mail_disaster) mail(message, null, process.exit);
 });
 
 process.on('SIGINT', function() {
@@ -397,7 +395,7 @@ reqc.on("disconnect", function(){
 	state.running = false;
 	console.log(message);
 
-	if (mail_disconnect) mail(message);
+	if (mail_disaster) mail(message);
 
 })
 
@@ -415,5 +413,5 @@ module.exports = {
 	state_update: state_update,
 	log_data: log_data,
 	log_info: log_info,
-	mail_on_disconnect: mail_on_disconnect
+	mail_on_disaster: mail_on_disaster
 };
