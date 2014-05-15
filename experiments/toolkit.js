@@ -134,11 +134,11 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 function hopper(which) { 			// manipulates hoppers (feeders)
 	return {
 		feed: function(duration, callback) {
-			write_feed(which, true);
+			write_feed(which, true, duration);
+			var next = duration + 1000;
 			setTimeout(function () {
-				write_feed(which, false, duration);
 				if (callback) callback();
-			}, duration);
+			}, next);
 		}
 	}
 }
@@ -317,7 +317,8 @@ function write_feed(which, state, duration) {
 		addr: "feeder_" + which,
 		data: {
 			feeding: state,
-	}
+			interval: duration
+		}
 });
 }
 
