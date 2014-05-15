@@ -15,14 +15,6 @@ var active_program;				// name of program using toolkit
 var use_clock;					// flag for whether lights are set by clock
 var blink_timers = {};			// array of timers, allowing more than one blinking LED
 
-
-// Playground
-
-cue("center_green").blink();
-
-//
-
-
 /* State Machine Setup*/
 var state = {
 	running: false,				// flag for whether the program is running trials
@@ -64,9 +56,9 @@ function initialize(name, callback) {	// routes program <name> to apparatus and 
 
 function trial_loop(trial) {		// runs trial in a loop	if state.running is true, otherwise checks state.running every 65 seconds
 	if (state.running == true) {
-		trial(function() {
-			trial_loop(trial);
-		});
+		trial( function() {
+			setTimeout(function() {trial_loop(trial);},2000);
+		    });
 	}
 	else {
 		setTimeout(function() {
@@ -142,7 +134,7 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 function hopper(which) { 			// manipulates hoppers (feeders)
 	return {
 		feed: function(duration, callback) {
-			write_feed(which, true, duration);
+			write_feed(which, true);
 			setTimeout(function () {
 				write_feed(which, false, duration);
 				if (callback) callback();
@@ -325,7 +317,6 @@ function write_feed(which, state, duration) {
 		addr: "feeder_" + which,
 		data: {
 			feeding: state,
-			interval: duration
 	}
 });
 }
