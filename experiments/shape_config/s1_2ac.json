@@ -1,9 +1,8 @@
 {
-	subject: 1,							// sets the subject number
-	paradigm: "2ac",					// ["2ac","gng"]: operant paradigm with which to train subjects
-	block_limit: 2,						// number of times to run each block
-	default_cue: "center_green",		// cue used when not specified
-	alt_cue_color: "green",				// color of cues used on non default sides
-	default_hopper: "left",				// hopper used when not specified
-	feed_duration: 5000					// how long to feed the bird (NOTE: overridden by each block)
-};
+	"subject": "1",
+	"paradigm": "2ac",
+	"default_cue": "center_green",
+	"alt_cue_color": "green",
+	"default_hopper": "left",
+	"feed_duration":" 5000"
+}

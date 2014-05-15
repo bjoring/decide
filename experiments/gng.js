@@ -53,6 +53,7 @@ var trial_data = {
 
 /* Parameters */
 var par = {
+	subject: 0,
 	target_key: "peck_center",					// key used to intiate trials and register responses
 	response_window_duration: 2000,				// how long subject has to respond after stimulus played
 	correction_limit: 3,						// limit to number of subsequent correction trials
@@ -62,12 +63,20 @@ var par = {
 	punish_duration: 2000						// how long to punish subject
 };
 
+var params = {};
+process.argv.forEach(function(val, index, array) {
+	if (val == "-c") params = require(array[index+1]);
+});
+
+require("../lib/util").update(par, params);
+
 /* Setup */
 var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
 t.lights().on();
 //t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
 t.initialize("gng", function(){ 						// create gng component in apparatus
-	//	t.run_by_clock( function() {					// run trials only during daytime
+	trial_data.subject = par.subject;	// set the subject number
+//	t.run_by_clock( function() {					// run trials only during daytime
 		t.trial_loop(trial); 							// run trial() in a loop
 	//});
 });

@@ -134,7 +134,7 @@ function trial(next_trial) {
 				else {
 					trial_data.end = Date.now();
 					t.log_data(trial_data, function() {
-						t.state_update("phase","inter-trial");    
+						t.state_update("phase","inter-trial");
 					    next_trial();
 					});
 				}
@@ -147,7 +147,7 @@ function trial(next_trial) {
 		par.feed_duration = 4000;
 
 		// Blink LED until key press, then feed
-		t.state_update("phase","waiting-for-response");	
+		t.state_update("phase","waiting-for-response");
 		cue_until_key(par.default_cue, "peck_center", basic_reward);
 	}
 
@@ -157,7 +157,7 @@ function trial(next_trial) {
 
 		var rand = Math.random();
 		feed_select = rand > 0.5 ? "left" : "right";
-		t.state_update("phase","waiting-for-response");	
+		t.state_update("phase","waiting-for-response");
 		// Blink LED until press, then feed left or right randomly
 		cue_until_key(par.default_cue,"peck_center", function(data) {basic_reward(data,feed_select)});
 	}
@@ -166,7 +166,7 @@ function trial(next_trial) {
 		set_trial();
 		par.feed_duration = 2500;
 		// Wait for peck, then feed
-		t.state_update("phase","waiting-for-response");	
+		t.state_update("phase","waiting-for-response");
 		t.keys("peck_center").wait_for(false, basic_reward);
 	}
 
@@ -175,7 +175,7 @@ function trial(next_trial) {
 		par.feed_duration = 2500;
 
 		// Wait for key press
-		t.state_update("phase","waiting-for-response");	
+		t.state_update("phase","waiting-for-response");
 		t.keys("peck_center").wait_for(false, block4_continue);
 
 		function block4_continue(){

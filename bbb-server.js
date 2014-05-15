@@ -65,11 +65,14 @@ function controller(params) {
 		  send_store();
 	});
 
-	host_pub.on("send-store", function(){winston.info("store requested");send_store();});
+	host_pub.on("send-store", function(){
+	    send_store();
+	});
 
 	var msg_store = [];
 	var host_forward = false;
 	function send_store() {
+		winston.info("sending log store");
 		while(msg_store.length != 0) {
 		   var msg = msg_store.shift();
 		   host_pub.emit("msg",msg);
