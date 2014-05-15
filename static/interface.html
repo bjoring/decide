@@ -1,337 +1,367 @@
 <!DOCTYPE html>
 <html>
 
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
-        <meta name="apple-mobile-web-app-capable" content="yes">
-        <meta name="apple-mobile-web-app-status-bar-style" content="black">
-        <title>Starboard Control Panel</title>
-        <!-- jQuery and jQuery Mobile -->
-        <link rel="stylesheet" href="/static/jquery.mobile-1.3.1.min.css" />
-        <link rel="icon" type="image/ico" href="/static/favicon.ico"/>
-        <link rel="stylesheet" href="/static/panel.css" />
-        <script src="/static/jquery-1.9.1.min.js"></script>
-        <script src="/static/jquery.mobile-1.3.1.min.js"></script>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="/static/queue.v1.min.js" charset="utf-8"></script>
-        <script src="/static/d3.v3.min.js" charset="utf-8"></script>
-        <!-- Code for socket.io and device orientation handling -->
-        <script>
+		<head>
+				<meta charset="utf-8">
+				<meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+				<meta name="apple-mobile-web-app-capable" content="yes">
+				<meta name="apple-mobile-web-app-status-bar-style" content="black">
+				<title>Starboard Control Panel</title>
+				<!-- jQuery and jQuery Mobile -->
+				<link rel="stylesheet" href="/static/jquery.mobile-1.3.1.min.css" />
+				<link rel="icon" type="image/ico" href="/static/favicon.ico"/>
+				<link rel="stylesheet" href="/static/panel.css" />
+				<script src="/static/jquery-1.9.1.min.js"></script>
+				<script src="/static/jquery.mobile-1.3.1.min.js"></script>
+				<script src="/socket.io/socket.io.js"></script>
+				<script src="/static/queue.v1.min.js" charset="utf-8"></script>
+				<script src="/static/d3.v3.min.js" charset="utf-8"></script>
+				<!-- Code for socket.io and device orientation handling -->
+				<script>
 
-        var pub = io.connect("/PUB");
-        var req = io.connect("/REQ");
-        // Send data through socket
+				var pub = io.connect("/PUB");
+				var req = io.connect("/REQ");
+				// Send data through socket
 
-        var starboard;
+				var starboard;
 
-        queue()
-          .defer(d3.json, "/components")
-          .defer(d3.json, "/state")
-          .await(function(err, components, state) {
-            if (err) console.warn(err)
-            else {
-              // merge the camponents and state object
-              starboard = components;
-              for (var key in starboard)
-                starboard[key].state = state[key];
-              drawInterface();
+				queue()
+					.defer(d3.json, "/components")
+					.defer(d3.json, "/state")
+					.await(function(err, components, state) {
+						if (err) console.warn(err)
+						else {
+							// merge the camponents and state object
+							starboard = components;
+							for (var key in starboard)
+								starboard[key].state = state[key];
+							drawInterface();
 
-              pub.on("msg", function(msg) {
-                if (msg.event == "state-changed") {
-                  d3.entries(msg.data).forEach(function(x) {
-                    starboard[msg.addr].state[x.key] = x.value;
-                  })
-                  drawInterface();
-                }
-                else if (msg.event == "log") {
-                  //appendConsole(msg.reason, "applog");
-                }
-                else if (msg.event == "trial-data") {
-                       trialStatusUpdate("shapelog",msg.data);
-                }
-              });
-            }
-          });
+							pub.on("msg", function(msg) {
+								if (msg.event == "state-changed") {
+									d3.entries(msg.data).forEach(function(x) {
+										starboard[msg.addr].state[x.key] = x.value;
+									})
+									drawInterface();
+								}
+								else if (msg.event == "log") {
+									//appendConsole(msg.reason, "applog");
+								}
+								else if (msg.event == "trial-data") {
+											 trialStatusUpdate("shapelog",msg.data);
+								}
+							});
+						}
+					});
 
-        </script>
-    </head>
+		pub.on("msg", function(msg) {
+			if (msg.level == "info" && msg.reason.indexOf("component unregistered:") !== -1) {
+		var arr = msg.reason.split(' ');
+		console.log("removing " + arr[2] + " from component list");
+		delete starboard[arr[2]];
+		trialStatusUpdate(null, null); 
+			}
+		});
 
-    <body>
-        <div data-role="page" id="page1">
-            <div data-role="header">
-                <h3>Starboard Control Panel</h3>
-            </div>
-            <svg id="interface"/>
-            <div id="consolecontain">
-              <div id="shapeconsole">
-                <h2>Trial Status</h2>
-                <div id="shapelog">
-                   <p id="trialblock"/>
-                   <p id="message"/>
-                </div>
-              <div id="appconsole">
-                <h2>Apparatus Log</h2>
-                <div id="applog">
-                </div>
-              </div>
-              </div>
-            </div>
-        </div>
-    </body>
-    <script>
+				</script>
+		</head>
 
-        var svg;
-        function drawInterface(){
-            var w = window.innerWidth * 0.7;
-            var h = w * 0.5626;
+		<body>
+				<div data-role="page" id="page1" style="font-family: monospace">
+						<div data-role="header" style="background: black">
+								<h3 style="font-family: monospace">Starboard Control Panel</h3>
+						</div>
+						<svg id="interface"/>
+						<div id="consolecontain">
+							<div id="shapeconsole">
+								<h4 style="margin: 5px">Status</h4>
+									<h5 style="margin: 5px" id="status"/>
+								<h4 style="margin: 5px">Last Trial</h4>
+									<h5 style="margin: 5px" id="trial"></h5>
+									 <div id="message"/>
+							<!--<div id="appconsole">
+								<h4>Apparatus Log</h4>
+								<div id="applog">
+								</div>
+							</div> -->
+							<h5 style="margin:5px" onclick="run_experiment()">run experiment</h6>
+							</div>
+						</div>
+				</div>
+		</body>
+		<script>
 
-            var data = d3.entries(starboard);
-            var numLeds = d3.sum(data.map(function(x) { return x.value.type == 'led'; }));
-            var numHouse = d3.sum(data.map(function(x) { return x.value.type == 'lights'; }));
-            var numFeeds = d3.sum(data.map(function(x) { return x.value.type == 'feeder'; }));
-            var numPecks = d3.sum(data.map(function(x) {
-              return (x.value.type == "key") ? Object.keys(x.value.variables).length - 1: 0;
-            }));
+				var svg;
+				function drawInterface(){
+						var w = window.innerWidth * 0.7;
+						var h = w * 0.5626;
 
-            var xLedScale = d3.scale.ordinal()
-                           .domain(d3.range(numLeds))
-                           .rangeRoundBands([0, w],0.16);
+						var data = d3.entries(starboard);
+						var numLeds = d3.sum(data.map(function(x) { return x.value.type == 'led'; }));
+						var numHouse = d3.sum(data.map(function(x) { return x.value.type == 'lights'; }));
+						var numFeeds = d3.sum(data.map(function(x) { return x.value.type == 'feeder'; }));
+						var numPecks = d3.sum(data.map(function(x) {
+							return (x.value.type == "key") ? Object.keys(x.value.variables).length - 1: 0;
+						}));
 
-            var xOmniScale = d3.scale.ordinal()
-                           .domain(d3.range(numLeds/3))
-                           .rangeRoundBands([0, w], 0.06);
+						var xLedScale = d3.scale.ordinal()
+													 .domain(d3.range(numLeds))
+													 .rangeRoundBands([0, w],0.16);
 
-            var xPeckScale = d3.scale.ordinal()
-                           .domain(d3.range(numPecks))
-                           .rangeRoundBands([0, w], 0.06);
+						var xOmniScale = d3.scale.ordinal()
+													 .domain(d3.range(numLeds/3))
+													 .rangeRoundBands([0, w], 0.06);
 
-            var xFeedScale = d3.scale.ordinal()
-                           .domain(d3.range(numFeeds))
-                           .rangeRoundBands([0, w], 0.04);
+						var xPeckScale = d3.scale.ordinal()
+													 .domain(d3.range(numPecks))
+													 .rangeRoundBands([0, w], 0.06);
 
-            var xHouseScale = d3.scale.ordinal()
-                           .domain(d3.range(numHouse))
-                           .rangeRoundBands([0, w], 0.02);
+						var xFeedScale = d3.scale.ordinal()
+													 .domain(d3.range(numFeeds))
+													 .rangeRoundBands([0, w], 0.04);
 
-            var yScale = d3.scale.ordinal()
-                        .domain(d3.range(5))
-                        .rangeRoundBands([0,h], 0.1)
+						var xHouseScale = d3.scale.ordinal()
+													 .domain(d3.range(numHouse))
+													 .rangeRoundBands([0, w], 0.02);
 
-            svg = d3.select("#interface")
-                    .attr("width", w)
-                    .attr("height", h)
-                    .attr("display","block")
+						var yScale = d3.scale.ordinal()
+												.domain(d3.range(5))
+												.rangeRoundBands([0,h], 0.1)
 
-            // filtering data before binding now - CDM
-          var omni = svg.selectAll(".omni")
-            .data(data.filter(function(d) { return d.value.type == "led" && d.value.color == "red"}),
-                  function(d) { return d.key });
+						svg = d3.select("#interface")
+										.attr("width", w)
+										.attr("height", h)
+										.attr("display","block")
 
-          omni.enter()
-            .append("rect")
-            .attr("class", "omni")
-            .attr("x", function(d, i) { return xOmniScale(i); })
-            .attr("y", yScale(1))
-            .attr("width", xOmniScale.rangeBand())
-            .attr("height", yScale.rangeBand()*(4/3))
-            .append("title")
-            .text(function(d,i){var k = ["cue_left","cue_center","cue_right"]; return k[i]; });
+						// filtering data before binding now - CDM
+					var omni = svg.selectAll(".omni")
+						.data(data.filter(function(d) { return d.value.type == "led" && d.value.color == "red"}),
+									function(d) { return d.key });
 
-          omni
-            .attr("fill", function(d) {
-              var key = d.key.split("_")
-              var color = ["red", "green", "blue"].map(function(k) {
-                var el = [key[0], key[1], k].join("_");
-                return starboard[el].state.brightness * 244;
-              })
-              return "rgb(" + color + ")";
-            })
+					omni.enter()
+						.append("rect")
+						.attr("class", "omni")
+						.attr("x", function(d, i) { return xOmniScale(i); })
+						.attr("y", yScale(1))
+						.attr("width", xOmniScale.rangeBand())
+						.attr("height", yScale.rangeBand()*(4/3))
+						.append("title")
+						.text(function(d,i){var k = ["cue_left","cue_center","cue_right"]; return k[i]; });
 
-          var cues = svg.selectAll(".led")
-            .data(data.filter(function(d) { return d.value.type == "led"},
-                                           function(d) { return d.key}));
-          cues.enter()
-            .append("rect")
-            .attr("class", function(d) { return "led control " + d.value.color;})
-            .attr("x", function(d, i) { return xLedScale(i); })
-            .attr("y", yScale(2) + yScale.rangeBand()*(1/3))
-            .attr("width", xLedScale.rangeBand())
-            .attr("height", yScale.rangeBand()*(2/3))
-            .on("click", function(d) {
+					omni
+						.attr("fill", function(d) {
+							var key = d.key.split("_")
+							var color = ["red", "green", "blue"].map(function(k) {
+								var el = [key[0], key[1], k].join("_");
+								return starboard[el].state.brightness * 244;
+							})
+							return "rgb(" + color + ")";
+						})
+
+					var cues = svg.selectAll(".led")
+						.data(data.filter(function(d) { return d.value.type == "led"},
+																					 function(d) { return d.key}));
+					cues.enter()
+						.append("rect")
+						.attr("class", function(d) { return "led control " + d.value.color;})
+						.attr("x", function(d, i) { return xLedScale(i); })
+						.attr("y", yScale(2) + yScale.rangeBand()*(1/3))
+						.attr("width", xLedScale.rangeBand())
+						.attr("height", yScale.rangeBand()*(2/3))
+						.on("click", function(d) {
 		req.emit("msg", {
-                req: "change-state",
-                addr: d.key,
-                data: {
-                  brightness: !(d.value.state.brightness)
-                }
-              })
-            })
-            .append("title");
-            
-          cues
-            .classed("active", function(d) { return d.value.state.brightness})
-            .select("title")
-            .text(function(d,i){ 
-              return d.key+": "+JSON.stringify(d.value.state); 
-              
-            });
+								req: "change-state",
+								addr: d.key,
+								data: {
+									brightness: !(d.value.state.brightness)
+								}
+							})
+						})
+						.append("title");
 
-	   cues.classed("blink", function(d) { return d.value.state.trigger == "timer"});
+					cues
+						.classed("active", function(d) { return d.value.state.brightness})
+						.select("title")
+						.text(function(d,i){
+							return d.key+": "+JSON.stringify(d.value.state);
 
-          cues.exit().remove();
+						});
 
-          var keygrp = svg.selectAll(".peckgroup")
-            .data(data.filter(function(d) { return d.value.type == "key"},
-                              function(d) { return d.key}));
-          keygrp.enter()
-            .append("g")
-            .attr("class", "peckgroup");
-          keygrp.exit()
-            .remove();
+		 cues.classed("blink", function(d) { return d.value.state.trigger == "timer"});
 
-          var keys = keygrp.selectAll(".peck")
-            .data(function(d,i) {
-              var filter = d3.entries(d.value.state);
-              var select = [];
-              for (var num in filter) {
-                if (filter[num].key != "hopper_up") select.push (filter[num]);
-              }
-              return select;
-            }, 
-            function(d) { return d.key;});
+					cues.exit().remove();
 
-          keys.enter()
-            .append("rect")
-            .attr("class", "peck control")
-            .attr("x", function(d,i) { return xPeckScale(i); })
-            .attr("y", yScale(3) )
-            .attr("width",  xPeckScale.rangeBand())
-            .attr("height", yScale.rangeBand())
-            .on("mousedown", function(d) {
-              // could get "keys" from d3.select(this.parentNode).datum().key;
-              var data = {};
-              data[d.key] = true;
-              req.emit("msg", {
-                req: "change-state",
-                addr: "keys",
-                data: data
-              })
-            })
-            .on("mouseup", function(d) {
-              var data = {};
-              data[d.key] = false;
-              req.emit("msg", {
-                req: "change-state",
-                addr: "keys",
-                data: data
-              });
-            })
-            .append("title");
+					var keygrp = svg.selectAll(".peckgroup")
+						.data(data.filter(function(d) { return d.value.type == "key"},
+															function(d) { return d.key}));
+					keygrp.enter()
+						.append("g")
+						.attr("class", "peckgroup");
+					keygrp.exit()
+						.remove();
 
-          keys
-            .classed("active", function(d) { return d.value })
-            .select("title")
-            .text(function(d,i){ return d.key; });
+					var keys = keygrp.selectAll(".peck")
+						.data(function(d,i) {
+							var filter = d3.entries(d.value.state);
+							var select = [];
+							for (var num in filter) {
+							if (filter[num].key != "hopper_up") select.push (filter[num]);
+							}
+							return select;
+						},
+						function(d) { return d.key;});
 
-          keys.exit().remove();
+					keys.enter()
+						.append("rect")
+						.attr("class", "peck control")
+						.attr("x", function(d,i) { return xPeckScale(i); })
+						.attr("y", yScale(3) )
+						.attr("width",  xPeckScale.rangeBand())
+						.attr("height", yScale.rangeBand())
+						.on("mousedown", function(d) {
+							// could get "keys" from d3.select(this.parentNode).datum().key;
+							var data = {};
+							data[d.key] = true;
+							req.emit("msg", {
+								req: "change-state",
+								addr: "keys",
+								data: data
+							})
+						})
+						.on("mouseup", function(d) {
+							var data = {};
+							data[d.key] = false;
+							req.emit("msg", {
+								req: "change-state",
+								addr: "keys",
+								data: data
+							});
+						})
+						.append("title");
 
-          var lights = svg.selectAll(".houselights")
-            .data(data.filter(function(x) { return x.value.type == "lights"},
-                              function(x) { return x.key}));
+					keys
+						.classed("active", function(d) { return d.value })
+						.select("title")
+						.text(function(d,i){ return d.key; });
 
-          // TODO show sun position?
-          lights.enter()
-            .append("rect")
-            .attr("class", "houselights control")
-            .attr("x", function(d, i) { return xHouseScale(i); })
-            .attr("y", yScale(0)+yScale.rangeBand()/2)
-            .attr("width", xHouseScale.rangeBand())
-            .attr("height", yScale.rangeBand()/2)
-            .on("click", function(d) {
+					keys.exit().remove();
+
+					var lights = svg.selectAll(".houselights")
+						.data(data.filter(function(x) { return x.value.type == "lights"},
+															function(x) { return x.key}));
+
+					// TODO show sun position?
+					lights.enter()
+						.append("rect")
+						.attr("class", "houselights control")
+						.attr("x", function(d, i) { return xHouseScale(i); })
+						.attr("y", yScale(0)+yScale.rangeBand()/2)
+						.attr("width", xHouseScale.rangeBand())
+						.attr("height", yScale.rangeBand()/2)
+						.on("click", function(d) {
 		// TODO: support changing the brightness to other values?
-              req.emit("msg", {
-                req: "change-state",
-                addr: d.key,
-                data: {
-                  brightness: !d.value.state.brightness * 255
-                }
-              })
-            })
-            .append("title");
-            // .on("click", function(d) {
-            //   if (starstate[d.key] >= 250) {
-            //     updateServer(Date.now(),{"key": d.key, "state":0,"name":d.name});
-            //   } else if (starstate[d.key] === 0) {
-            //     updateServer(Date.now(),{"key": d.key, "state":100,"name":d.name});
-            //   } else {
-            //     updateServer(Date.now(),{"key": d.key, "state":starstate[d.key]+50,"name":d.name});
-            //   }
-            // });
+							req.emit("msg", {
+								req: "change-state",
+								addr: d.key,
+								data: {
+									brightness: !d.value.state.brightness * 255
+								}
+							})
+						})
+						.append("title");
+						// .on("click", function(d) {
+						//   if (starstate[d.key] >= 250) {
+						//     updateServer(Date.now(),{"key": d.key, "state":0,"name":d.name});
+						//   } else if (starstate[d.key] === 0) {
+						//     updateServer(Date.now(),{"key": d.key, "state":100,"name":d.name});
+						//   } else {
+						//     updateServer(Date.now(),{"key": d.key, "state":starstate[d.key]+50,"name":d.name});
+						//   }
+						// });
 
-          lights.attr("fill", function(d, i) {
-            var brightness = d.value.state.brightness
-            var color = [brightness, brightness, 0];
-            return "rgb("+color+")";
-          });
-          
-          lights.select("title")
-                .text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
+					lights.attr("fill", function(d, i) {
+						var brightness = d.value.state.brightness
+						var color = [brightness, brightness, 0];
+						return "rgb("+color+")";
+					});
 
-          lights.exit().remove();
+					lights.select("title")
+								.text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
 
-          var feeders = svg.selectAll(".feeder")
-            .data(data.filter(function(x) { return x.value.type == "feeder"},
-                              function(x) { return x.key}));
+					lights.exit().remove();
 
-          feeders.enter()
-            .append("rect")
-            .attr("class", "feeder control")
-            .attr("x", function(d, i) { return xFeedScale(i); })
-            .attr("y", yScale(4))
-            .attr("width", xFeedScale.rangeBand())
-            .attr("height", yScale.rangeBand()/2)
-            .on("click", function(d) {
+					var feeders = svg.selectAll(".feeder")
+						.data(data.filter(function(x) { return x.value.type == "feeder"},
+															function(x) { return x.key}));
+
+					feeders.enter()
+						.append("rect")
+						.attr("class", "feeder control")
+						.attr("x", function(d, i) { return xFeedScale(i); })
+						.attr("y", yScale(4))
+						.attr("width", xFeedScale.rangeBand())
+						.attr("height", yScale.rangeBand()/2)
+						.on("click", function(d) {
 		req.emit("msg", {
-                req: "change-state",
-                addr: d.key,
-                data: {feeding: true},
-              });
-            })
-            .append("title");
+								req: "change-state",
+								addr: d.key,
+								data: {feeding: true},
+							});
+						})
+						.append("title");
 
-          feeders
-            .classed("active", function(d, i) {
-              return d.value.state.feeding;
-            })
-            .select("title")
-            .text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
-          
-          feeders.exit().remove();
-        }
+					feeders
+						.classed("active", function(d, i) {
+							return d.value.state.feeding;
+						})
+						.select("title")
+						.text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
+
+					feeders.exit().remove();
+				}
 
 
-        /*function appendConsole(data, console) {
-            var target = "#"+console;
-            d3.selectAll(target).append("p").text(data);
+				/*function appendConsole(data, console) {
+						var target = "#"+console;
+						d3.selectAll(target).append("p").text(data);
 
-            var objDiv = document.getElementById(console);
-            objDiv.scrollTop = objDiv.scrollHeight;
+						var objDiv = document.getElementById(console);
+						objDiv.scrollTop = objDiv.scrollHeight;
 
-        }*/
+				}*/
 
-        function trialStatusUpdate(console, data) {
-            var target = "#"+console;
-                var status = "Subject: " + data.subject + "Program: " + data.program;
-              /*d3.selectAll("#trialblock").text(function(){
-                    if (data.block) return status + ("Block: " + data.block +", Trial "+data.trial);
-                    else return status + ("Trial " + data.trial);
-                });*/
-            d3.selectAll("#message").text(function(){
-                return (JSON.stringify(data) +" -  "+Date.now());
-            });
-        }
+				function trialStatusUpdate(console, data) {
+						if (starboard.experiment.state.program !== "none") {
+							var status = "&nbspSubject: " + data.subject + "<br/>&nbspProgram: " + data.program;
+							d3.selectAll("#status").html(status);
+									
+							d3.selectAll("#trial").html(function(){
+											var txt = "&nbspTrial: " + data.trial + 
+															 (data.block ?  "<br/>&nbspBlock: " + data.block : "") +
+															 "<br/>&nbspBegin: " + data.begin +
+															 "<br/>&nbspEnd: " + data.end;
+											return txt;
+									});
+						}
+						
+						else {
+							d3.selectAll("#trial").html("");
+							d3.selectAll("#status").html("");
+						}
+								
+						/*d3.selectAll("#message").text(function(){
+								return (JSON.stringify(data) +" -  "+Date.now());
+						});*/
+				}
+				
+				function run_experiment() {
+					var command = prompt("Coming soon...", "shape -c shape_config1 -e robbinsdart@gmail.com");
+					
+					if (command != null) {
+							alert("Running " + command.split(" ")[0] + "! (But not really)")
+					}
+				}
 
-    </script>
+		</script>
 
 </html>
