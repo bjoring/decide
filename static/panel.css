@@ -42,18 +42,10 @@
     fill: red;
 }
 
-.red.blink {
-    animation: redblink 200ms steps(10, start) infinite;
-  -webkit-animation: redblink 200ms steps(10, start) infinite;
+.green.blink {
+    animation: greenblink 300ms steps(0, start) infinite;
+  -webkit-animation: greenblink 300ms steps(0, start) infinite;
 }
-
-@keyframes redblink {
-  to { fill: darkred; }
-}
-@-webkit-keyframes redblink {
-  to {fill: darkred; }
-}
-
 
 .green {
     fill: darkgreen;
