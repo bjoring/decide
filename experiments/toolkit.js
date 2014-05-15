@@ -65,8 +65,10 @@ function initialize(name, callback) {	// routes program <name> to apparatus and 
 function trial_loop(trial) {		// runs trial in a loop	if state.running is true, otherwise checks state.running every 65 seconds
 	if (state.running == true) {
 		trial(function() {
-			trial_loop(trial);
-		});
+		setTimeout(function() {
+		    trial_loop(trial);
+		}, 1000)}
+		);
 	}
 	else {
 		setTimeout(function() {

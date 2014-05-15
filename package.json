@@ -20,8 +20,8 @@
     "glob": "4.0.3",
     "queue-async": "1.0.7",
     "suncalc": "1.5.2",
-    "socket.io": "1.0.6",
-    "socket.io-client": "1.0.6",
+    "socket.io": "0.9.17",
+    "socket.io-client": "0.9.17",
     "underscore": "1.6.0"
   },
   "devDependencies": {},
