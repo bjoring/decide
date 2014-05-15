@@ -48,7 +48,7 @@
                   appendConsole(data.reason, "applog");
                 }
                 else if (msg.event == "trial-data") {
-                  //     trialStatusUpdate("shapelog",msg,meta);
+                       trialStatusUpdate("shapelog",msg,meta);
                 }
               });
             }
@@ -91,7 +91,7 @@
             var numHouse = d3.sum(data.map(function(x) { return x.value.type == 'lights'; }));
             var numFeeds = d3.sum(data.map(function(x) { return x.value.type == 'feeder'; }));
             var numPecks = d3.sum(data.map(function(x) {
-              return (x.value.type == "key") ? Object.keys(x.value.variables).length : 0;
+              return (x.value.type == "key") ? Object.keys(x.value.variables).length - 1: 0;
             }));
 
             var xLedScale = d3.scale.ordinal()
@@ -183,8 +183,15 @@
             .remove();
 
           var keys = keygrp.selectAll(".peck")
-            .data(function(d,i) { return d3.entries(d.value.state) },
-                  function(d) { return d.key;});
+            .data(function(d,i) {
+              var filter = d3.entries(d.value.state);
+              var select = [];
+              for (var num in filter) {
+                if (filter[num].key != "hopper_up") select.push (filter[num]);
+              }
+              return select;
+            }, 
+            function(d) { return d.key;});
 
           keys.enter()
             .append("rect")
@@ -296,6 +303,7 @@
         }
 
         function trialStatusUpdate(console, msg, meta) {
+          alert(msg);
             var target = "#"+console;
                 d3.selectAll("#trialblock").text(function(){
                     if (meta.block) return ("Block: " + meta.block +", Trial "+meta.trial);
