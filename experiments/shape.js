@@ -67,8 +67,8 @@ var par = {
 	default_cue: "center_green",		// cue used when not specified
 	alt_cue_color: "green",				// color of cues used on non default sides
 	default_hopper: "left",				// hopper used when not specified
-	feed_duration: 5000,					// how long to feed the bird (NOTE: overridden by each block)
-	mail_list: ""				// who to email upon disaster (string or string array)
+	feed_duration: 5000,				// how long to feed the bird (NOTE: overridden by each block)
+	mail_list: ""			           	// who to email upon disaster (string or string array)
 };
 
 var params = {};
@@ -78,17 +78,16 @@ process.argv.forEach(function(val, index, array) {
 });
 
 require("../lib/util").update(par, params);
-
+trial_data.subject = par.subject;					// set the subject number
 
 /* Setup */
-t.lights().on();						// make sure lights are on
-//t.lights().clock_set()				// set house lights by sun altitude
-t.initialize("shape", function(){		// create component in apparatus
-	trial_data.block = 1;				// begin on block 1
-	trial_data.subject = par.subject;	// set the subject number
-	t.mail_on_disaster(par.mail_list);
-	//t.run_by_clock( function() {		// run trials only during daytime
-	t.trial_loop(trial);				// run trial() in a loop
+t.lights().on();						            // make sure lights are on
+//t.lights().clock_set()				            // set house lights by sun altitude
+t.initialize("shape", par.subject, function(){		// create component in apparatus
+	trial_data.block = 1;				            // begin on block 1
+	t.mail_on_disaster(par.mail_list);              // mail someone when disaster strikes
+	//t.run_by_clock( function() {		            // run trials only during daytime
+	t.trial_loop(trial);				            // run trial() in a loop
 	//});
 });
 

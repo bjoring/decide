@@ -21,7 +21,8 @@ function controller(params) {
   };
 
   var par = {
-	port: 8000
+	port: 8000,
+	exp_dir: __dirname + "/experiments/"
   };
   util.update(par, params);
 
@@ -144,7 +145,11 @@ function controller(params) {
 
 	socket.on("hugz", function(data, rep) {
 	  rep("hugz-ok");
-	})
+	});
+
+	socket.on("runexp", function(exp, args, opt) {
+	    require('child_process').fork(par.exp_dir+"shape", args, opt);
+	});
 
 	socket.on("disconnect", function() {
 	  if (socket.apparatus_key)

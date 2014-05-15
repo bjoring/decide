@@ -37,7 +37,7 @@ var meta = {
 }
 
 /* Trial Management Functions */
-function initialize(name, callback) {	// routes program <name> to apparatus and registers it in experiment
+function initialize(name, subject, callback) {	// routes program <name> to apparatus and registers it in experiment
 	setTimeout(function() {
 		active_program = name;
 		if (!use_clock) state.running = true;
@@ -47,6 +47,7 @@ function initialize(name, callback) {	// routes program <name> to apparatus and 
 				req: "change-state",
 				addr: "experiment",
 				data: {
+					subject: subject,
 					program: active_program
 				}
 			});
@@ -354,11 +355,11 @@ function mail(subject, message, callback) {
 
 process.on('exit', function(code) {
     reqc.emit("msg", {
-	req: "change-state",
-	addr: "experiment",
-	data: {
-	    program: "none"
-	}
+		req: "change-state",
+		addr: "experiment",
+		data: {
+		    program: "none"
+		}
     });
 });
 
