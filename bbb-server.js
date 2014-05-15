@@ -53,14 +53,28 @@ io.set('log level', 1);
       console.log("Connected!");
     });
 
-    host.on("register-box", function(reply) {
-        reply(state.host_name, state.ip_address);
-	console.log('box registered!');
+    host.on("disconnect", function() {
+	console.log("disconnected from host")
+	host_forward = false;
+	console.log("storing messages for next connect");
     });
 
-    host.on("test", function(){console.log("private message received"); host.emit("msg","hello")});
+    host.on("register-box", function(reply) {
+        reply(state.host_name, state.ip_address);
+	console.log(state.host_name,"registered");
+	send_store();
+    });
 
-    function host_msg(msg) {
+    host.on("send-store", function(){console.log("store requested");send_store();});
+
+    var msg_store = [];
+    var host_forward = false;
+    function send_store() {
+	while(msg_store.length != 0) {
+	   var msg = msg_store.shift();
+	   host.emit("msg",msg);
+	}
+	host_forward = true;
     }
  //
 
@@ -69,7 +83,10 @@ io.set('log level', 1);
     // forward to connected clients
     pubc.emit("msg", msg);
     // forward to host
-    //host.emit("msg",msg);
+    if (host_forward) host.emit("msg",msg);
+    else {
+	msg_store.push(msg);
+    }
   };
 
   // no requests expected from apparatus

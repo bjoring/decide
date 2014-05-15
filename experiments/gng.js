@@ -1,22 +1,22 @@
-/* 
-gng.js 
-	This script starts a "go-nogo" experiment. Subject learns 
-	to associate various stimuli a peck or no peck Requires 
-	a running bbb-server.js. 
+/*
+gng.js
+	This script starts a "go-nogo" experiment. Subject learns
+	to associate various stimuli a peck or no peck Requires
+	a running bbb-server.js.
 
 	To run the script:
 		node gng.js
-	
+
 	Procedure:
-		1. Wait for center key peck, 
+		1. Wait for center key peck,
 		2. Play random stimulus,
-		3. Wait for center key peck.  
-		4. Reward/punish accordingly: 
+		3. Wait for center key peck.
+		4. Reward/punish accordingly:
 			only GO responses are consequated:
-			correct hits are rewarded with food access; 
-			false positives are punished with lights out.  
-		5. If response was correct, a new stimulus is presented. 
-	 
+			correct hits are rewarded with food access;
+			false positives are punished with lights out.
+		5. If response was correct, a new stimulus is presented.
+
 	Session ends when the lights go out for the day.
 
 	Adapted from CDM's gng.cc used in Chicago lab
@@ -65,17 +65,18 @@ var par = {
 
 /* Setup */
 var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
-t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
+t.lights().on();
+//t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
 t.initialize("gng", function(){ 						// create gng component in apparatus
-		t.run_by_clock( function() {					// run trials only during daytime
+	//	t.run_by_clock( function() {					// run trials only during daytime
 		t.trial_loop(trial); 							// run trial() in a loop
-	});
+	//});
 });
 
 
 
 function trial(next_trial) {
-	
+
 	prep_trial();
 
 	function prep_trial(force_stim) {
@@ -104,7 +105,7 @@ function trial(next_trial) {
 	}
 
 	function response_check() {
-		trial_data.correct_response = trial_data.stim.type == 1 ? par.target_key : "none"; 
+		trial_data.correct_response = trial_data.stim.type == 1 ? par.target_key : "none";
 		console.log("checking response");
 		t.state_update("phase","evaluating-response");
 		t.keys(trial_data.correct_response).response_window(par.response_window_duration, response_reaction);
@@ -132,14 +133,14 @@ function trial(next_trial) {
 				trial_data.err = 1;
 				trial_data.punished = true;
 				t.lights().off(par.punish_duration, run_correction);
-				t.state_update("phase","punishing");	
-			} 
-			else  { 
+				t.state_update("phase","punishing");
+			}
+			else  {
 				trial_data.err = 2;
 				run_correction();
 			}
 		}
-	}	
+	}
 
 	function run_correction() {
 		trial_data.correction = true;
@@ -157,7 +158,7 @@ function trial(next_trial) {
 	function end_trial() {
 		trial_data.correction = false;
 		trial_data.correction_count = 0;
-		log_data();	
+		log_data();
 		next_trial();
 	}
 
@@ -182,7 +183,7 @@ function create_stim_set(loc) {
 		for (var j = 0; j < f; j++) {
 			stim_set[i] = bank[stimulus];
 			i++;
-		} 
+		}
 	}
 	return stim_set;
 }
