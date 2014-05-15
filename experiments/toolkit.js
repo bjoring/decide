@@ -76,12 +76,12 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 		if (result != "req-ok") console.log(result);
 		if (data.sun_altitude > Math.PI || data.sun_altitude < 0.1) {
 			state_update("running", false);
-			pubc.emit("msg" {addr: active_program, event: "log", level:"info", reason: "night time, "+active_program+" sleeping"});
+			pubc.emit("msg", {addr: active_program, event: "log", level:"info", reason: "night time, "+active_program+" sleeping"});
 		}
 		else {
 			if (state.running == false) {
 				state_update("running", true);
-				pubc.emit("msg" {addr: active_program, event: "log", level:"info", reason:"day time, "+active_program+"running trials"});
+				pubc.emit("msg", {addr: active_program, event: "log", level:"info", reason:"day time, "+active_program+"running trials"});
 			}
 			if (initial) {
 				initial = false;
@@ -146,7 +146,7 @@ function lights() {					// manipulates house lights, supports setting brightness
 	return {
 		man_set: function (brightness, callback) {
 			if (use_clock) {
-				pubc.emit("msg" {addr: active_program, event: "log", level:"error", reason:"clock mode must be off to set brightness manually"});
+				pubc.emit("msg", {addr: active_program, event: "log", level:"error", reason:"clock mode must be off to set brightness manually"});
 				return;
 			}
 			write_led(which, brightness);
@@ -175,7 +175,7 @@ function lights() {					// manipulates house lights, supports setting brightness
 		},
 		on: function (duration, callback) {
 			if (use_clock) {
-				pubc.emit("msg" {addr: active_program, event: "log", level:"error", reason:"Error: clock mode must be off to set brightness manually"});
+				pubc.emit("msg", {addr: active_program, event: "log", level:"error", reason:"Error: clock mode must be off to set brightness manually"});
 				return;
 			}
 			write_led(which, 255);
@@ -296,13 +296,13 @@ function log_data(indata, callback) {
 }
 
 function log_info(indata, callback) {
-	pubc.emit("msg" {
-		addr: active_program, 
-		event: "log", 
-		level:"info", 
+	pubc.emit("msg", {
+		addr: active_program,
+		event: "log",
+		level:"info",
 		reason: indata
 	});
-	callback();
+	if (callback) callback();
 }
 /* Not-Exported Functions */
 function write_led(which, state, trigger, period) {
@@ -348,7 +348,7 @@ reqc.on("msg",function(msg, rep) {
 	if (rep) rep(ret);
 });
 
-reqc.on("disconnect" funciton(){
+reqc.on("disconnect", function(){
 	state.running = false;
 })
 
