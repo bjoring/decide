@@ -90,7 +90,7 @@ function trial(next_trial) {
 	function prep_trial(force_stim) {
 		trial_data.trial++;
 		t.state_update("phase","inter-trial");
-		t.log_info("waiting to begin trial"+trial_data.trial + trial_data.correction ? " correction " + trial_data.correction_count : "");
+		t.log_info("waiting to begin trial "+trial_data.trial);
 		trial_data.stim = force_stim ? force_stim : select_stimulus();
 		console.log("waiting for peck");
 		t.keys(par.target_key).wait_for(false, play_stimulus);
@@ -98,7 +98,6 @@ function trial(next_trial) {
 
 	function select_stimulus() {
 		//console.log("selecting stimulus");
-		t.log_info("beginning trial"+trial_data.trial + trial_data.correction ? "correction " + trial_data.correction_count : "");
 		var rand = Math.random();
 		var length = Object.keys(stim_set).length - 1;
 		var select = Math.round(rand*length);
@@ -106,6 +105,7 @@ function trial(next_trial) {
 	}
 
 	function play_stimulus() {
+		t.log_info("beginning trial "+trial_data.trial);
 		trial_data.begin = Date.now();
 		t.state_update("phase","presenting-stimulus");
 		console.log("playing stimulus:",trial_data.stim.sound);
@@ -178,9 +178,8 @@ function trial(next_trial) {
 		trial_data.end = Date.now();
 		t.log_data(trial_data);
 		for (var key in trial_data) {
-			if (key != "program", key != "trial" && key != "stim" && key != "correction" && key != "correction_count" && key != "subject" && key != "box") {
-
-				trial_data[key] = "not-logged";
+			if (key != "program" && key != "trial" && key != "stim" && key != "correction" && key != "correction_count" && key != "subject" && key != "box") {
+                    trial_data[key] = "not-logged";
 			}
 		}
 	}

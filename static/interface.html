@@ -45,10 +45,10 @@
                   drawInterface();
                 }
                 else if (msg.event == "log") {
-                  appendConsole(data.reason, "applog");
+                  //appendConsole(msg.reason, "applog");
                 }
                 else if (msg.event == "trial-data") {
-                       trialStatusUpdate("shapelog",msg,meta);
+                       trialStatusUpdate("shapelog",msg.data);
                 }
               });
             }
@@ -64,17 +64,17 @@
             </div>
             <svg id="interface"/>
             <div id="consolecontain">
-              <div id="appconsole">
-                <h2>Apparatus Log</h2>
-                <div id="applog">
-                </div>
-              </div>
               <div id="shapeconsole">
                 <h2>Trial Status</h2>
                 <div id="shapelog">
                    <p id="trialblock"/>
                    <p id="message"/>
                 </div>
+              <div id="appconsole">
+                <h2>Apparatus Log</h2>
+                <div id="applog">
+                </div>
+              </div>
               </div>
             </div>
         </div>
@@ -134,7 +134,9 @@
             .attr("x", function(d, i) { return xOmniScale(i); })
             .attr("y", yScale(1))
             .attr("width", xOmniScale.rangeBand())
-            .attr("height", yScale.rangeBand()*(4/3));
+            .attr("height", yScale.rangeBand()*(4/3))
+            .append("title")
+            .text(function(d,i){var k = ["cue_left","cue_center","cue_right"]; return k[i]; });
 
           omni
             .attr("fill", function(d) {
@@ -164,10 +166,16 @@
                   brightness: !(d.value.state.brightness)
                 }
               })
-            });
-
+            })
+            .append("title");
+            
           cues
-            .classed("active", function(d) { return d.value.state.brightness});
+            .classed("active", function(d) { return d.value.state.brightness})
+            .select("title")
+            .text(function(d,i){ 
+              return d.key+": "+JSON.stringify(d.value.state); 
+              
+            });
 
 	   cues.classed("blink", function(d) { return d.value.state.trigger == "timer"});
 
@@ -219,9 +227,12 @@
                 data: data
               });
             })
+            .append("title");
 
           keys
             .classed("active", function(d) { return d.value })
+            .select("title")
+            .text(function(d,i){ return d.key; });
 
           keys.exit().remove();
 
@@ -247,6 +258,7 @@
                 }
               })
             })
+            .append("title");
             // .on("click", function(d) {
             //   if (starstate[d.key] >= 250) {
             //     updateServer(Date.now(),{"key": d.key, "state":0,"name":d.name});
@@ -262,6 +274,9 @@
             var color = [brightness, brightness, 0];
             return "rgb("+color+")";
           });
+          
+          lights.select("title")
+                .text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
 
           lights.exit().remove();
 
@@ -282,35 +297,38 @@
                 addr: d.key,
                 data: {feeding: true},
               });
-            });
+            })
+            .append("title");
 
           feeders
             .classed("active", function(d, i) {
               return d.value.state.feeding;
             })
-
+            .select("title")
+            .text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
+          
           feeders.exit().remove();
         }
 
 
-        function appendConsole(data, console) {
+        /*function appendConsole(data, console) {
             var target = "#"+console;
             d3.selectAll(target).append("p").text(data);
 
             var objDiv = document.getElementById(console);
             objDiv.scrollTop = objDiv.scrollHeight;
 
-        }
+        }*/
 
-        function trialStatusUpdate(console, msg, meta) {
-          alert(msg);
+        function trialStatusUpdate(console, data) {
             var target = "#"+console;
-                d3.selectAll("#trialblock").text(function(){
-                    if (meta.block) return ("Block: " + meta.block +", Trial "+meta.trial);
-                    else return ("Trial " + meta.trial);
-                });
+                var status = "Subject: " + data.subject + "Program: " + data.program;
+              /*d3.selectAll("#trialblock").text(function(){
+                    if (data.block) return status + ("Block: " + data.block +", Trial "+data.trial);
+                    else return status + ("Trial " + data.trial);
+                });*/
             d3.selectAll("#message").text(function(){
-                return (msg +" -  "+meta.timestamp);
+                return (JSON.stringify(data) +" -  "+Date.now());
             });
         }
 

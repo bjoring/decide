@@ -292,7 +292,7 @@ function log_data(indata, callback) {
 		time: Date.now(),
 		data: indata
 	});
-	callback();
+	if (callback) callback();
 }
 
 function log_info(indata, callback) {
@@ -350,6 +350,7 @@ reqc.on("msg",function(msg, rep) {
 
 reqc.on("disconnect", function(){
 	state.running = false;
+	console.log("disconnected from bbb-server");
 })
 
 
