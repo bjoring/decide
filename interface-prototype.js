@@ -13,71 +13,101 @@ app.listen(8000);
 
 console.log('Server running on: http://' + getIPAddress() + ':8000');
 
-var RGHT_RED = "P8_16";
-var RGHT_GRN = "P8_15";
-var RGHT_BLU = "P8_14";
+
+var LEFT_RED = "P8_41";
+var LEFT_GRN = "P8_42";
+var LEFT_BLU = "P8_26";
+
 var CENT_RED = "P8_19";
 var CENT_GREEN = "P8_18";
 var CENT_BLU = "P8_17";
 var CENT_PECK = "P8_43";
 
+var RGHT_RED = "P8_16";
+var RGHT_GRN = "P8_15";
+var RGHT_BLU = "P8_14";
+
 b.pinMode(CENT_PECK, b.INPUT, 7, 'pullup');
 
-var pins = [RGHT_RED, RGHT_GRN, RGHT_BLU, CENT_RED, CENT_GREEN, CENT_BLU];
+var pins = [LEFT_RED, LEFT_GRN, LEFT_BLU, CENT_RED, CENT_GREEN, CENT_BLU, RGHT_RED, RGHT_GRN, RGHT_BLU];
 configOutput(pins);
 
-var starboard = { // the  six leds
-  "rcr": { // right red
-    "name": "right red led",
-    "type": "led",
-    "color": "red",
-    "state": 0,
-    "abstract_state": "off",
-  },
-  "rcg": { // right green
-    "name": "right green led",
-    "type": "led",
-    "color": "green",
-    "state": 0,
-    "abstract_state": "off",
-  },
-  "rcb": { //right blue
-    "name": "right blue led",
-    "color": "blue",
-    "type": "led",
-    "state": 0,
-    "abstract_state": "off"
-  },
-  "ccr": { // center red
-    "name": "center red led",
-    "type": "led",
-    "color": "red",
-    "state": 0,
-    "abstract_state": "off"
-  },
-  "ccg": { // center green
-    "name": "center green led",
-    "type": "led",
-    "color": "green",
-    "state": 0,
-    "abstract_state": "off",
-  },
-  "ccb": { //center blue
-    "name": "center blue led",
-    "type": "led",
-    "color": "blue",
-    "state": 0,
-    "abstract_state": "off"
-  },
-  // the beam break detectors (pecks)
-  "cp": { // center peck
-    "name": "center peck",
-    "type": "beambreak",
-    "state": 1,
-    "abstract_state": "nopeck"
-  }
-}
-
+ var starboard = {    // the  six leds
+                    "lcr": { // left red
+                            "name": "left red led",
+                            "type": "led",
+                            "color": "red",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "lcg":{ // left green
+                            "name": "left green led",
+                            "type": "led",
+                            "color": "green",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "lcb":{ //left blue
+                            "name": "left blue led",
+                            "color": "blue",
+                            "type": "led",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    },
+
+                    "ccr":{ // center red
+                            "name": "center red led",
+                            "type": "led",
+                            "color": "red",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    }, 
+                    "ccg":{ // center green
+                            "name": "center green led",
+                            "type": "led",
+                            "color": "green",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "ccb":{ //center blue
+                            "name": "center blue led",
+                            "type": "led",
+                            "color": "blue",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    },
+                    "rcr": { // right red
+                            "name": "right red led",
+                            "type": "led",
+                            "color": "red",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+
+                    "rcg":{ // right green
+                            "name": "right green led",
+                            "type": "led",
+                            "color": "green",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "rcb":{ //right blue
+                            "name": "right blue led",
+                            "color": "blue",
+                            "type": "led",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    }, 
+
+                    // the beam break detectors (pecks)
+                    "cp": { // center peck
+                            "name": "center peck",
+                            "type": "beambreak",
+                            "state": 1,
+                            "abstract_state": "nopeck"
+                    }
+            }
+
 
 // I should probably change the update procedure to use attachIntterutps...
 b.attachInterrupt(CENT_PECK, true, b.CHANGE, updateClients);
@@ -99,12 +129,18 @@ function updateClients() {
 
 // turns the physical leds on or off
 function writeAllStates(data) {
-  writeState(data.rcr, RGHT_RED);
-  writeState(data.rcg, RGHT_GRN);
-  writeState(data.rcb, RGHT_BLU);
+
+  writeState(data.lcr, LEFT_RED);
+  writeState(data.lcg, LEFT_GRN);
+  writeState(data.lcb, LEFT_BLU);
+  
   writeState(data.ccr, CENT_RED);
   writeState(data.ccg, CENT_GREEN);
   writeState(data.ccb, CENT_BLU);
+  
+  writeState(data.rcr, RGHT_RED);
+  writeState(data.rcg, RGHT_GRN);
+  writeState(data.rcb, RGHT_BLU);
 }
 
 function writeState(device, port) {
@@ -113,12 +149,18 @@ function writeState(device, port) {
 
 // sets the LED states
 function readAllStates() {
-  readState(starboard.rcr, RGHT_RED);
-  readState(starboard.rcb, RGHT_BLU);
-  readState(starboard.rcg, RGHT_GRN);
+  readState(starboard.lcr, LEFT_RED);
+  readState(starboard.lcb, LEFT_BLU);
+  readState(starboard.lcg, LEFT_GRN);
+  
   readState(starboard.ccr, CENT_RED);
   readState(starboard.ccg, CENT_GREEN);
   readState(starboard.ccb, CENT_BLU);
+
+  readState(starboard.rcr, RGHT_RED);
+  readState(starboard.rcb, RGHT_BLU);
+  readState(starboard.rcg, RGHT_GRN);
+  
   readState(starboard.cp, CENT_PECK);
 }
 

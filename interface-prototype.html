@@ -22,27 +22,28 @@
             var initialState = [0,0,0,0,0,0];
             
  var starboard = {    // the  six leds
-                    "rcr": { // right red
-                            "name": "right red led",
+                    "lcr": { // left red
+                            "name": "left red led",
                             "type": "led",
                             "color": "red",
                             "state": 0, 
                             "abstract_state": "off",
                     }, 
-                    "rcg":{ // right green
-                            "name": "right green led",
+                    "lcg":{ // left green
+                            "name": "left green led",
                             "type": "led",
                             "color": "green",
                             "state": 0, 
                             "abstract_state": "off",
                     }, 
-                    "rcb":{ //right blue
-                            "name": "right blue led",
+                    "lcb":{ //left blue
+                            "name": "left blue led",
                             "color": "blue",
                             "type": "led",
                             "state": 0,    
                             "abstract_state": "off"
-                    }, 
+                    },
+
                     "ccr":{ // center red
                             "name": "center red led",
                             "type": "led",
@@ -64,7 +65,29 @@
                             "state": 0,    
                             "abstract_state": "off"
                     },
-                     
+                    "rcr": { // right red
+                            "name": "right red led",
+                            "type": "led",
+                            "color": "red",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+
+                    "rcg":{ // right green
+                            "name": "right green led",
+                            "type": "led",
+                            "color": "green",
+                            "state": 0, 
+                            "abstract_state": "off",
+                    }, 
+                    "rcb":{ //right blue
+                            "name": "right blue led",
+                            "color": "blue",
+                            "type": "led",
+                            "state": 0,    
+                            "abstract_state": "off"
+                    }, 
+
                     // the beam break detectors (pecks)
                     "cp": { // center peck
                             "name": "center peck",
@@ -73,6 +96,10 @@
                             "abstract_state": "nopeck"
                     }
             }
+            
+            var numLeds = 9;
+            
+            var numPecks = 1;
             
             socket.on('updateState', function(data) {
                 sync(data);
@@ -91,9 +118,29 @@
         </div>
     </body>
     <script>
+    
+        var w = window.innerWidth * 0.4;
+        var h = window.innerHeight * 0.3;
+        
+        var xLedScale = d3.scale.ordinal()
+                       .domain(d3.range(numLeds))
+                       .rangeRoundBands([0, w], 0.15);
+                       
+        var xOmniScale = d3.scale.ordinal()
+                       .domain(d3.range(numLeds/3))
+                       .rangeRoundBands([0, w], 0.05);
+        
+        var xPeckScale = d3.scale.ordinal()
+                       .domain(d3.range(numPecks))
+                       .rangeRoundBands([0, w], 0.02);
+                       
+        var yScale = d3.scale.ordinal()
+                    .domain(d3.range(5))
+                    .rangeRoundBands([0,h], 0.1)
+        
         var svg = d3.select("#page1")
                     .append("svg")
-                    .attr("width", "25%")
+                    .attr("width", w)
                     .attr("height", "40%")
                     .attr("display","block")
                     .attr("style", "margin-left: auto; margin-right: auto")
@@ -110,17 +157,13 @@
             })
                 .attr("class", "led")
                 .attr("x", function(d, i) {
-                if (i < 3) {
-                    return (i * 26) + 40;
-                } else {
-                    return (i * 26) + 50;
-                }
+                     return xLedScale(i);
             })
-                .attr("y", 60)
-                .attr("width", 20)
-                .attr("height", 20)
+                .attr("y", yScale(2))
+                .attr("width", xLedScale.rangeBand())
+                .attr("height", yScale.rangeBand())
                 .attr("fill", function(d, i) {
-                var color = getColor(0, i);
+                    var color = getColor(0, i);
                 return color;
             })
                 .attr("stroke", function(d, i) {
@@ -151,13 +194,12 @@
                 .append("rect")
             .filter(function(d){if (d.color == "red") return d;})
                 .attr("class", "omni")
-                .attr("x", function (d, i) {
-                if (i == 0) return 40;
-                else return 128;
-            })
-                .attr("y", 35)
-                .attr("width", 72)
-                .attr("height", 20)
+                .attr("x", function(d, i) {
+                    return xOmniScale(i);
+                 })
+                .attr("y", yScale(1))
+                .attr("width", xOmniScale.rangeBand())
+                .attr("height", yScale.rangeBand())
                 .attr("fill", "black");
                 
                     
@@ -171,10 +213,12 @@
                 if (d.type == "beambreak") return d;
             })
                 .attr("class", "peck")
-                .attr("x", 40)
-                .attr("y", 87)
-                .attr("width", 161)
-                .attr("height", 20)
+                .attr("x", function(d,i) {
+                    return xPeckScale(i);
+                })
+                .attr("y", yScale(3) )
+                .attr("width",  xPeckScale.rangeBand())
+                .attr("height", yScale.rangeBand())
                 .attr("color", "black")
                 .attr("stroke", "orange")
                 .attr("stroke-width", "0")
@@ -194,7 +238,19 @@
                     updateServer();
                 }
             });
+            
 
+        function countType(data, targetType) {
+            var i = 0;
+            var count = 0;
+            
+            var data = d3.values(data);
+            
+            for (i; i <= data.length; i++) {
+                if (data[i].type == "led") count += 1;
+            }
+            return count;
+        }
 
         function updateServer() {
             //update(dataset);
@@ -202,30 +258,38 @@
         }
         
         function getColor(d, i) {
-            color = [0,0,0];
-            if (i > 2) i -= 3;
-            if (d.state == 1 || d == 1) {
-                color[i] = 225;
-                return "rgb("+color+")";
-            } else {
-                color[i] = 90;
-                return "rgb("+color+")";
-            }
+            var color;
+            var brightness;
+            
+            if (d.state == 1 || d == 1) brightness = 225;
+            else brightness = 90
+            
+            if (d.color == "red" || i % 3 == 0) color = [brightness,0,0];
+            else if (d.color == "green" || i % 3 == 1) color = [0,brightness,0];
+            else if (d.color == "blue" || i % 3 == 2) color = [0,0,brightness];
+            
+            return "rgb("+color+")";
         }
         
         function updateOmni() {    
 
-            var right = [225*starboard.rcr.state,
-                        225*starboard.rcg.state,
-                        225*starboard.rcb.state];
+            var left = [225*starboard.lcr.state,
+                        225*starboard.lcg.state,
+                        225*starboard.lcb.state];
+                        
             var center = [225*starboard.ccr.state,
                           225*starboard.ccg.state,
                           225*starboard.ccb.state];
             
+            var right = [225*starboard.rcr.state,
+                          225*starboard.rcg.state,
+                          225*starboard.rcb.state];
+            
             svg.selectAll(".omni")
                 .attr("fill", function(d,i){
-                    if (i == 0) return "rgb("+right+")";
-                    else return "rgb("+center+")"
+                    if (i == 0) return "rgb("+left+")";
+                    else if (i==1) return "rgb("+center+")";
+                    else return "rgb("+right+")"
             });
         }
         
@@ -240,16 +304,30 @@
         function sync(data) {
                 starboard.rcr.state = data.rcr.state;
                 starboard.rcr.abstract_state = data.rcr.abstract_state;
+                
                 starboard.rcg.state = data.rcg.state;
                 starboard.rcg.abstract_state = data.rcg.abstract_state;
+                
                 starboard.rcb.state = data.rcb.state;
                 starboard.rcb.abstract_state = data.rcb.abstract_state;
+                
                 starboard.ccr.state = data.ccr.state;
                 starboard.ccr.abstract_state = data.ccr.abstract_state;
+                
                 starboard.ccg.state = data.ccg.state;
                 starboard.ccg.abstract_state = data.ccg.abstract_state;
+                
                 starboard.ccb.state = data.ccb.state;
                 starboard.ccb.abstract_state = data.ccb.abstract_state;
+                
+                starboard.lcr.state = data.lcr.state;
+                starboard.lcr.abstract_state = data.ccr.abstract_state;
+                
+                starboard.lcg.state = data.lcg.state;
+                starboard.lcg.abstract_state = data.lcg.abstract_state;
+                
+                starboard.lcb.state = data.lcb.state;
+                starboard.lcb.abstract_state = data.lcb.abstract_state;
                 
                 starboard.cp.state = data.cp.state;
                 starboard.cp.abstract_state = data.cp.state;
