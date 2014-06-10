@@ -1,0 +1,91 @@
+{
+    "lcr": {
+        "name": "left red led",
+        "pin_header": "GPIO2_10",
+        "pin_number": "P8_41",
+        "type": "led",
+        "color": "red",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "lcg": {
+        "name": "left green led",
+        "pin_header": "GPIO2_11",
+        "pin_number": "P8_42",
+        "type": "led",
+        "color": "green",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "lcb": {
+        "name": "left blue led",
+        "pin_header": "GPIO1_29",
+        "pin_number": "P8_26",
+        "color": "blue",
+        "type": "led",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "ccr": {
+        "name": "center red led",
+        "pin_header": "EHRPWM2A",
+        "pin_number": "P8_19",
+        "type": "led",
+        "color": "red",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "ccg": {
+        "name": "center green led",
+        "pin_header": "GPIO2_1",
+        "pin_number": "P8_18",
+        "type": "led",
+        "color": "green",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "ccb": {
+        "name": "center blue led",
+        "pin_header": "GPIO0_27",
+        "pin_number": "P8_17",
+        "type": "led",
+        "color": "blue",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "rcr": {
+        "name": "right red led",
+        "pin_header": "GPIO1_14",
+        "pin_number": "P8_16",
+        "type": "led",
+        "color": "red",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "rcg": {
+        "name": "right green led",
+        "pin_header": "GPIO1_15",
+        "pin_number": "P8_15",
+        "type": "led",
+        "color": "green",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "rcb": {
+        "name": "right blue led",
+        "pin_header": "GPIO0_26",
+        "pin_number": "P8_14",
+        "type": "led",
+        "color": "blue",
+        "state": "0",
+        "abstract_state": "off"
+    },
+    "cp": {
+        "name": "center peck",
+        "pin_header":"GPIO2_8",
+        "pin_number":"P8_43",
+        "type": "beambreak",
+        "state": "1",
+        "abstract_state": "nopeck"
+    }
+}
