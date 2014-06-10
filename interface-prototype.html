@@ -18,88 +18,18 @@
         <script>
             var socket = io.connect();
             // Send data through socket
-
-            var initialState = [0,0,0,0,0,0];
             
- var starboard = {    // the  six leds
-                    "lcr": { // left red
-                            "name": "left red led",
-                            "type": "led",
-                            "color": "red",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "lcg":{ // left green
-                            "name": "left green led",
-                            "type": "led",
-                            "color": "green",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "lcb":{ //left blue
-                            "name": "left blue led",
-                            "color": "blue",
-                            "type": "led",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    },
-
-                    "ccr":{ // center red
-                            "name": "center red led",
-                            "type": "led",
-                            "color": "red",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    }, 
-                    "ccg":{ // center green
-                            "name": "center green led",
-                            "type": "led",
-                            "color": "green",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "ccb":{ //center blue
-                            "name": "center blue led",
-                            "type": "led",
-                            "color": "blue",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    },
-                    "rcr": { // right red
-                            "name": "right red led",
-                            "type": "led",
-                            "color": "red",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-
-                    "rcg":{ // right green
-                            "name": "right green led",
-                            "type": "led",
-                            "color": "green",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "rcb":{ //right blue
-                            "name": "right blue led",
-                            "color": "blue",
-                            "type": "led",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    }, 
-
-                    // the beam break detectors (pecks)
-                    "cp": { // center peck
-                            "name": "center peck",
-                            "type": "beambreak",
-                            "state": 1,
-                            "abstract_state": "nopeck"
-                    }
-            }
+            var starboard;
             
             var numLeds = 9;
-            
             var numPecks = 1;
+            
+            d3.json("starboard_json", function(error, json) {
+                if (error) console.warn(error);
+                starboard = json;
+                drawInterface();
+                update();
+            });
             
             socket.on('updateState', function(data) {
                 sync(data);
@@ -118,9 +48,11 @@
         </div>
     </body>
     <script>
-    
-        var w = window.innerWidth * 0.4;
-        var h = window.innerHeight * 0.3;
+    var svg;
+
+    function drawInterface(){
+        var w = window.innerWidth * 0.7;
+        var h = w * 0.5626;
         
         var xLedScale = d3.scale.ordinal()
                        .domain(d3.range(numLeds))
@@ -138,10 +70,10 @@
                     .domain(d3.range(5))
                     .rangeRoundBands([0,h], 0.1)
         
-        var svg = d3.select("#page1")
+        svg = d3.select("#page1")
                     .append("svg")
                     .attr("width", w)
-                    .attr("height", "40%")
+                    .attr("height", h)
                     .attr("display","block")
                     .attr("style", "margin-left: auto; margin-right: auto")
                     .attr("margin-right","auto");
@@ -239,7 +171,7 @@
                 }
             });
             
-
+    }
         function countType(data, targetType) {
             var i = 0;
             var count = 0;

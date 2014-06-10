@@ -3,114 +3,26 @@ var app = require('http').createServer(handler);
 var io = require('socket.io').listen(app);
 var fs = require('fs');
 var b = require('bonescript');
+var favicon = require('serve-favicon');
+var _favicon = favicon('favicon.ico');
 
-app.listen(8000);
+var port = 8000;
+app.listen(port);
 
-// socket.io options go here
-//io.set('log level', 2); // reduce logging - set 1 for warn, 2 for info, 3 for debug
-//io.set('browser client minification', true); // send minified client
-//io.set('browser client etag', true); // apply etag caching logic based on version number
+console.log('Server running on: http://' + getIPAddress() + ':' + port);
 
-console.log('Server running on: http://' + getIPAddress() + ':8000');
+// Set the starboard model
+var starboard = require("./starboard01.json");
 
+// Initialize LEDS
+var LEFT_RED, LEFT_GRN, LEFT_BLU;
+var CENT_RED, CENT_GRN, CENT_BLU; 
+var RGHT_RED, RGHT_GRN, RGHT_BLU;
 
-var LEFT_RED = "P8_41";
-var LEFT_GRN = "P8_42";
-var LEFT_BLU = "P8_26";
+// Initialize beambreaks
+var CENT_PECK;
 
-var CENT_RED = "P8_19";
-var CENT_GREEN = "P8_18";
-var CENT_BLU = "P8_17";
-var CENT_PECK = "P8_43";
-
-var RGHT_RED = "P8_16";
-var RGHT_GRN = "P8_15";
-var RGHT_BLU = "P8_14";
-
-b.pinMode(CENT_PECK, b.INPUT, 7, 'pullup');
-
-var pins = [LEFT_RED, LEFT_GRN, LEFT_BLU, CENT_RED, CENT_GREEN, CENT_BLU, RGHT_RED, RGHT_GRN, RGHT_BLU];
-configOutput(pins);
-
- var starboard = {    // the  six leds
-                    "lcr": { // left red
-                            "name": "left red led",
-                            "type": "led",
-                            "color": "red",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "lcg":{ // left green
-                            "name": "left green led",
-                            "type": "led",
-                            "color": "green",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "lcb":{ //left blue
-                            "name": "left blue led",
-                            "color": "blue",
-                            "type": "led",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    },
-
-                    "ccr":{ // center red
-                            "name": "center red led",
-                            "type": "led",
-                            "color": "red",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    }, 
-                    "ccg":{ // center green
-                            "name": "center green led",
-                            "type": "led",
-                            "color": "green",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "ccb":{ //center blue
-                            "name": "center blue led",
-                            "type": "led",
-                            "color": "blue",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    },
-                    "rcr": { // right red
-                            "name": "right red led",
-                            "type": "led",
-                            "color": "red",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-
-                    "rcg":{ // right green
-                            "name": "right green led",
-                            "type": "led",
-                            "color": "green",
-                            "state": 0, 
-                            "abstract_state": "off",
-                    }, 
-                    "rcb":{ //right blue
-                            "name": "right blue led",
-                            "color": "blue",
-                            "type": "led",
-                            "state": 0,    
-                            "abstract_state": "off"
-                    }, 
-
-                    // the beam break detectors (pecks)
-                    "cp": { // center peck
-                            "name": "center peck",
-                            "type": "beambreak",
-                            "state": 1,
-                            "abstract_state": "nopeck"
-                    }
-            }
-
-
-// I should probably change the update procedure to use attachIntterutps...
-b.attachInterrupt(CENT_PECK, true, b.CHANGE, updateClients);
+setup(starboard);
 
 io.sockets.on('connection', function(socket) {
   // listen to sockets and write analog values to LED's
@@ -120,12 +32,33 @@ io.sockets.on('connection', function(socket) {
   });
 });
 
+function setup(board) {
+  LEFT_RED = board.lcr.pin_number;
+  LEFT_GRN = board.lcg.pin_number;
+  LEFT_BLU = board.lcb.pin_number;
+  
+  CENT_RED = board.ccr.pin_number;
+  CENT_GRN = board.ccg.pin_number;
+  CENT_BLU = board.ccb.pin_number;
+  
+  RGHT_RED = board.rcr.pin_number;
+  RGHT_GRN = board.rcg.pin_number;
+  RGHT_BLU = board.rcb.pin_number;
+  
+  var outpins = [LEFT_RED, LEFT_GRN, LEFT_BLU, CENT_RED, CENT_GRN, CENT_BLU, RGHT_RED, RGHT_GRN, RGHT_BLU];
+  configOutput(outpins);
+  
+  CENT_PECK = board.cp.pin_number;
+  
+  b.pinMode(CENT_PECK, b.INPUT, 7, 'pullup');
+  b.attachInterrupt(CENT_PECK, true, b.CHANGE, updateClients);
+}
+
 function updateClients() {
   readAllStates();
   io.sockets.emit('updateState', starboard);
   console.log("State updated");
 }
-
 
 // turns the physical leds on or off
 function writeAllStates(data) {
@@ -135,7 +68,7 @@ function writeAllStates(data) {
   writeState(data.lcb, LEFT_BLU);
   
   writeState(data.ccr, CENT_RED);
-  writeState(data.ccg, CENT_GREEN);
+  writeState(data.ccg, CENT_GRN);
   writeState(data.ccb, CENT_BLU);
   
   writeState(data.rcr, RGHT_RED);
@@ -154,7 +87,7 @@ function readAllStates() {
   readState(starboard.lcg, LEFT_GRN);
   
   readState(starboard.ccr, CENT_RED);
-  readState(starboard.ccg, CENT_GREEN);
+  readState(starboard.ccg, CENT_GRN);
   readState(starboard.ccb, CENT_BLU);
 
   readState(starboard.rcr, RGHT_RED);
@@ -164,6 +97,7 @@ function readAllStates() {
   readState(starboard.cp, CENT_PECK);
 }
 
+// reads the LED states
 function readState(device, port) {
   device.state = b.digitalRead(port);
   if (device.type == "led") {
@@ -187,12 +121,18 @@ function configOutput(pins) {
 // the handler
 function handler(req, res) {
   if (req.url == "/favicon.ico") { // handle requests for favico.ico
-    res.writeHead(200, {
-      'Content-Type': 'image/x-icon'
-    });
+    _favicon(req, res, function onNext(err) {
+    if (err) {
+      res.statusCode = 500;
+      res.end();
+      return;
+    }
+  });
+  }
+  if (req.url == "/starboard_json"){
+    res.writeHead(200, { 'content-type': 'application/json'});
+    res.write(JSON.stringify(starboard));
     res.end();
-    console.log('favicon requested');
-    return;
   }
   fs.readFile('interface-prototype.html', // load html file
   function(err, data) {
