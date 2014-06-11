@@ -13,15 +13,16 @@ console.log('Server running on: http://' + getIPAddress() + ':' + port);
 
 // Set the starboard model
 var starboard = require("./starboard01.json");
-var starstate;
+var starstate = {};
 
 setup(starboard);
 
 io.sockets.on('connection', function(socket) {
   // listen to sockets and write analog values to LED's
   socket.on('updateServer', function(data) {
-    writeAllStates(data);
-    updateClients();
+    var change = data[0];
+    writeAllStates(data[1]);
+    updateClients(change);
   });
 });
 
@@ -45,7 +46,7 @@ function setup(board) {
 
   configLEDS(outpins);
   configBeambreaks(inpins);
-
+  getAllStates(starboard);
 }
 
 // configure leds as outputs and set all low
@@ -60,40 +61,34 @@ function configLEDS(pins) {
 function configBeambreaks(pins) {
   for (var i = 0; i < pins.length; i++) {
     b.pinMode(pins[i], b.INPUT, 7, 'pullup');
-    b.attachInterrupt(pins[i], true, b.CHANGE, updateClients);
+    b.attachInterrupt(pins[i], true, b.CHANGE, function(){
+      return updateClients("cp");
+    });
   }
+}
+
+// updates starboard states into state dictionary
+function getAllStates(board){
+  for (device in board) {
+    getState(device);
+  }
+}
+
+function getState(device){
+  starstate[device] = b.digitalRead(starboard[device].pin_number);
 }
 
 // turns the physical leds on or off
 function writeAllStates(data) {
-
   for (var device in data) {
-    if (data[device].type == "led") {
-      writeState(data[device]);
+    if (starboard[device].type == "led") {
+      writeState(data, device);
     }
   }
 }
 
-function writeState(device) {
-  b.digitalWrite(device.pin_number, device.state);
-}
-
-// sets the LED states
-function readAllStates() {
-  for (device in starboard) {
-    readState(starboard[device]);
-  }
-}
-function readState(device) {
-  device.state = b.digitalRead(device.pin_number);
-  if (device.type == "led") {
-    if (device.state == 0) device.abstract_state = "off";
-    else device.abstract_state = "on";
-  }
-  else if (device.type == "beambreak") {
-    if (device.state == 1) device.abstract_state = "nopeck";
-    else device.abstract_state = "peck";
-  }
+function writeState(data, device) {
+  b.digitalWrite(starboard[device].pin_number, data[device]);
 }
 
 // the handler
@@ -112,6 +107,14 @@ function handler(req, res) {
       'content-type': 'application/json'
     });
     res.write(JSON.stringify(starboard));
+    res.end();
+  }
+  if (req.url == "/starstate") {
+    getAllStates();
+    res.writeHead(200, {
+      'content-type': 'application/json'
+    });
+    res.write(JSON.stringify(starstate));
     res.end();
   }
   fs.readFile('interface-prototype.html', // load html file
@@ -138,9 +141,20 @@ function getIPAddress() {
   return '0.0.0.0';
 }
 
+function printState(device){
+  var statement = "";
+  if (starboard[device].type == "led") {
+    statement = starstate[device] == 1 ? "on" : "off"
+  } else if (starboard[device].type == "beambreak") {
+    statement = starstate[device] == 1 ? "beam unbroken" : "beam broken (peck)";
+  }
+  return statement; 
+}
+
 // tells the client the current state
-function updateClients() {
-  readAllStates();
-  io.sockets.emit('updateState', starboard);
-  console.log("State updated");
+function updateClients(change) {
+  getAllStates(starboard);
+  io.sockets.emit('updateState', starstate);
+  console.log("\nstate updated\n\t" + starboard[change].name+" : "+printState(change));
+
 }

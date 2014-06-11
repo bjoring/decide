@@ -24,20 +24,27 @@
             
         var numLeds = 9;
         var numPecks = 1;
+        
+        var starstate;
             
         d3.json("starboard", function(error, json) {
         if (error) console.warn(error);
-        starboard = json;
-            drawInterface();
+            starboard = json;
+        });
+        
+        d3.json("starstate", function(error, json) {
+        if (error) console.warn(error);
+            starstate=json;
+                drawInterface();
             update();
         });
             
         socket.on('updateState', function(data) {
             peckSync(data);
+            starstate = data;
             update();
         });
-            
-        
+                    
         </script>
     </head>
     
@@ -112,15 +119,15 @@
                     .on("mouseout", function() {
                     return d3.select(this).attr("stroke-width", "0");
                 })
-                .on("click", function(d, i) {
-                    if (d.state == 0) {
-                        d.state = 1;
-                        updateServer();
+                    .on("click", function(d) {
+                    if (starstate[d.key] == 0) {
+                        starstate[d.key] = 1;
+                        updateServer([d.key,starstate]);
                     } else {
-                        d.state = 0;
-                        updateServer();
+                        starstate[d.key] = 0;
+                        updateServer([d.key,starstate]);
                     }
-                });
+                    });
                 
                 svg.selectAll(".omni")
                     .data(d3.values(starboard))
@@ -164,11 +171,8 @@
                     return d3.select(this).attr("stroke-width", "0");
                 })
                     .on("click", function(d) {
-                    if (d == 0) {
-                        d.state = 0;
-                        updateServer();
-                    } else {
-                        d.state = 1;
+                    if (starstate[d.key] == 1) {
+                        starstate[d.key] = 0;
                         updateServer();
                     }
                 });
@@ -187,16 +191,15 @@
                 return count;
             }
     
-        function updateServer() {
-                socket.emit("updateServer", starboard);
-                
+        function updateServer(data) {
+                socket.emit("updateServer", data);
             }
             
         function getColor(d, i) {
                 var color;
                 var brightness;
                 
-                if (d.state == 1 || d == 1) brightness = 225;
+                if (starstate[d.key] == 1 || d == 1) brightness = 225;
                 else brightness = 90
                 
                 if (d.color == "red" || i % 3 == 0) color = [brightness,0,0];
@@ -207,17 +210,17 @@
             }
             
         function updateOmni() {    
-                var left = [225*starboard.lcr.state,
-                            225*starboard.lcg.state,
-                            225*starboard.lcb.state];
+                var left = [225*starstate.lcr,
+                            225*starstate.lcg,
+                            225*starstate.lcb];
                             
-                var center = [225*starboard.ccr.state,
-                              225*starboard.ccg.state,
-                              225*starboard.ccb.state];
+                var center = [225*starstate.ccr,
+                              225*starstate.ccg,
+                              225*starstate.ccb];
                 
-                var right = [225*starboard.rcr.state,
-                              225*starboard.rcg.state,
-                              225*starboard.rcb.state];
+                var right = [225*starstate.rcr,
+                              225*starstate.rcg,
+                              225*starstate.rcb];
                 
                 svg.selectAll(".omni")
                     .attr("fill", function(d,i){
@@ -230,14 +233,14 @@
         function updatePeck() {
                 svg.selectAll(".peck")
                 .attr("fill", function(d,i){
-                        if (d.state == 1) return "black";
+                        if (starstate[d.key] == 1) return "black";
                         else return "orange";
                     });
             }
         
         function peckSync(data) {
-                    starboard.cp.state = data.cp.state;
-                    starboard.cp.abstract_state = data.cp.state;
+                    starstate.cp = data.cp;
+                    starstate.cp = data.cp;
                 }
         
         function update() {

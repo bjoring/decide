@@ -5,7 +5,7 @@
         "pin_number": "P8_41",
         "type": "led",
         "color": "red",
-        "default_state": "off"
+        "key":"lcr"
     },
     "lcg": {
         "name": "left green led",
@@ -13,7 +13,7 @@
         "pin_number": "P8_42",
         "type": "led",
         "color": "green",
-        "default_state": "off"
+        "key":"lcg"
     },
     "lcb": {
         "name": "left blue led",
@@ -21,7 +21,7 @@
         "pin_number": "P8_26",
         "color": "blue",
         "type": "led",
-        "default_state": "off"
+        "key":"lcb"
     },
     "ccr": {
         "name": "center red led",
@@ -29,7 +29,7 @@
         "pin_number": "P8_19",
         "type": "led",
         "color": "red",
-        "default_state": "off"
+        "key":"ccr"
     },
     "ccg": {
         "name": "center green led",
@@ -37,7 +37,7 @@
         "pin_number": "P8_18",
         "type": "led",
         "color": "green",
-        "default_state": "off"
+        "key":"ccg"
     },
     "ccb": {
         "name": "center blue led",
@@ -45,7 +45,7 @@
         "pin_number": "P8_17",
         "type": "led",
         "color": "blue",
-        "default_state": "off"
+        "key":"ccb"
     },
     "rcr": {
         "name": "right red led",
@@ -53,7 +53,7 @@
         "pin_number": "P8_16",
         "type": "led",
         "color": "red",
-        "default_state": "off"
+        "key":"rcr"
     },
     "rcg": {
         "name": "right green led",
@@ -61,7 +61,7 @@
         "pin_number": "P8_15",
         "type": "led",
         "color": "green",
-        "default_state": "off"
+        "key":"rcg"
     },
     "rcb": {
         "name": "right blue led",
@@ -69,12 +69,13 @@
         "pin_number": "P8_14",
         "type": "led",
         "color": "blue",
-        "default_state": "off"
+        "key":"rcb"
     },
     "cp": {
         "name": "center peck",
         "pin_header":"GPIO2_8",
         "pin_number":"P8_43",
-        "type": "beambreak"
+        "type": "beambreak",
+        "key":"cp"
     }
 }
