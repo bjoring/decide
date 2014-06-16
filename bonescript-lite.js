@@ -1,12 +1,23 @@
 /*
- * lightweight replacement for bonescript. Assumes you have everything set up
- * via device tree overlay
+ * lightweight replacement for bonescript using gpio-led and gpio-key drivers
  */
 
 var fs = require('fs');
+var glob = require("glob");
 var debug = process.env.DEBUG ? true : false;
 
 var f = {};
+
+f.init_overlay = function(board, revision) {
+  // loads the device tree overlay, if it hasn't been already
+  var capemgr = glob.sync("/sys/devices/bone_capemgr.*");
+  var slots = fs.readFileSync(capemgr[0] + "/slots");
+  // not a very good test
+  var re = new RegExp(board);
+  if (re.exec(slots))
+    return;
+  fs.writeFileSync(capemgr[0] + "/slots", board + ":" + revision);
+}
 
 f.read_eeprom = function(addr) {
   // reads the contents of a cape eeprom on the i2c bus at addr and returns the
@@ -16,9 +27,8 @@ f.read_eeprom = function(addr) {
   var buf = new Buffer(244);
   fs.readSync(fd, buf, 0, 244, 0);
   return {
-    // TODO strip nulls
-    "board": buf.toString('ascii', 6, 6+32),
-    "part": buf.toString('ascii', 58, 58+16),
+    "board": buf.toString('ascii', 6, 6+32).replace(/\u0000/g,""),
+    "part": buf.toString('ascii', 58, 58+16).replace(/\u0000/g,""),
     "revision": buf.toString("ascii", 38, 38+4),
     "serial": buf.toString("ascii", 76, 76+12)
   }
@@ -137,4 +147,4 @@ f.led_oneshot = function(led, ms_on, callack) {
 
 module.exports = f;
 
-console.log(f.read_eeprom('1-0054'));
+
