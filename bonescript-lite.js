@@ -1,5 +1,13 @@
 /*
- * lightweight replacement for bonescript using gpio-led and gpio-key drivers
+ * lightweight replacement for bonescript using gpio-led and gpio-key drivers.
+ *
+ * example:
+ * var b = require("./bonescript-lite");
+ * // if cape not already loaded
+ * var cape = b.read_eeprom("1-0054");
+ * b.init_overlay(cape.part, cape.revision);
+ * // turn on center green led
+ * b.led_write("starboard:center:green", 1, console.log)
  */
 
 var fs = require('fs');
@@ -20,8 +28,7 @@ f.init_overlay = function(board, revision) {
 }
 
 f.read_eeprom = function(addr) {
-  // reads the contents of a cape eeprom on the i2c bus at addr and returns the
-  // contents
+  // Returns the contents of a cape eeprom on the i2c bus at addr
   var path = "/sys/bus/i2c/devices/" + addr + "/eeprom";
   var fd = fs.openSync(path, "r");
   var buf = new Buffer(244);
@@ -39,16 +46,17 @@ f.gpio_monitor = function(dev, callback) {
   // inputs that have been defined with gpio-keys in the device tree. For each
   // rising or falling event, callback is called with the timestamp [seconds,
   // microseconds], the key code, and the value (1 for falling and 0 for
-  // rising).
-  //
-  // TODO: method to detach?
+  // rising). Dev is usually input1 for the BBB.
+
 
   var EV_KEY = 1;
 
   var bufsize = 24;
   var buf = new Buffer(bufsize);
+  var fd;
 
-  function reader(err, fd) {
+  function reader(err, fdx) {
+    fd = fdx;
     if (err) {
       callback(err, null);
       return;
@@ -61,11 +69,14 @@ f.gpio_monitor = function(dev, callback) {
           'value': buf.readUInt32LE(20)
         });
       }
-      reader(err, fd);
+      if (fd !== null)
+        reader(err, fd);
     });
   }
+  reader.close = function() { fd = null; };
 
   fs.open("/dev/input/" + dev, "r", reader);
+  return reader;
 };
 
 f.led_read = function(led, callback) {
