@@ -24,7 +24,7 @@ logger.on("logging", function (transport, level, msg, meta) {
   });
 
 // Set the starboard model
-var all_starboards = require("./dummyboard-bl.json");
+var all_starboards = require("./starboards.json");
 var starboard = all_starboards["00a1"];
 var starstate = {};
 var leds = {};
