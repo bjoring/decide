@@ -1,0 +1,149 @@
+{
+"sb00a1": {
+    "lcr": {
+        "name": "left red led",
+        "id": "starboard:left:red",
+        "pin": "GPIO2_10",
+        "pin_name": "P8_41",
+        "type": "led",
+        "io":"output",
+        "color": "red",
+        "key":"lcr"
+    },
+    "lcg": {
+        "name": "left green led",
+        "id": "starboard:left:green",
+        "pin": "GPIO2_11",
+        "pin_name": "P8_42",
+        "type": "led",
+        "io":"output",
+        "color": "green",
+        "key":"lcg"
+    },
+    "lcb": {
+        "name": "left blue led",
+        "id": "starboard:left:blue",
+        "pin": "GPIO1_29",
+        "pin_name": "P8_26",
+        "color": "blue",
+        "io":"output",
+        "type": "led",
+        "io":"output",
+        "key":"lcb"
+    },
+    "ccr": {
+        "name": "center red led",
+        "id": "starboard:center:red",
+        "pin": "EHRPWM2A",
+        "pin_name": "P8_19",
+        "type": "led",
+        "io":"output",
+        "color": "red",
+        "key":"ccr"
+    },
+    "ccg": {
+        "name": "center green led",
+        "id": "starboard:center:green",
+        "pin": "GPIO2_1",
+        "pin_name": "P8_18",
+        "type": "led",
+        "io":"output",
+        "color": "green",
+        "key":"ccg"
+    },
+    "ccb": {
+        "name":"center blue led",
+        "id": "starboard:center:blue",
+        "pin": "GPIO0_27",
+        "pin_name": "P8_17",
+        "type": "led",
+        "io":"output",
+        "color": "blue",
+        "key":"ccb"
+    },
+    "rcr": {
+        "name":"right red led",
+        "id": "starboard:right:red",
+        "pin": "GPIO1_14",
+        "pin_name": "P8_16",
+        "type": "led",
+        "io":"output",
+        "color": "red",
+        "key":"rcr"
+    },
+    "rcg": {
+        "name": "right green led",
+        "id": "starboard:right:green",
+        "pin": "GPIO1_15",
+        "pin_name": "P8_15",
+        "type": "led",
+        "io":"output",
+        "color": "green",
+        "key":"rcg"
+    },
+    "rcb": {
+        "name": "right blue led",
+        "id": "starboard:right:blue",
+        "pin": "GPIO0_26",
+        "pin_name": "P8_14",
+        "type": "led",
+        "io":"output",
+        "color": "blue",
+        "key":"rcb"
+    },
+    "lp": {
+        "id": "starboard::left-peck",
+        "name": "left peck",
+        "pin":"GPIO2_7",
+        "pin_name":"P8_46",
+        "type": "beambreak",
+        "io":"input",
+        "key":"lp"
+    },
+    "cp": {
+        "id":"starboard::center-peck",
+        "name": "center peck",
+        "pin":"GPIO2_8",
+        "pin_name":"P8_43",
+        "type": "beambreak",
+        "io":"input",
+        "key":"cp"
+    },
+    "rp": {
+        "id":"starboard::right-peck",
+        "name": "right peck",
+        "pin":"GPIO2_9",
+        "pin_name":"P8_44",
+        "type": "beambreak",
+        "io":"input",
+        "key":"rp"
+    },
+    "hl": {
+        "id":"starboard::lights",
+        "name": "house lights",
+        "pin":"EHRPWM2B",
+        "pin_name":"P8_13",
+        "type": "houselights",
+        "io":"output",
+        "key":"hl"
+    },
+    "lf": {
+        "id":"starboard:hopper:left",
+        "name": "left feed",
+        "pin":"GPIO1_12",
+        "pin_name":"P8_12",
+        "type": "feed",
+        "io":"output",
+        "key":"lf"
+    },
+    "rf": {
+        "id":"starboard:hopper:right",
+        "name": "right feed",
+        "pin":"GPIO1_13",
+        "pin_name":"P8_11",
+        "type": "feed",
+        "io":"output",
+        "key":"rf"
+    }
+}
+}

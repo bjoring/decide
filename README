@@ -34,9 +34,9 @@ Installation follows as such:
 
 1. Place all included files into the same folder. 
 
-2. Install socket.io. Inside the folder containing these files:
+2. Install the dependices. Inside the folder containing these files:
 
-        npm install socket.io
+        npm install socket.io winston  serve-favicon
 
 Starting the Interface
 ----------------------
