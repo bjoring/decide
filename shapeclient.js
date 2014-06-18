@@ -20,7 +20,8 @@ var logger = new(winston.Logger)({
 	transports: [
 	new(winston.transports.File)({
 		filename: shape_logfile,
-		json: true
+		json: true,
+		timestamp: false
 	}),
 	new(winston.transports.Console)()]
 });
@@ -30,9 +31,9 @@ logger.on("logging", function(transport, level, msg, meta) {
 });
 
 
-logger.info("Waiting for connection...");
+logger.info("Waiting for connection...",{timestamp: timeStamp()});
 socket.on('connect', function(socket) {
-	logger.info('Connected!');
+logger.info('Connected!',{timestamp: timeStamp()});
     
     startUp();
 });
@@ -71,7 +72,7 @@ var targetpeck;
 socket.on("simulatedPeck", function(peck) {
 	var b
 	if (peck.state == 0) {
-		logger.info(peck.name, "detected" + timeStamp());
+		logger.info(peck.name, "detected",{timestamp: timeStamp()});
 		if (peck.key == targetpeck && targetpeck == "cp") {
 			if (block == 1) return block1Exit(1);
 			if (block == 2) return block2Feed(1);
@@ -95,11 +96,10 @@ function block1() {
 		setTimeout(block1, 10500);
 		block1Count += 1;
 
-		logger.info('Beginning Block 1, Trial ' + block1Count + timeStamp());
-		socket.emit('tellClients', "block 1 - trial " + block1Count)
+		logger.info('Beginning Block 1, Trial ' + block1Count, {block:block, trial:block1Count, timestamp: timeStamp()});
 
 		// Look for center peck
-		logger.info('Waiting for center peck' + timeStamp());
+		logger.info('Waiting for center peck', {block:block, trial:block1Count, timestamp: timeStamp()});
 		targetpeck = "cp";
 
 		// Blink Center LEDS
@@ -108,7 +108,7 @@ function block1() {
 
 		// Raise Hopper if LEDS finishes blinking without center peck
 		var feedLogDelay = setTimeout(function() {
-			logger.info('Feeding bird' + timeStamp());
+			logger.info('Feeding bird', {block:block, trial:block1Count, timestamp: timeStamp()});
 		}, 5000);
 		var feedDelay = setTimeout(feeders.lf.raise, 5000);
 		var lowerDelay = setTimeout(feeders.lf.lower, 10000);
@@ -124,7 +124,7 @@ function block1Exit(x) {
 		clearTimeout(block1.feedDelay);
 		feeders.lf.raise();
 		var lowerDelay = setTimeout(feeders.lf.lower, 5000);
-		setTimeout(logger.info('Ending Block 1' + timeStamp()), 5000);
+		setTimeout(logger.info('Ending Block 1', {block:block, trial:block1Count, timestamp: timeStamp()}));
 		leds.ccg.stopBlink();
 	}
 }
@@ -133,10 +133,10 @@ function block2() {
 	hl.on();
 
 	block2Count += 1;
-	logger.info('Beginning Block 2, Trial ' + block2Count + ' of ' + block2Trials + timeStamp());
+	logger.info('Beginning Block 2, Trial ' + block2Count + ' of ' + block2Trials, {block:block, trial:block2Count, timestamp: timeStamp()});
 
 	//Blink center LEDS until center peck
-	logger.info('Waiting for center peck...' + timeStamp());
+	logger.info('Waiting for center peck...',{block:block, trial:block2Count, timestamp: timeStamp()});
 	leds.ccg.stopBlink();
 	blinkLEDS("ccg", 100);
 
@@ -147,7 +147,7 @@ function block2() {
 function block2Feed(x) {
 	if (x.value == 1 || x == 1) {
 		leds.ccg.stopBlink();
-		logger.info('Feeding bird', timeStamp());
+		logger.info('Feeding bird', {block:block, trial:block2Count, timestamp: timeStamp()});
 		feeders.lf.raise();
 		setTimeout(feeders.lf.lower, 4000);
 		setTimeout(checkB2Trials, 4500);
@@ -162,8 +162,8 @@ function block2Feed(x) {
 }
 
 function block2Exit() {
-	logger.info('Reached  max number of trials for Block 2 (' + block2Trials + ')' + timeStamp());
-	logger.info('Ending Block 2' + timeStamp() + '');
+	logger.info('Reached  max number of trials for Block 2 (' + block2Trials + ')',{block:block, trial:block2Count, timestamp: timeStamp()});
+	logger.info('Ending Block 2',{block:block, trial:block2Count, timestamp: timeStamp()});
 	block = 3;
 	leds.ccg.stopBlink();
 	return block3();
@@ -173,12 +173,12 @@ function block3() {
 	hl.on();
 
 	block3Count += 1;
-	logger.info('Beginning Block 3, Trial ' + block3Count + ' of ' + block3Trials + timeStamp());
+	logger.info('Beginning Block 3, Trial ' + block3Count + ' of ' + block3Trials,{block:block, trial:block3Count, timestamp: timeStamp()});
 
 	//Blink center LEDS until center peck
 	blinkLEDS("ccg", 100);
 	targetpeck = "cp";
-	logger.info('Waiting for center peck...' + timeStamp());
+	logger.info('Waiting for center peck...',{block:block, trial:block3Count, timestamp: timeStamp()});
 
 }
 
@@ -189,12 +189,12 @@ function block3Feed(x) {
 		var rand = Math.random();
 		leds.ccg.stopBlink();
 		if (rand < 0.5) {
-			logger.info('Feeding left' + timeStamp());
+			logger.info('Feeding left',{block:block, trial:block3Count, timestamp: timeStamp()});
 			feeders.lf.raise();
 			setTimeout(feeders.lf.lower, 3000);
 		}
 		else {
-			logger.info('Feeding right' + timeStamp());
+			logger.info('Feeding right',{block:block, trial:block3Count, timestamp: timeStamp()});
 			feeders.rf.raise();
 			setTimeout(feeders.rf.lower, 3000);
 		}
@@ -212,7 +212,7 @@ function checkB3Trials() {
 
 
 function block3Exit() {
-	logger.info('Reached  max number of trials for Block 3 (' + block3Trials + ')' + timeStamp());
+	logger.info('Reached  max number of trials for Block 3 (' + block3Trials + ')',{block:block, trial:block3Count, timestamp: timeStamp()});
 	logger.info('Ending Block 3' + timeStamp() + '');
 	block = 4;
 	return block4();
@@ -222,10 +222,10 @@ function block4() {
 	hl.on();
 
 	block4Count += 1;
-	logger.info('Beginning Block 4, Trial ' + block4Count + ' of ' + block4Trials + timeStamp());
+	logger.info('Beginning Block 4, Trial ' + block4Count + ' of ' + block4Trials,{block:block, trial:block4Count, timestamp: timeStamp()});
 
 	//Wait for center peck
-	logger.info('Waiting for center peck...' + timeStamp());
+	logger.info('Waiting for center peck...',{block:block, trial:block4Count, timestamp: timeStamp()});
 	targetpeck = "cp";
 }
 
@@ -239,12 +239,12 @@ function block4Flash(x) {
 		if (rand < 0.5) {
 			blinkLEDS("lcr", 100);
 			targetpeck = "lp";
-			logger.info('Waiting for left peck...' + timeStamp());
+			logger.info('Waiting for left peck...',{block:block, trial:block4Count, timestamp: timeStamp()});
 		}
 		else {
 			blinkLEDS("rcb", 100);
 			targetpeck = "rp";
-			logger.info('Waiting for right peck...' + timeStamp());
+			logger.info('Waiting for right peck...',{block:block, trial:block4Count, timestamp: timeStamp()});
 		}
 	}
 }
@@ -253,7 +253,7 @@ function block4FeedRight(x) {
 	if (x.value == 1 || x == 1) {
 		leds.rcb.stopBlink();
 		feeders.rf.raise();
-		logger.info('Feeding bird' + timeStamp());
+		logger.info('Feeding bird',{block:block, trial:block4Count, timestamp: timeStamp()});
 		setTimeout(feeders.rf.lower, 2500);
 		setTimeout(checkB4Trials, 3000);
 	}
@@ -263,7 +263,7 @@ function block4FeedLeft(x) {
 	if (x.value == 1 || x == 1) {
 		leds.lcr.stopBlink();
 		feeders.lf.raise();
-		logger.info('Feeding bird' + timeStamp());
+		logger.info('Feeding bird',{block:block, trial:block4Count, timestamp: timeStamp()});
 		setTimeout(feeders.lf.lower, 2500);
 		setTimeout(checkB4Trials, 3000);
 	}
@@ -277,10 +277,10 @@ function checkB4Trials() {
 }
 
 function block4Exit() {
-	logger.info('Reached  max number of trials for Block 4 (' + block4Trials + ')' + timeStamp());
-	logger.info('Ending Block 4' + timeStamp());
+	logger.info('Reached  max number of trials for Block 4 (' + block4Trials + ')',{block:block, trial:block4Count, timestamp: timeStamp()});
+	logger.info('Ending Block 4',{block:block, trial:block4Count, timestamp: timeStamp()});
 	block = 0;
-	logger.info('Shape Finished' + timeStamp());
+	logger.info('Shape Finished',{block:block, trial:block4Count, timestamp: timeStamp()});
 	logger.info("[Press 'Ctrl+C' to exit]");
 	hl.off();
 }
@@ -362,6 +362,6 @@ function timeStamp(time) {
 
 	var utcstamp = new Date(unixstamp);
 
-	return " - " + utcstamp.toJSON();
+	return utcstamp.toJSON();
 
 }

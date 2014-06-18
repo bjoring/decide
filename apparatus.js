@@ -24,7 +24,7 @@ app.listen(port);
 // Setup the logger
 var logger = new (winston.Logger)({
     transports: [
-      new (winston.transports.File)({ filename: 'apparatus.log', json:true }),
+      new (winston.transports.File)({ filename: 'apparatus.log', json:true, timestamp:false }),
       new(winston.transports.Console)()
     ]
 });
@@ -46,7 +46,7 @@ var blinktimer;
 setup(starboard);
 getAllStates(starboard);
 
-logger.info('Server running on: http://' + getIPAddress() + ':' + port);
+logger.info('Server running on: http://' + getIPAddress() + ':' + port,{timestamp:timeStamp()});
 
 io.sockets.on('connection', function(socket) {
   
@@ -59,7 +59,7 @@ io.sockets.on('connection', function(socket) {
     var change = data;
     var requestTime = timestamp;
 
-    logger.info("client request - " + starboard[change.key].name + " : " + printState(change) + timeStamp(requestTime));
+    logger.info("client request - " + starboard[change.key].name + " : " + printState(change), {timestamp: timeStamp(requestTime)});
     changeState(change);
   });
 
@@ -69,12 +69,12 @@ io.sockets.on('connection', function(socket) {
 
     starstate[change.key] = change.state;
 
-    logger.info("client request: simulate " + starboard[change.key].name + timeStamp(requestTime) );
+    logger.info("client request: simulate " + starboard[change.key].name, {timestamp: timeStamp(requestTime)});
 
     var updatestamp = Date.now();
     io.sockets.emit('updateState', starstate);
     io.sockets.emit('simulatedPeck', change);
-    logger.info(starboard[change.key].name,"simulated" + timeStamp(updatestamp));
+    logger.info(starboard[change.key].name,"simulated",{timestamp:timeStamp(updatestamp)});
     
     starstate[change.key] = 1;
   });
@@ -221,7 +221,7 @@ function printState(device) {
 function updateClients(change, updatestamp) {
   io.sockets.emit('updateState', starstate);
   if (change && updatestamp && !change.surpress) {
-    logger.info("state updated - " + starboard[change.key].name + " : " + printState(change) + timeStamp(updatestamp));
+    logger.info("state updated - " + starboard[change.key].name + " : " + printState(change), {timestamp: timeStamp(updatestamp)});
   }
 
 }
@@ -269,7 +269,7 @@ function blinkLED(led, rate, duration) {
   clearInterval(blinktimer);
   blinktimer = setInterval(led.toggle, rate);
   if (duration > 0) setTimeout(led.stopBlink, duration);
-  logger.info("blinking",starboard[led.key].name,"every",rate+"ms" + timeStamp());
+  logger.info("blinking",starboard[led.key].name,"every",rate+"ms",{timestamp: timeStamp()});
 }
 
 // feeder object
@@ -299,6 +299,6 @@ function timeStamp(time) {
   
   var utcstamp = new Date(unixstamp);
   
-  return " - " + utcstamp.toJSON();
+  return utcstamp.toJSON();
   
 }

@@ -272,10 +272,10 @@
             d3.select('#page1').append('div')
                                 .attr("id", "consolecontain")
                                 .attr('style',"width:67%; margin-left: auto;margin-right: auto; font-family:Lucida Console; font-size:small;");
-            
+            d3.select('#consolecontain').append("h2").text("Apparatus Log:");
             d3.select('#consolecontain').append('div')
                         .attr("id","appconsole")
-                        .attr('style','display:inline-block; height:300px; width: 49%;margin: 0 auto;overflow-y:auto;');
+                        .attr('style','display:inline-block; height:300px; width: 49%;margin: 0 auto;overflow-y:auto;')
                         
             d3.select('#consolecontain').append('div')
                         .attr("id","shapeconsole")
