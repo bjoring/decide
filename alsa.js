@@ -1,7 +1,7 @@
 /* play files to the sound card */
 var cp = require("child_process");
 
-function play_sound(path, callback, device) {
+function play_sound(path, device, callback) {
   // Starts playing the wave file at path. Calls callback(error, data) when
   // playback starts and ends. Requires aplay. Plays to default ALSA device
   // unless otherwise specified.

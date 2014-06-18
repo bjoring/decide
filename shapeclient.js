@@ -3,24 +3,23 @@ var io = require('socket.io-client');
 var socket = io.connect('http://localhost:8000');
 var winston = require('winston');
 
-// set default number of blocks and trials
+// set default number for command line argument variables
 var block = 1;
 var trials = 5;
-
-// force run flag
-var forcerun = 0;
+var shape_logfile = "shape.log";
 
 // print process.argv
 process.argv.forEach(function(val, index, array) {
     if (val == "-b") block = array[index+1];
     else if (val == "-t") trials = array[index+1];
+    else if (val == "-l") shape_logfile = array[index+1];
 });
 
 // Logger setup
 var logger = new(winston.Logger)({
 	transports: [
 	new(winston.transports.File)({
-		filename: 'shape.log',
+		filename: shape_logfile,
 		json: true
 	}),
 	new(winston.transports.Console)()]
@@ -45,10 +44,7 @@ var block2Trials = block3Trials = block4Trials = trials;
 var blinktimer;
 
 //Trial counters
-var block1Count = 0;
-var block2Count = 0;
-var block3Count = 0;
-var block4Count = 0;
+var block1Count = block2Count = block3Count = block4Count = 0;
 
 
 // hacks to make the inputs work
@@ -69,13 +65,6 @@ hl = new LED("hl");
 var feeders = {};
 feeders.rf = new Feeder("rf");
 feeders.lf = new Feeder("lf");
-
-//Console Input
-var readline = require('readline');
-var rl = readline.createInterface({
-	input: process.stdin,
-	output: process.stdout
-});
 
 var targetpeck;
 

@@ -7,14 +7,24 @@ var winston = require('winston');
 var favicon = require('serve-favicon');
 var _favicon = favicon('favicon.ico');
 
+// setting default values for argument variables 
 var port = 8000;
-app.listen(port);
+var star_version = "00A0";
+var app_logfile = 'apparatus.log';
 
+// command line arrgument parser
+process.argv.forEach(function(val, index, array) {
+    if (val == "-p") port = array[index+1];
+    else if (val == "-v") star_version = array[index+1];
+    else if (val == "-l") app_logfile = array[index+1]
+});
+
+app.listen(port);
 
 // Setup the logger
 var logger = new (winston.Logger)({
     transports: [
-      new (winston.transports.File)({ filename: 'apparatus.log', json:false }),
+      new (winston.transports.File)({ filename: 'apparatus.log', json:true }),
       new(winston.transports.Console)()
     ]
 });
@@ -25,11 +35,12 @@ logger.on("logging", function (transport, level, msg, meta) {
 
 // Set the starboard model
 var all_starboards = require("./starboards.json");
-var starboard = all_starboards["00a1"];
+var starboard = all_starboards[star_version];
+
+// Initialize the omni-device objects 
 var starstate = {};
 var leds = {};
 var feeders = {};
-
 var blinktimer;
 
 setup(starboard);
@@ -83,6 +94,7 @@ io.sockets.on('connection', function(socket) {
 
 // prepares the board to read inputs and write outputs
 function setup(board) {
+    b.init_overlay("BBB-StarBoard", star_version);
     for (var key in board) {
     if (board[key].type == "led" || board[key].type == "houselights") leds[key] = new LED(starboard[key]);
     if (board[key].type == "feed") feeders[key] = new Feeder(starboard[key]);
@@ -94,11 +106,12 @@ b.gpio_monitor("event1", function(err, data){
   var timestamp = Date.now();
   var device;
   
-  if (data.key == 2) device = 'lp';
-  else if (data.key == 3) device = 'cp';
-  else if (data.key == 4) device = 'rp';
-
+  for (peck in starboard) { 
+    if (starboard[peck].type == "beambreak" && data.key == starboard[peck].inputkey) device = starboard[peck].key;
+  }
+  
   var change = {"key": device, "state":data.value, "name":starboard[device].name};
+  
   starstate[device] = change.state;
   updateClients(change, Date.now());
   io.sockets.emit('simulatedPeck', change);
