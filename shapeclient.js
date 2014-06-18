@@ -3,6 +3,15 @@ var io = require('socket.io-client');
 var socket = io.connect('http://localhost:8000');
 var winston = require('winston');
 
+var block;
+var trials;
+
+// print process.argv
+process.argv.forEach(function(val, index, array) {
+    if (val == "-b") block = array[index+1];
+    if (val == "-t") trials = array[index+1];
+});
+
 // Logger setup
 var logger = new(winston.Logger)({
 	transports: [
@@ -29,9 +38,7 @@ socket.on('connect', function(socket) {
 var b = require('bonescript');
 
 //Set number of trials for each block
-var block2Trials = 3;
-var block3Trials = 3;
-var block4Trials = 3;
+var block2Trials = block3Trials = block4Trials = trials;
 var blinktimer;
 
 //Trial counters
@@ -67,7 +74,6 @@ var rl = readline.createInterface({
 	output: process.stdout
 });
 
-var block;
 var targetpeck;
 
 socket.on("simulatedPeck", function(peck) {
@@ -336,33 +342,26 @@ function startUp() {
 }
 
 function blockSelect() {
-	rl.question("Begin on which block? (1,2,3,4)\n", function(answer) {
-		if (isNaN(answer)) {
-			console.log("Invalid response. Please type either 1, 2, 3, or 4");
-			return blockSelect();
+		if (block) {
+    		if (block < 1 || block > 4) {
+    			console.log("Invalid response. There is no block " + answer + ".");
+    		}
+    		if (block == 1) {
+    			return block1();
+    		}
+    		if (block == 2) {
+    			return block2();
+    		}
+    		if (block == 3) {
+    			return block3();
+    		}
+    		if (answer == 4) {
+    			return block4();
+    		}
+		} else {
+		    block = 1;
+		    return block1();
 		}
-		if (answer < 1 || answer > 4) {
-			console.log("Invalid response. There is no block " + answer + ".", "Please enter either 1, 2, 3, or 4");
-			return blockSelect();
-		}
-		if (answer == 1) {
-			block = 1;
-			return block1();
-		};
-		if (answer == 2) {
-			block = 2;
-			return block2();
-		};
-		if (answer == 3) {
-			block = 3;
-			return block3();
-		};
-		if (answer == 4) {
-			block = 4;
-			return block4();
-		};
-		rl.close();
-	});
 }
 
 // quick timestamp function
