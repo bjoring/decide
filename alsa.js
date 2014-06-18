@@ -14,7 +14,7 @@ function play_sound(path, callback, device) {
         "entity": "sound",
         "time": new Date().getTime(),
         "stimulus": path,
-        "state": "playing",
+        "playing": 1,
       });
     }
     else {
@@ -28,7 +28,7 @@ function play_sound(path, callback, device) {
         "entity": "sound",
         "time": new Date().getTime(),
         "stimulus": path,
-        "state": "finished",
+        "playing": 0,
       });
     }
     else {

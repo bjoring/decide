@@ -1,5 +1,5 @@
 {
-"00a1": {
+"00A1": {
     "lcr": {
         "name": "left red led",
         "id": "starboard:left:red",
@@ -98,7 +98,8 @@
         "pin_name":"P8_46",
         "type": "beambreak",
         "io":"input",
-        "key":"lp"
+        "key":"lp",
+        "inputkey":"2",
     },
     "cp": {
         "id":"starboard::center-peck",
@@ -107,7 +108,8 @@
         "pin_name":"P8_43",
         "type": "beambreak",
         "io":"input",
-        "key":"cp"
+        "key":"cp",
+        "inputkey":"3"
     },
     "rp": {
         "id":"starboard::right-peck",
@@ -116,7 +118,8 @@
         "pin_name":"P8_44",
         "type": "beambreak",
         "io":"input",
-        "key":"rp"
+        "key":"rp",
+        "inputkey":"4"
     },
     "hl": {
         "id":"starboard::lights",

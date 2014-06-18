@@ -3,13 +3,17 @@ var io = require('socket.io-client');
 var socket = io.connect('http://localhost:8000');
 var winston = require('winston');
 
-var block;
-var trials;
+// set default number of blocks and trials
+var block = 1;
+var trials = 5;
+
+// force run flag
+var forcerun = 0;
 
 // print process.argv
 process.argv.forEach(function(val, index, array) {
     if (val == "-b") block = array[index+1];
-    if (val == "-t") trials = array[index+1];
+    else if (val == "-t") trials = array[index+1];
 });
 
 // Logger setup
@@ -17,7 +21,7 @@ var logger = new(winston.Logger)({
 	transports: [
 	new(winston.transports.File)({
 		filename: 'shape.log',
-		json: false
+		json: true
 	}),
 	new(winston.transports.Console)()]
 });
@@ -30,9 +34,8 @@ logger.on("logging", function(transport, level, msg, meta) {
 logger.info("Waiting for connection...");
 socket.on('connect', function(socket) {
 	logger.info('Connected!');
-
-	// Run block
-	startUp();
+    
+    startUp();
 });
 
 var b = require('bonescript');
@@ -358,10 +361,7 @@ function blockSelect() {
     		if (answer == 4) {
     			return block4();
     		}
-		} else {
-		    block = 1;
-		    return block1();
-		}
+		} 
 }
 
 // quick timestamp function
