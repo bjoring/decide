@@ -61,7 +61,7 @@ leds.rcb = new LED("rcb");
 leds.lcr = new LED("lcr");
 leds.lcg = new LED("lcg");
 leds.lcb = new LED("lcb");
-hl = new LED("hl");
+hl = new houseLights("hl");
 
 var feeders = {};
 feeders.rf = new Feeder("rf");
@@ -90,7 +90,7 @@ socket.on("simulatedPeck", function(peck) {
 
 function block1() {
 
-	hl.on();
+	hl.on(105);
 
 	if (block == 1) {
 		setTimeout(block1, 10500);
@@ -130,7 +130,7 @@ function block1Exit(x) {
 }
 
 function block2() {
-	hl.on();
+	hl.on(155);
 
 	block2Count += 1;
 	logger.info('Beginning Block 2, Trial ' + block2Count + ' of ' + block2Trials, {block:block, trial:block2Count, timestamp: timeStamp()});
@@ -170,7 +170,7 @@ function block2Exit() {
 }
 
 function block3() {
-	hl.on();
+	hl.on(205);
 
 	block3Count += 1;
 	logger.info('Beginning Block 3, Trial ' + block3Count + ' of ' + block3Trials,{block:block, trial:block3Count, timestamp: timeStamp()});
@@ -219,7 +219,7 @@ function block3Exit() {
 }
 
 function block4() {
-	hl.on();
+	hl.on(255);
 
 	block4Count += 1;
 	logger.info('Beginning Block 4, Trial ' + block4Count + ' of ' + block4Trials,{block:block, trial:block4Count, timestamp: timeStamp()});
@@ -306,6 +306,18 @@ function LED(object) {
 			socket.emit("ledRequest", object, "stopBlink");
 		}
 	};
+}
+
+// house lights object
+function houseLights(object) {
+  return {
+    on: function(brightness) {
+        socket.emit("houseRequest", object, "on", brightness);
+    },
+    off: function() {
+        socket.emit("houseRequest", object, "off");
+    },
+  };
 }
 
 // feeder object
