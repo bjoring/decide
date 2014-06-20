@@ -10,9 +10,9 @@ var shape_logfile = "shape.log";
 
 // print process.argv
 process.argv.forEach(function(val, index, array) {
-    if (val == "-b") block = array[index+1];
-    else if (val == "-t") trials = array[index+1];
-    else if (val == "-l") shape_logfile = array[index+1];
+	if (val == "-b") block = array[index+1];
+	else if (val == "-t") trials = array[index+1];
+	else if (val == "-l") shape_logfile = array[index+1];
 });
 
 // Logger setup
@@ -34,15 +34,13 @@ logger.on("logging", function(transport, level, msg, meta) {
 logger.info("Waiting for connection...",{timestamp: timeStamp()});
 socket.on('connect', function(socket) {
 logger.info('Connected!',{timestamp: timeStamp()});
-    
-    startUp();
+	
+	startUp();
 });
 
-var b = require('bonescript');
 
 //Set number of trials for each block
 var block2Trials = block3Trials = block4Trials = trials;
-var blinktimer;
 
 //Trial counters
 var block1Count = block2Count = block3Count = block4Count = 0;
@@ -70,8 +68,7 @@ feeders.lf = new Feeder("lf");
 var targetpeck;
 
 socket.on("simulatedPeck", function(peck) {
-	var b
-	if (peck.state == 0) {
+	if (peck.state === 0) {
 		logger.info(peck.name, "detected",{timestamp: timeStamp()});
 		if (peck.key == targetpeck && targetpeck == "cp") {
 			if (block == 1) return block1Exit(1);
@@ -311,12 +308,12 @@ function LED(object) {
 // house lights object
 function houseLights(object) {
   return {
-    on: function(brightness) {
-        socket.emit("houseRequest", object, "on", brightness);
-    },
-    off: function() {
-        socket.emit("houseRequest", object, "off");
-    },
+	on: function(brightness) {
+		socket.emit("houseRequest", object, "on", brightness);
+	},
+	off: function() {
+		socket.emit("houseRequest", object, "off");
+	},
   };
 }
 
@@ -332,12 +329,6 @@ function Feeder(object) {
 	};
 }
 
-function allLEDSOff() {
-	leftLEDS.allOff();
-	rightLEDS.allOff();
-	centerLEDS.allOff();
-	hl.off();
-}
 
 function startUp() {
 	console.log("\u001B[2J\u001B[0;0f");
@@ -347,21 +338,21 @@ function startUp() {
 
 function blockSelect() {
 		if (block) {
-    		if (block < 1 || block > 4) {
-    			console.log("Invalid response. There is no block " + answer + ".");
-    		}
-    		if (block == 1) {
-    			return block1();
-    		}
-    		if (block == 2) {
-    			return block2();
-    		}
-    		if (block == 3) {
-    			return block3();
-    		}
-    		if (answer == 4) {
-    			return block4();
-    		}
+			if (block < 1 || block > 4) {
+				console.log("Invalid response. There is no block",block);
+			}
+			if (block == 1) {
+				return block1();
+			}
+			if (block == 2) {
+				return block2();
+			}
+			if (block == 3) {
+				return block3();
+			}
+			if (block == 4) {
+				return block4();
+			}
 		} 
 }
 
