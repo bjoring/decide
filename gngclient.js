@@ -8,7 +8,11 @@ var alsa = require("./alsa")
 var block = 1;
 var trials = 5;
 var stim = {};
+var stim_time = 2000;
+var timer;
 var waiting;
+var correct
+var response;
 var gng_logfile = "gng.log";
 
 var go = {sound: "./musicbox.wav", go:1};
@@ -73,9 +77,12 @@ var targetpeck;
 socket.on("simulatedPeck", function(peck) {
 	if (peck.state == 0) {
 		logger.info(peck.name, "detected",{timestamp: timeStamp()});
-		if (waiting  == 1 && targetpeck == peck.key) {
-			waiting = 0;
+		if (waiting  == "to_begin" && targetpeck == peck.key) {
+			waiting = null;
 			trial();
+		} else if (waiting == "for_response") {
+			clearInterval(timer);
+			response = peck.key;
 		}
 	}
 });
@@ -94,52 +101,35 @@ function trialPrep() {
 	// wait for center peck
 	logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
 	
-	waiting = 1;
+	waiting = "to_begin";
 	targetpeck = "cp";
+	response = "none";
 }
 
 function trial(){
 	trialcount += 1;
 	logger.info('Beginning Trial ' + trialcount,{trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
 	alsa.play_sound(stim.sound, device1, function(err, data){
-		if (data.playing == 0) trialPrep();
+		if (data.playing == 0) {
+			targetpeck = stim.go ? "cp" : "none";
+			timer = setTimeout(responseCheck, 2000);
+		}
+	waiting = "for_response";
 	});
 }
 
-
-//When pecked, raise either the left or right feeder
-function block3Feed(x) {
-	if (x.value == 1 || x == 1) {
-		var rand = Math.random();
-		leds.ccg.stopBlink();
-		if (rand < 0.5) {
-			logger.info('Feeding left',{block:block, trial:trialcount, timestamp: timeStamp()});
+function responseCheck() {
+	if (response != targetpeck) {
+		if (response == "none") console.log("False negative");
+		else console.log("False positive. *Punish*");
+	} else {
+		if (targetpeck != "none") {
+			console.log("True positive");
 			feeders.lf.raise();
 			setTimeout(feeders.lf.lower, 3000);
-		}
-		else {
-			logger.info('Feeding right',{block:block, trial:trialcount, timestamp: timeStamp()});
-			feeders.rf.raise();
-			setTimeout(feeders.rf.lower, 3000);
-		}
-		setTimeout(checkB3Trials, 3500);
+		} else(console.log("True negative"));
 	}
-}
-
-//Exit block when desired number of trials is reached
-function checkB3Trials() {
-	if (trialcount >= block3Trials) {
-		block3Exit();
-	}
-	else block3();
-}
-
-
-function block3Exit() {
-	logger.info('Reached  max number of trials for Block 3 (' + block3Trials + ')',{block:block, trial:trialcount, timestamp: timeStamp()});
-	logger.info('Ending Block 3' + timeStamp() + '');
-	block = 4;
-	return block4();
+	trialPrep();
 }
 
 function blinkLEDS(led, rate, duration) {
