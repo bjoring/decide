@@ -56,8 +56,8 @@ logger.info('Server running on: http://' + getIPAddress() + ':' + port, {
 
 io.sockets.on('connection', function(socket) {
 
-  socket.on('shapeLog', function(msg) {
-	io.sockets.emit('shapeLog', msg);
+  socket.on('shapeLog', function(msg, meta) {
+	io.sockets.emit('shapeLog', msg, meta);
   });
 
 

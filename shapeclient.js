@@ -27,7 +27,7 @@ var logger = new(winston.Logger)({
 });
 
 logger.on("logging", function(transport, level, msg, meta) {
-	if (transport.name == "console") socket.emit('shapeLog', msg);
+	if (transport.name == "console") socket.emit('shapeLog', msg, meta);
 });
 
 
