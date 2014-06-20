@@ -45,7 +45,7 @@
         })
 
         socket.on('appLog', function(data){
-            appendConsole(data, "appconsole");
+            appendConsole(data, "applog");
         })
        
         socket.on('shapeLog', function(data){
@@ -272,14 +272,24 @@
             d3.select('#page1').append('div')
                                 .attr("id", "consolecontain")
                                 .attr('style',"width:67%; margin-left: auto;margin-right: auto; font-family:Lucida Console; font-size:small;");
-            d3.select('#consolecontain').append("h2").text("Apparatus Log:");
+                                
             d3.select('#consolecontain').append('div')
                         .attr("id","appconsole")
-                        .attr('style','display:inline-block; height:250px; width: 49%;margin: 0 auto;overflow-y:auto;')
+                        .attr('style','display:inline-block;height:225px; width: 49%;margin: 0 auto;')
+                        
+            d3.select('#appconsole').append("h2").text("Apparatus Log:");
+            
+            d3.select('#appconsole').append('div').attr("id", "applog")
+                                    .attr('style','display:inline-block;height:120%; width: 49%;margin: 0 auto;overflow-y:auto;')
                         
             d3.select('#consolecontain').append('div')
                         .attr("id","shapeconsole")
-                        .attr('style','display:inline-block;height:250px; width: 49%; margin: 0 auto;overflow-y:auto;margin-left:2%;');
+                        .attr('style','display:inline-block;height:225px; width: 49%;margin: 0 auto; padding-left: 2%')
+                        
+            d3.select('#shapeconsole').append("h2").text("Trial Status: ");
+            
+            d3.select('#shapeconsole').append('div').attr("id", "shapelog")
+                                    .attr('style','display:inline-block;height:120%; width: 100%;margin: 0 auto;')
             }
         
         function countDevice(target, starboard) {
