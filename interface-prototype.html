@@ -44,12 +44,12 @@
             stateQuery();
         })
 
-        socket.on('appLog', function(data){
-            appendConsole(data, "applog");
+        socket.on('appLog', function(msg){
+            appendConsole(msg, "applog");
         })
        
-        socket.on('shapeLog', function(data){
-            appendConsole(data, "shapeconsole");
+        socket.on('shapeLog', function(msg, meta){
+            trialStatusUpdate("shapelog",msg,meta);
         }) 
         
 
@@ -280,7 +280,7 @@
             d3.select('#appconsole').append("h2").text("Apparatus Log:");
             
             d3.select('#appconsole').append('div').attr("id", "applog")
-                                    .attr('style','display:inline-block;height:120%; width: 49%;margin: 0 auto;overflow-y:auto;')
+                                    .attr('style','display:inline-block;height:120%; width: 100%margin: 0 auto;overflow-y:auto;')
                         
             d3.select('#consolecontain').append('div')
                         .attr("id","shapeconsole")
@@ -289,8 +289,11 @@
             d3.select('#shapeconsole').append("h2").text("Trial Status: ");
             
             d3.select('#shapeconsole').append('div').attr("id", "shapelog")
-                                    .attr('style','display:inline-block;height:120%; width: 100%;margin: 0 auto;')
-            }
+                                    .attr('style','display:inline-block;height:120%; width: 100%;margin: 0 auto; overflow-y:auto;')
+            d3.select('#shapelog').append('p').attr('id','trialblock');
+            d3.select('#shapelog').append('p').attr('id','message');
+            
+        }
         
         function countDevice(target, starboard) {
             var i = 0;
@@ -378,6 +381,17 @@
             var objDiv = document.getElementById(console);
             objDiv.scrollTop = objDiv.scrollHeight;
         
+        }
+        
+        function trialStatusUpdate(console, msg, meta) {
+            var target = "#"+console;
+            d3.selectAll("#trialblock").text(function(){
+                return ("Block: " + meta.block +", Trial "+meta.trial);
+            });
+            
+            d3.selectAll("#message").text(function(){
+                return (msg +" -  "+meta.timestamp);
+            });
         }
 
         function update() {
