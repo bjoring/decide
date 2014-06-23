@@ -13,19 +13,23 @@ var timer;
 var waiting;
 var correct
 var response;
+var pecked = 0;
 var rand;
 var gng_logfile = "gng.log";
 
-var go = {sound: "./musicbox.wav", go:1};
-var nogo = {sound: "./musicbox_broken.wav", go: 0};
-var device1 = "plughw:1,0";
+var device = "plughw:1,0";
+var stimuli_database = require("./gngstimuli");
+var stimset = {};
 
 // print process.argv
 process.argv.forEach(function(val, index, array) {
     if (val == "-b") block = array[index+1];
     else if (val == "-t") trials = array[index+1];
     else if (val == "-l") gng_logfile = array[index+1];
+    else if (val == "-d") device = array[index+1];
 });
+
+createStimSet(stimuli_database);
 
 // Logger setup
 var logger = new(winston.Logger)({
@@ -76,19 +80,36 @@ var targetpeck;
 
 socket.on("simulatedPeck", function(peck) {
 	if (peck.state == 0) {
-		logger.info(peck.name, "detected",{timestamp: timeStamp()});
+		logger.info(peck.name, "detected",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 		if (waiting  == "to_begin" && targetpeck == peck.key) {
 			waiting = null;
 			trial();
 		} else if (waiting == "for_response") {
 			clearInterval(timer);
 			response = peck.key;
+			pecked = 1;
 		} // if
 	} //  if
 }); // socket.on
 
-function stimSelect(rand) {
-	return rand > 0.5 ? go : nogo;
+function createStimSet(bank) {
+	var i = 0;
+	for (stimulus in bank) {
+		var f = bank[stimulus].freq;
+		for (var j = 0; j < f; j++) {
+			stimset[i] = bank[stimulus];
+			i++;
+		}
+	}
+	console.log(stimset);
+}
+
+function stimSelect() {
+	var length = Object.keys(stimset).length-1;
+	select = Math.round(rand*length);
+	console.log(select);
+	console.log(stimset[select]);
+	return stimset[select];
 }
 
 function trialPrep(setstim) {
@@ -98,51 +119,59 @@ trialcount += 1;
 	if (!setstim) stim = stimSelect(rand);
 
 	// wait for center peck
-	logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
+	logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 	
 	waiting = "to_begin";
 	targetpeck = "cp";
 	response = "none";
+	pecked = 0;
 } // trialPrep
 
 function trial(){
 	hl.on(205);
-	logger.info('Beginning Trial ' + trialcount,{trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
-	alsa.play_sound(stim.sound, device1, function(err, data){
+	logger.info('Beginning Trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+	alsa.play_sound(stim.sound, device, function(err, data){
 		if (data.playing == 0) {
-			targetpeck = stim.go ? "cp" : "none";
-			logger.info("Waiting for response", {trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
-			timer = setTimeout(responseCheck, 2000);
+			targetpeck = stim.type == "go" ? "cp" : "none";
+			logger.info("Waiting for response", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			if (pecked) responseCheck();
+			else timer = setTimeout(responseCheck, 2000);
 		} // if
-	waiting = "for_response";
 	}); // alsa.play
+	waiting = "for_response";
 } // trial
 
 function responseCheck() {
 	if (response != targetpeck) {
 		if (response == "none") {
-			logger.info("Incorrect response: False negative"), {trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()};
+			logger.info("Incorrect response: False negative"), {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()};
 			trialPrep(stim);
 		} // if
 		else {
-			logger.info("Incorrect response: False positive", {trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Incorrect response: False positive", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 			hl.off();
-			logger.info("Punishing with lights out for 5 secods.", {trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Punishing with lights out for 5 secods.", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 			setTimeout(function(){
 				hl.on(205); 
-				logger.info("Beginning correction trial", {trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()}); 
+				logger.info("Beginning correction trial", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()}); 
 				trialPrep(stim);
 			} ,5000); // setTimeout
 		} // else
 		
 	} else {
 		if (targetpeck != "none") {
-			logger.info("Correct response: True positive",{trial:trialcount, stimulus: stim, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Correct response: True positive",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Feeding bird for 3 seconds",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 			feeders.lf.raise();
-			setTimeout(feeders.lf.lower, 3000);
-		} else(logger.info("Correct response: True negative"));
-		trialPrep();
-	} // if
+			setTimeout(function(){
+				feeders.lf.lower();
+				trialPrep();
+				}, 3000); // setTimeout
+		} else {
+			logger.info("Correct response: True negative",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			trialPrep();
+		} // else
+	} // else
 } // responseCheck
 
 function blinkLEDS(led, rate, duration) {

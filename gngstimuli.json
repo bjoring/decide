@@ -1,0 +1,12 @@
+{
+ "s1":{
+    "sound":"./musicbox.wav",
+    "type":"go",
+    "freq":"2"
+ },
+ "s2":{
+    "sound":"./musicbox_broken.wav",
+    "type":"nogo",
+    "freq":"3"
+ }
+}
