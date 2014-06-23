@@ -385,10 +385,11 @@
         
         function trialStatusUpdate(console, msg, meta) {
             var target = "#"+console;
-            d3.selectAll("#trialblock").text(function(){
-                return ("Block: " + meta.block +", Trial "+meta.trial);
-            });
-            
+            if (meta.block) {
+                d3.selectAll("#trialblock").text(function(){
+                    return ("Block: " + meta.block +", Trial "+meta.trial);
+                });
+            }
             d3.selectAll("#message").text(function(){
                 return (msg +" -  "+meta.timestamp);
             });
