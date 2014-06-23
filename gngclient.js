@@ -1,34 +1,60 @@
-// Test server
-var io = require('socket.io-client');
-var socket = io.connect('http://localhost:8000');
-var winston = require('winston');
-var alsa = require("./alsa")
+/* 
+gngclient.js 
+	This script starts a "go-nogo" operant conditioning
+	paradigm. All interaction with Starboard is handled
+	through apparatus.js.
 
-// set default number for command line argument variables
-var block = 1;
-var trials = 5;
-var stim = {};
-var stim_time = 2000;
-var timer;
-var waiting;
-var correct
-var response;
-var pecked = 0;
-var rand;
+	To run the script:
+		node gngclient.js
+	
+	Procedure:
+	 1. wait for center key peck, 
+	 2. play random stimulus,
+	 3. wait for center key peck.  
+	 4. reward/punish accordingly: 
+		 	only GO responses are consequated:
+		 	correct hits are rewarded with food access; 
+		 	false positives are punished with lights out.  
+	 5. if response was correct, a new stimulus is presented. 
+	 
+	 Session ends when the lights go out for the day.
+*/
+
+// Import required packages
+var io = require('socket.io-client');
+var winston = require('winston'); // logger
+var alsa = require("./alsa"); // sound driver
+
+// Set default for variables that may be set with command line arguments
+var response_time = 2000; // how long the bird is given to respond to simulus
+var device = "plughw:1,0"; // the sound card
+var stimuli_database = require("./gngstimuli"); // JSON containing simuli information
+var port = 8000; // port through which o connect to apparatus.js
 var gng_logfile = "gng.log";
 
-var device = "plughw:1,0";
-var stimuli_database = require("./gngstimuli");
-var stimset = {};
-
-// print process.argv
+// Parse command line arguments
 process.argv.forEach(function(val, index, array) {
     if (val == "-b") block = array[index+1];
-    else if (val == "-t") trials = array[index+1];
+    else if (val == "-s") stimuli_database = require([index+1]);
     else if (val == "-l") gng_logfile = array[index+1];
     else if (val == "-d") device = array[index+1];
+    else if (val == "-r") response_time = array[index+1];
+    else if (val == "-p") port = array[index+1];
+    else if (val == "-t") targetpeck == array[index+1];
 });
 
+// Initialize global variables
+var trialcount = 0; // counts the number of trials
+var pecked = 0; // flag for whether the bird peck
+var stimset = {}; // a dictionary of stimuli that will be used
+var stim = {}; // the active stimulus
+var timer; // timeout for response
+var waiting; // give what apparatus is waiting for
+var rand; // random number that will be used to pick stimuli from stimset
+var response; // the bird's actual respons
+var targetpeck; // the peck gngclient is looking for
+
+// Creating the dictionary of stimuli
 createStimSet(stimuli_database);
 
 // Logger setup
@@ -43,21 +69,19 @@ var logger = new(winston.Logger)({
 }); // logger
 
 logger.on("logging", function(transport, level, msg, meta) {
-	if (transport.name == "console") socket.emit('shapeLog', msg, meta);
+	if (transport.name == "console") socket.emit('shapeLog', msg, meta); 
 });
 
+// Connecting to apparatus.js
+var socket = io.connect('http://localhost:'+port);
 
 logger.info("Waiting for connection...",{timestamp: timeStamp()});
 socket.on('connect', function(socket) {
 	logger.info('Connected!',{timestamp: timeStamp()});
-	trialPrep();
+	startUp();
 });
 
-// Trial counters
-var  trialcount = 0;
-
-
-// hacks to make the inputs work
+// hacks to make the outputs work
 var leds = {};
 leds.ccr = new LED("ccr");
 leds.ccg = new LED("ccg");
@@ -76,8 +100,8 @@ var feeders = {};
 feeders.rf = new Feeder("rf");
 feeders.lf = new Feeder("lf");
 
-var targetpeck;
 
+// Handling Starboard pecks
 socket.on("simulatedPeck", function(peck) {
 	if (peck.state == 0) {
 		logger.info(peck.name, "detected",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
@@ -92,6 +116,7 @@ socket.on("simulatedPeck", function(peck) {
 	} //  if
 }); // socket.on
 
+// Creates the stimuli set according to the frequency of each stimulus
 function createStimSet(bank) {
 	var i = 0;
 	for (stimulus in bank) {
@@ -99,34 +124,37 @@ function createStimSet(bank) {
 		for (var j = 0; j < f; j++) {
 			stimset[i] = bank[stimulus];
 			i++;
-		}
-	}
-	console.log(stimset);
-}
+		} // for
+	} // for
+} // createStimSet
 
-function stimSelect() {
-	var length = Object.keys(stimset).length-1;
-	select = Math.round(rand*length);
-	console.log(select);
-	console.log(stimset[select]);
-	return stimset[select];
-}
-
+// Prepare to run trial and then wait on bird to begin
 function trialPrep(setstim) {
-trialcount += 1;
+	
+	// prepare global variables for new trial
+	response = "none";
+	pecked = 0;
+	trialcount += 1;
+
 	// decide which stimulus to play and the correct response
 	rand = Math.random();
 	if (!setstim) stim = stimSelect(rand);
 
 	// wait for center peck
-	logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-	
-	waiting = "to_begin";
 	targetpeck = "cp";
-	response = "none";
-	pecked = 0;
+	waiting = "to_begin";
+	logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 } // trialPrep
 
+// Randomly selecting which stimulus to play
+function stimSelect() {
+	var length = Object.keys(stimset).length-1;
+	select = Math.round(rand*length);
+	return stimset[select];
+} // stimSelect
+
+
+// Running the actual trial
 function trial(){
 	hl.on(205);
 	logger.info('Beginning Trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
@@ -134,20 +162,21 @@ function trial(){
 		if (data.playing == 0) {
 			targetpeck = stim.type == "go" ? "cp" : "none";
 			logger.info("Waiting for response", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-			if (pecked) responseCheck();
-			else timer = setTimeout(responseCheck, 2000);
+			if (pecked) responseCheck(); // if the bird pecked before the song finished, go ahead and check the response
+			else timer = setTimeout(responseCheck, response_time); // else give the bird a set number of seconds to respond
 		} // if
 	}); // alsa.play
 	waiting = "for_response";
 } // trial
 
+// Checking to see if the bird responded correctly
 function responseCheck() {
 	if (response != targetpeck) {
 		if (response == "none") {
 			logger.info("Incorrect response: False negative"), {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()};
+			logger.info("Beginning correction trial", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 			trialPrep(stim);
-		} // if
-		else {
+		} else {
 			logger.info("Incorrect response: False positive", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 			hl.off();
 			logger.info("Punishing with lights out for 5 secods.", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
@@ -174,10 +203,7 @@ function responseCheck() {
 	} // else
 } // responseCheck
 
-function blinkLEDS(led, rate, duration) {
-	socket.emit("ledRequest", led, "blink", [rate, duration]);
-}
-
+/* APPARATUS REQUESTS*/
 // led object
 function LED(object) {
 	return {
@@ -195,6 +221,10 @@ function LED(object) {
 		} // stopBlink
 	}; // return
 } // LED
+
+function blinkLEDS(led, rate, duration) {
+	socket.emit("ledRequest", led, "blink", [rate, duration]);
+} // blink LEDS
 
 // house lights object
 function houseLights(object) {
@@ -223,28 +253,8 @@ function Feeder(object) {
 function startUp() {
 	console.log("\u001B[2J\u001B[0;0f");
 	logger.info("-----------------------Starport Go-NoGo Prototype-----------------------");
-	blockSelect();
+	trialPrep()
 } // startUp
-
-function blockSelect() {
-		if (block) {
-    		if (block < 1 || block > 4) {
-    			console.log("Invalid response. There is no block " + answer + ".");
-    		}
-    		if (block == 1) {
-    			return block1();
-    		}
-    		if (block == 2) {
-    			return block2();
-    		}
-    		if (block == 3) {
-    			return block3();
-    		}
-    		if (answer == 4) {
-    			return block4();
-    		}
-		} // if(block)
-} // blockSelect
 
 // quick timestamp function
 function timeStamp(time) {

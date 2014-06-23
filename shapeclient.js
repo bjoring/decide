@@ -1,3 +1,20 @@
+/* 
+shapeclient.js 
+	This script starts a "shape" operant conditioning
+	paradigm with the goal of conditioning a bird to
+	peck the center key when it wants food. All 
+	interaction with Starboard is handled through 
+	apparatus.js.
+
+	To run the script:
+		node shapeclient.js
+	
+	Procedure:
+		...
+		Session ends when the lights go out for the day.
+*/
+
+
 // Test server
 var io = require('socket.io-client');
 var socket = io.connect('http://localhost:8000');
