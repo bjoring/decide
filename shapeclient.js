@@ -14,7 +14,6 @@ shapeclient.js
 		Session ends when the lights go out for the day.
 */
 
-
 // Import required packages
 var io = require('socket.io-client');
 var winston = require('winston'); // logger
@@ -38,30 +37,14 @@ var suncheck = 120000; // how often to check the sun's position
 var isdaytime; // flag for whether it is day 
 var block2Trials = block3Trials = block4Trials = trials; // number of trials for each block
 var block1Count = block2Count = block3Count = block4Count = 0; // counting the number of trials run
-
-
-// hacks to make the inputs work
-var leds = {};
-leds.ccr = new LED("ccr");
-leds.ccg = new LED("ccg");
-leds.ccb = new LED("ccb");
-
-leds.rcr = new LED("rcr");
-leds.rcg = new LED("rcg");
-leds.rcb = new LED("rcb");
-
-leds.lcr = new LED("lcr");
-leds.lcg = new LED("lcg");
-leds.lcb = new LED("lcb");
-hl = new houseLights("hl");
-
-var feeders = {};
-feeders.rf = new Feeder("rf");
-feeders.lf = new Feeder("lf");
-
 var targetpeck;
 
-// Logger setup
+// Initialize the omni-device objects
+var leds = {};
+var feeders = {};
+var hl;
+
+// Set the logger
 var logger = new(winston.Logger)({
 	transports: [
 	new(winston.transports.File)({
@@ -85,23 +68,21 @@ socket.on('connect', function(socket) {
 	startUp();
 });
 
-// Handling Starboard pecks
-socket.on("simulatedPeck", function(peck) {
-	if (peck.state === 0) {
-		logger.info(peck.name, "detected",{timestamp: timeStamp()});
-		if (peck.key == targetpeck && targetpeck == "cp") {
-			if (block == 1) return block1Exit(1);
-			if (block == 2) return block2Feed(1);
-			if (block == 3) return block3Feed(1);
-			if (block == 4) return block4Flash(1);
-		} else {
-			if (block == 4) {
-				if (peck.key == targetpeck && targetpeck == "rp") return block4FeedRight(1);
-				if (peck.key == targetpeck && targetpeck == "lp") return block4FeedLeft(1);
-			} // if
-		} // else
-	} // if
-}); // socket.on
+/* SETUP */
+// Getting starbord and creating the appropiate objects for interaction
+socket.emit("sendstarboard");
+socket.on("receivestarboard", function(data) {
+	setup(data);
+});
+
+function setup(board) { // creates objects for controlling starboard outputs 
+	for (var key in board) { // creating the starboard objects
+		if (board[key].type == "led") leds[key] = new LED(key);
+		if (board[key].type == "feed") feeders[key] = new Feeder(key);
+		if (board[key].type == "houselights") hl = new houseLights(key);
+	} // for
+	startUp();
+} // setup
 
 /* BLOCK 1 */
 // Runs block 1
@@ -298,7 +279,7 @@ function block4Exit() {
 	logger.info('Ending Block 4',{block:block, trial:block4Count, timestamp: timeStamp()});
 	block = 0;
 	logger.info('Shape Finished',{block:block, trial:block4Count, timestamp: timeStamp()});
-	logger.info("[Press 'Ctrl+C' to exit]");
+	console.log("[Press 'Ctrl+C' to exit]");
 	hl.off();
 } //block4 exit
 
@@ -375,6 +356,23 @@ function Feeder(object) {
 	}; // return
 } // Feeder
 
+// Handling Starboard pecks
+socket.on("simulatedPeck", function(peck) {
+	if (peck.state === 0) {
+		logger.info(peck.name, "detected",{timestamp: timeStamp()});
+		if (peck.key == targetpeck && targetpeck == "cp") {
+			if (block == 1) return block1Exit(1);
+			if (block == 2) return block2Feed(1);
+			if (block == 3) return block3Feed(1);
+			if (block == 4) return block4Flash(1);
+		} else {
+			if (block == 4) {
+				if (peck.key == targetpeck && targetpeck == "rp") return block4FeedRight(1);
+				if (peck.key == targetpeck && targetpeck == "lp") return block4FeedLeft(1);
+			} // if
+		} // else
+	} // if
+}); // socket.on
 
 function startUp() {
 	console.log("\u001B[2J\u001B[0;0f");
@@ -389,19 +387,15 @@ function blockSelect() {
 		if (block) {
 			if (block < 1 || block > 4) {
 				console.log("Invalid response. There is no block",block);
-			}
-			if (block == 1) {
+			} else if (block == 1) {
 				return block1();
-			}
-			if (block == 2) {
+			} else if (block == 2) {
 				return block2();
-			}
-			if (block == 3) {
+			} else if (block == 3) {
 				return block3();
-			}
-			if (block == 4) {
+			} else if (block == 4) {
 				return block4();
-			}
+			} // else if
 		} // if
 } // blockSelect
 
@@ -415,5 +409,4 @@ function timeStamp(time) {
 	var utcstamp = new Date(unixstamp);
 
 	return utcstamp.toJSON();
-
-}
+} // timestamp

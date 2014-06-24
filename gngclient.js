@@ -35,19 +35,19 @@ var gng_logfile = "gng.log";
 
 // Parse command line arguments
 process.argv.forEach(function(val, index, array) {
-    if (val == "-b") block = array[index+1];
-    else if (val == "-s") stimuli_database = require([index+1]);
-    else if (val == "-l") gng_logfile = array[index+1];
-    else if (val == "-d") device = array[index+1];
-    else if (val == "-r") response_time = array[index+1];
-    else if (val == "-p") port = array[index+1];
-    else if (val == "-t") targetpeck == array[index+1];
-    else if (val == "-S") simulatesun = array[index+1];
+	if (val == "-b") block = array[index + 1];
+	else if (val == "-s") stimuli_database = require([index + 1]);
+	else if (val == "-l") gng_logfile = array[index + 1];
+	else if (val == "-d") device = array[index + 1];
+	else if (val == "-r") response_time = array[index + 1];
+	else if (val == "-p") port = array[index + 1];
+	else if (val == "-t") targetpeck == array[index + 1];
+	else if (val == "-S") simulatesun = array[index + 1];
 });
 
 // Initialize global variables
-var suncheck = 120000; // how often to check the sun's position
-var isdaytime; // flag for whether it is day 
+var suncheck = 60000; // how often to check the sun's position
+var daytime; // flag for whether it is day 
 var trialcount = 0; // counts the number of trials
 var pecked = 0; // flag for whether the bird peck
 var stimset = {}; // a dictionary of stimuli that will be used
@@ -58,28 +58,12 @@ var rand; // random number that will be used to pick stimuli from stimset
 var response; // the bird's actual respons
 var targetpeck; // the peck gngclient is looking for
 
-// Creating the dictionary of stimuli
-createStimSet(stimuli_database);
-
-// hacks to make the outputs work
+// Initialize the omni-device objects
 var leds = {};
-	leds.ccr = new LED("ccr");
-	leds.ccg = new LED("ccg");
-	leds.ccb = new LED("ccb");
-	
-	leds.rcr = new LED("rcr");
-	leds.rcg = new LED("rcg");
-	leds.rcb = new LED("rcb");
-	
-	leds.lcr = new LED("lcr");
-	leds.lcg = new LED("lcg");
-var hl = new houseLights("hl");
-
 var feeders = {};
-	feeders.rf = new Feeder("rf");
-	feeders.lf = new Feeder("lf");
+var hl;
 
-// Logger setup
+// Set the logger
 var logger = new(winston.Logger)({
 	transports: [
 	new(winston.transports.File)({
@@ -91,32 +75,37 @@ var logger = new(winston.Logger)({
 }); // logger
 
 logger.on("logging", function(transport, level, msg, meta) {
-	if (transport.name == "console") socket.emit('shapeLog', msg, meta); 
+	if (transport.name == "console") socket.emit('shapeLog', msg, meta);
 });
 
 // Connecting to apparatus.js
-var socket = io.connect('http://localhost:'+port);
+var socket = io.connect('http://localhost:' + port);
 
-logger.info("Waiting for connection...",{timestamp: timeStamp()});
+logger.info("Waiting for connection...", {
+	timestamp: timeStamp()
+});
 socket.on('connect', function(socket) {
-	logger.info('Connected!',{timestamp: timeStamp()});
-	startUp();
+	logger.info('Connected!', {
+		timestamp: timeStamp()
+	});
 });
 
-// Handling Starboard pecks
-socket.on("simulatedPeck", function(peck) {
-	if (peck.state == 0) { // if the IR beam was broken...
-		logger.info(peck.name, "detected",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-		if (waiting  == "to_begin" && targetpeck == peck.key) {
-			waiting = null;
-			trial();
-		} else if (waiting == "for_response") {
-			clearInterval(timer);
-			response = peck.key;
-			pecked = 1;
-		} // else if
-	} //  if
-}); // socket.on
+/* SETUP */
+// Getting starbord and creating the appropiate objects for interaction
+socket.emit("sendstarboard");
+socket.on("receivestarboard", function(data) {
+	setup(data);
+});
+
+function setup(board) { // creates objects for controlling starboard outputs 
+	createStimSet(stimuli_database); // Creating the dictionary of stimuli
+	for (var key in board) { // creating the starboard objects
+		if (board[key].type == "led") leds[key] = new LED(key);
+		if (board[key].type == "feed") feeders[key] = new Feeder(key);
+		if (board[key].type == "houselights") hl = new houseLights(key);
+	} // for
+	startUp();
+} // setup
 
 // Creates the stimuli set according to the frequency of each stimulus
 function createStimSet(bank) {
@@ -132,40 +121,56 @@ function createStimSet(bank) {
 
 // Prepare to run trial and then wait on bird to begin
 function trialPrep(setstim) {
-	if (isdaytime) {
+	if (daytime) {
 		// prepare global variables for new trial
 		response = "none";
 		pecked = 0;
 		trialcount += 1;
-	
+
 		// decide which stimulus to play and the correct response
 		rand = Math.random();
 		if (!setstim) stim = stimSelect(rand);
-	
+
 		// wait for center peck
 		targetpeck = "cp";
 		waiting = "to_begin";
-		logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-	} else {
+		logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount, {
+			trial: trialcount,
+			stimulus: stim.sound,
+			stimulustype: stim.type,
+			timestamp: timeStamp()
+		});
+	}
+	else {
 		logger.info('gngclient is sleeping for the night...');
 	}
 } //trialPrep
 
 // Randomly selecting which stimulus to play
 function stimSelect() {
-	var length = Object.keys(stimset).length-1;
-	select = Math.round(rand*length);
+	var length = Object.keys(stimset).length - 1;
+	select = Math.round(rand * length);
 	return stimset[select];
 } // stimSelect
 
 
 // Running the actual trial
-function trial(){
-	logger.info('Beginning Trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-	alsa.play_sound(stim.sound, device, function(err, data){
+function trial() {
+	logger.info('Beginning Trial ' + trialcount, {
+		trial: trialcount,
+		stimulus: stim.sound,
+		stimulustype: stim.type,
+		timestamp: timeStamp()
+	});
+	alsa.play_sound(stim.sound, device, function(err, data) {
 		if (data.playing == 0) {
 			targetpeck = stim.type == "go" ? "cp" : "none";
-			logger.info("Waiting for response", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Waiting for response", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
 			if (pecked) responseCheck(); // if the bird pecked before the song finished, go ahead and check the response
 			else timer = setTimeout(responseCheck, response_time); // else give the bird a set number of seconds to respond
 		} // if
@@ -177,36 +182,135 @@ function trial(){
 function responseCheck() {
 	if (response != targetpeck) {
 		if (response == "none") {
-			logger.info("Incorrect response: False negative"), {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()};
-			logger.info("Beginning correction trial", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Incorrect response: False negative"), {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			};
+			logger.info("Beginning correction trial", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
 			trialPrep(stim);
-		} else {
-			logger.info("Incorrect response: False positive", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+		}
+		else {
+			logger.info("Incorrect response: False positive", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
 			hl.off();
-			logger.info("Punishing with lights out for 5 secods.", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-			setTimeout(function(){
-				hl.on(205); 
-				logger.info("Beginning correction trial", {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()}); 
+			logger.info("Punishing with lights out for 5 secods.", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
+			setTimeout(function() {
+				sunSimulator();
+				logger.info("Beginning correction trial", {
+					trial: trialcount,
+					stimulus: stim.sound,
+					stimulustype: stim.type,
+					timestamp: timeStamp()
+				});
 				trialPrep(stim);
-			} ,5000); // setTimeout
+			}, 5000); // setTimeout
 		} // else
-		
-	} else {
+
+	}
+	else {
 		if (targetpeck != "none") {
-			logger.info("Correct response: True positive",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-			logger.info("Feeding bird for 3 seconds",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			logger.info("Correct response: True positive", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
+			logger.info("Feeding bird for 3 seconds", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
 			feeders.lf.raise();
-			setTimeout(function(){
+			setTimeout(function() {
 				feeders.lf.lower();
 				trialPrep();
-				}, 3000); // setTimeout
-		} else {
-			logger.info("Correct response: True negative",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+			}, 3000); // setTimeout
+		}
+		else {
+			logger.info("Correct response: True negative", {
+				trial: trialcount,
+				stimulus: stim.sound,
+				stimulustype: stim.type,
+				timestamp: timeStamp()
+			});
 			trialPrep();
 		} // else
 	} // else
 } // responseCheck
 
+// Handling Starboard pecks
+socket.on("simulatedPeck", function(peck) {
+	if (peck.state == 0) { // if the IR beam was broken...
+		logger.info(peck.name, "detected", {
+			trial: trialcount,
+			stimulus: stim.sound,
+			stimulustype: stim.type,
+			timestamp: timeStamp()
+		});
+		if (waiting == "to_begin" && targetpeck == peck.key) {
+			waiting = null;
+			trial();
+		}
+		else if (waiting == "for_response") {
+			clearInterval(timer);
+			response = peck.key;
+			pecked = 1;
+		} // else if
+	} //  if
+}); // socket.on
+
+// Checking the sun's position
+function sunSimulator() {
+	socket.emit("simulatesun");
+} // sunSimulator
+
+// Checks the sun's position every suncheck miliseconds
+function getSunLoop() {
+	setTimeout(function() {
+		sunSimulator();
+		getSunLoop();
+	}, suncheck); // setSunLoop
+} // getSunLoop
+
+// Handles information about the sun's positon
+socket.on("sunstatus", function(brightness) {
+	if (brightness <= 0) {
+		daytime = 0;
+		logger.info('Sun has set. Putting gngclient to sleep.', {
+			trial: trialcount,
+			stimulus: stim.sound,
+			stimulustype: stim.type,
+			timestamp: timeStamp()
+		});
+	}
+	else if (brightness >= 0 && !daytime) {
+		daytime = 1;
+		logger.info('Sun has risen. Starting trials.', {
+			trial: trialcount,
+			stimulus: stim.sound,
+			stimulustype: stim.type,
+			timestamp: timeStamp()
+		});
+		trialPrep();
+	} // else
+})
 /* APPARATUS REQUESTS*/
 // led object
 function LED(object) {
@@ -232,40 +336,15 @@ function blinkLEDS(led, rate, duration) {
 
 // house lights object
 function houseLights(object) {
-  return {
-    on: function(brightness) {
-        socket.emit("houseRequest", object, "on", brightness);
-    }, // on
-    off: function() {
-        socket.emit("houseRequest", object, "off");
-    }, // off
-  }; // return
+	return {
+		on: function(brightness) {
+			socket.emit("houseRequest", object, "on", brightness);
+		}, // on
+		off: function() {
+			socket.emit("houseRequest", object, "off");
+		}, // off
+	}; // return
 } // houseLights
-
-// Checks the sun's position
-function sunSimulator(){
-	socket.emit("simulatesun");
-} // sunSimulator
-
-// Checks the sun's position every suncheck miliseconds
-function getSunLoop(){
-	setTimeout(function(){
-		sunSimulator();
-		getSunLoop();
-	}, suncheck); // setTimeout
-} // getSunLoop
-
-// Handles information about the sun's positon
-socket.on("sunstatus", function(brightness) {
-	if (brightness <= 0) {
-		isdaytime = 0;
-		logger.info('Sun has set. Putting gngclient to sleep.', {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-	} else if (brightness >= 0 && !isdaytime) {
-		isdaytime = 1;
-		logger.info('Sun has risen. Starting trials.', {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-		trialPrep();
-	} // else if
-}); // socket.on
 
 // feeder object
 function Feeder(object) {
@@ -285,7 +364,8 @@ function startUp() {
 	if (simulatesun) {
 		sunSimulator(); // turn on house lights
 		getSunLoop(); // set hl brightness every suncheck miliseconds 
-	} else {
+	}
+	else {
 		trialPrep()
 	} // else
 } // startUp

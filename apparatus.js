@@ -28,30 +28,16 @@ var port = 8000; // port for web interface
 var star_version = "00A0"; // starboard version number (default = dummyboard)
 var app_logfile = 'apparatus.log'; //log file name
 var lat = 38; // latitude and longitude for UVa. Necessary for sun calculations.
-var lon = -78.5; 
+var lon = -78.5;
 
 // Command line arrgument parser
-process.argv.forEach(function (val, index, array) {
+process.argv.forEach(function(val, index, array) {
 	if (val == "-p") port = array[index + 1];
 	else if (val == "-v") star_version = array[index + 1];
 	else if (val == "-l") app_logfile = array[index + 1];
-	else if (val == "-L") lat = array[index + 1]; lon = array[index+2];
+	else if (val == "-L") lat = array[index + 1];
+	lon = array[index + 2];
 }); // process.argv.forEach
-
-// Setup the winston logger
-var logger = new (winston.Logger)( {
-	transports: [
-  new (winston.transports.File)( {
-		filename: 'apparatus.log',
-		json: true,
-		timestamp: false // the script will insert its own timestamps later
-	}),
-	new (winston.transports.Console)()]
-}); // logger
-
-logger.on("logging", function (transport, level, msg, meta) {
-	if (transport.name == "file") io.sockets.emit('appLog', msg);
-}); // logger.on
 
 // Set the starboard model
 var starboard = all_starboards[star_version];
@@ -64,6 +50,23 @@ var hl;
 
 // Initialize other global variables
 var blinktimer;
+
+// Setup the winston logger
+	var logger = new(winston.Logger)({
+		transports: [
+		new(winston.transports.File)({
+			filename: 'apparatus.log',
+			json: true,
+			timestamp: false // the script will insert its own timestamps later
+		}),
+		new(winston.transports.Console)()]
+	}); // logger
+
+	logger.on("logging", function(transport, level, msg, meta) {
+		if (transport.name == "file") io.sockets.emit('appLog', msg);
+	}); // logger.on
+
+}); // b.gpio_monitor
 
 // Prepares interaction with starboard and set inital state
 setup(starboard);
@@ -81,14 +84,14 @@ logger.info('Server running on: http://' + getIPAddress() + ':' + port, {
 function setup(board) { // creates objects for controlling starboard outputs 
 	b.init_overlay("BBB-StarBoard", star_version);
 	for (var key in board) {
-		if (board[key].type == "led") leds[key] = new LED(starboard[key]);
-		if (board[key].type == "feed") feeders[key] = new Feeder(starboard[key]);
-		if (board[key].type == "houselights") hl = new houseLights(starboard[key]);
+		if (board[key].type == "led") leds[key] = new LED(board[key]);
+		if (board[key].type == "feed") feeders[key] = new Feeder(board[key]);
+		if (board[key].type == "houselights") hl = new houseLights(board[key]);
 		if (board[key].type == "beambreak") starstate[key] = 1;
 	} // for
 } // setup
 
-b.gpio_monitor("event1", function (err, data) { // creates an event monitor for 
+b.gpio_monitor("event1", function(err, data) { // creates an event monitor for 
 	var timestamp = Date.now();
 	var device;
 
@@ -105,8 +108,6 @@ b.gpio_monitor("event1", function (err, data) { // creates an event monitor for
 	starstate[device] = change.state;
 	updateClients(change, timestamp);
 	io.sockets.emit('simulatedPeck', change);
-}); // b.gpio_monitor
-
 
 /* STATE MANIPULATION FUNCTIONS*/
 // Updates starboard states into state dictionary
@@ -117,7 +118,7 @@ function getAllStates(board) {
 } //getAllStates
 
 function getState(device, callback) {
-	b.led_read(starboard[device].id, function (err, data) {
+	b.led_read(starboard[device].id, function(err, data) {
 		starstate[device] = data.value;
 		var timestamp = Date.now();
 		if (callback) {
@@ -142,7 +143,7 @@ function writeState(device, data) {
 // Writes, reads state and then updates client on result
 function changeState(change) {
 	writeState(change.key, change.state);
-	getState(change.key, function (time) {
+	getState(change.key, function(time) {
 		updateClients(change, time);
 	}); // getState
 
@@ -158,15 +159,15 @@ function updateClients(change, updatestamp) {
 	} // if
 } // updateClients
 
-/* SOCKET AND SERVER FUNCTIONS */ 
+/* SOCKET AND SERVER FUNCTIONS */
 // Receiving requests through socket.io
-io.sockets.on('connection', function (socket) {
+io.sockets.on('connection', function(socket) {
 
-	socket.on('shapeLog', function (msg, meta) { // handle client log information
+	socket.on('shapeLog', function(msg, meta) { // handle client log information
 		io.sockets.emit('shapeLog', msg, meta);
 	});
 
-	socket.on('updateServer', function (timestamp, data) { //request to update apparatus' state
+	socket.on('updateServer', function(timestamp, data) { //request to update apparatus' state
 		var change = data;
 		var requestTime = timestamp;
 
@@ -176,7 +177,7 @@ io.sockets.on('connection', function (socket) {
 		changeState(change);
 	});
 
-	socket.on('simulatePeck', function (timestamp, data) { // request to register a peck
+	socket.on('simulatePeck', function(timestamp, data) { // request to register a peck
 		var change = data;
 		var requestTime = timestamp;
 
@@ -196,25 +197,29 @@ io.sockets.on('connection', function (socket) {
 		starstate[change.key] = 1;
 	});
 
-	socket.on('stateQuery', function () { // request for apparatus to return its state 
+	socket.on('stateQuery', function() { // request for apparatus to return its state 
 		updateClients();
 	});
 
-	socket.on("ledRequest", function (led, request, blinkparam) { // handles led requests from experiment scripts
+	socket.on("ledRequest", function(led, request, blinkparam) { // handles led requests from experiment scripts
 		!blinkparam ? leds[led][request]() : blinkLED(leds[led], blinkparam[0], blinkparam[1]);
 	});
 
-	socket.on("houseRequest", function (houselights, request, brightness) { // handles house lights requests 
+	socket.on("houseRequest", function(houselights, request, brightness) { // handles house lights requests 
 		hl[request](brightness);
 	});
 
-	socket.on("feedRequest", function (feeder, request) { // handles feeder requests
+	socket.on("feedRequest", function(feeder, request) { // handles feeder requests
 		feeders[feeder][request]();
 	});
-	
-	socket.on("simulatesun", function(){
-		var brightness = sunSimulator();	
+
+	socket.on("simulatesun", function() {
+		var brightness = sunSimulator();
 		io.sockets.emit("sunstatus", brightness);
+	});
+
+	socket.on("sendstarboard", function() {
+		io.sockets.emit("receivestarboard", starboard);
 	});
 }); // io.sockets.on
 
@@ -225,13 +230,13 @@ function handler(req, res) {
 			if (err) {
 				res.statusCode = 500;
 				res.end();
-				return ;
+				return;
 			} // if 
 		}); // _favicon
 	} // if
 
 	if (req.url == "/starboard") { // handles requests for starboard setup
-		res.writeHead(200, { 
+		res.writeHead(200, {
 			'content-type': 'application/json'
 		}); // res.writeHead
 		res.write(JSON.stringify(starboard));
@@ -248,14 +253,14 @@ function handler(req, res) {
 	} // if
 
 	fs.readFile('interface-prototype.html', // load interface html file
-		function (err, data) {
-				if (err) {
-					res.writeHead(500);
-					return res.end('Error loading index.html');
-				} // if
-				res.writeHead(200);
-				res.end(data);
-			}); // fs.readFile
+	function(err, data) {
+		if (err) {
+			res.writeHead(500);
+			return res.end('Error loading index.html');
+		} // if
+		res.writeHead(200);
+		res.end(data);
+	}); // fs.readFile
 } // handler
 
 // get server IP address on LAN
@@ -273,35 +278,35 @@ function getIPAddress() {
 
 /* OUTPUT OBJECTS */
 // LED object for easy state changes
-function LED(object) { 
+function LED(object) {
 	var togglestate = 0;
 	var key = object.key;
 
 	return {
 		key: key,
-		on: function () {
-			changeState( {
+		on: function() {
+			changeState({
 				"key": object.key,
 				"state": 1
 			}); // changeState
 		}, // on
-		off: function () {
-			changeState( {
+		off: function() {
+			changeState({
 				"key": object.key,
 				"state": 0
 			}); // changeState
 		}, // off
-		toggle: function () {
+		toggle: function() {
 			togglestate = togglestate ? 0 : 1;
-			changeState( {
+			changeState({
 				"key": object.key,
 				"state": togglestate,
 				"surpress": true
 			}); // changeState
 		}, // toggle
-		stopBlink: function () {
+		stopBlink: function() {
 			clearInterval(blinktimer);
-			changeState( {
+			changeState({
 				"key": object.key,
 				"state": 0
 			}); // changeState
@@ -314,14 +319,14 @@ function houseLights(object) {
 	var key = object.key;
 	return {
 		key: key,
-		on: function (brightness) {
-			changeState( {
+		on: function(brightness) {
+			changeState({
 				"key": object.key,
 				"state": brightness
 			}); // changeState
 		}, // on
-		off: function () {
-			changeState( {
+		off: function() {
+			changeState({
 				"key": object.key,
 				"state": 0
 			}); // changeState
@@ -332,8 +337,8 @@ function houseLights(object) {
 // Adjusting houselights according to the sun's position.
 function sunSimulator() {
 	var now = new Date();
-	var position = suncalc.getPosition(now, 38, -78.5)
-	var math = Math.round(Math.sin(position.altitude)*255);
+	var position = suncalc.getPosition(now, 38, - 78.5)
+	var math = Math.round(Math.sin(position.altitude) * 255);
 	var brightness = math > 0 ? math : 0;
 	hl.on(brightness);
 	return brightness;
@@ -352,14 +357,14 @@ function blinkLED(led, rate, duration) {
 // Feeder object. (Again, essentially an LED)
 function Feeder(object) {
 	return {
-		raise: function () {
-			changeState( {
+		raise: function() {
+			changeState({
 				"key": object.key,
 				"state": 1
 			}); // changeState
 		}, // raise
-		lower: function () {
-			changeState( {
+		lower: function() {
+			changeState({
 				"key": object.key,
 				"state": 0
 			}); // changeState
@@ -385,11 +390,14 @@ function printState(device) {
 	var statement = "";
 	if (starboard[device.key].type == "led") {
 		statement = device.state == 1 ? "on" : "off";
-	} else if (starboard[device.key].type == "beambreak") {
+	}
+	else if (starboard[device.key].type == "beambreak") {
 		statement = device.state === 0 ? "beam broken (peck)" : "beam unbroken";
-	} else if (starboard[device.key].type == "houselights") {
+	}
+	else if (starboard[device.key].type == "houselights") {
 		statement = device.state === 0 ? "off" : (device.state / 255).toFixed(2) * 100 + "% brightness";
-	} else if (starboard[device.key].type == "feed") {
+	}
+	else if (starboard[device.key].type == "feed") {
 		statement = device.state == 1 ? "feeding" : "not feeding";
 	} // if
 
