@@ -14,6 +14,7 @@ apparatus.js
 var b = require('./bonescript-lite'); // Javascript-beaglebone I/O
 var winston = require('winston'); // logger
 var all_starboards = require("./starboards.json"); // JSON containing starboard model information
+var suncalc = require('suncalc'); // Calculates sun position
 
 // Webserver and socket packages
 var app = require('http').createServer(handler);
@@ -26,12 +27,15 @@ var _favicon = favicon('favicon.ico');
 var port = 8000; // port for web interface 
 var star_version = "00A0"; // starboard version number (default = dummyboard)
 var app_logfile = 'apparatus.log'; //log file name
+var lat = 38; // latitude and longitude for UVa. Necessary for sun calculations.
+var lon = -78.5; 
 
 // Command line arrgument parser
 process.argv.forEach(function (val, index, array) {
 	if (val == "-p") port = array[index + 1];
 	else if (val == "-v") star_version = array[index + 1];
 	else if (val == "-l") app_logfile = array[index + 1];
+	else if (val == "-L") lat = array[index + 1]; lon = array[index+2];
 }); // process.argv.forEach
 
 // Setup the winston logger
@@ -207,6 +211,11 @@ io.sockets.on('connection', function (socket) {
 	socket.on("feedRequest", function (feeder, request) { // handles feeder requests
 		feeders[feeder][request]();
 	});
+	
+	socket.on("simulatesun", function(){
+		var brightness = sunSimulator();	
+		io.sockets.emit("sunstatus", brightness);
+	});
 }); // io.sockets.on
 
 // Handles http requests from clients
@@ -320,6 +329,16 @@ function houseLights(object) {
 	}; // return
 } // houseLights
 
+// Adjusting houselights according to the sun's position.
+function sunSimulator() {
+	var now = new Date();
+	var position = suncalc.getPosition(now, 38, -78.5)
+	var math = Math.round(Math.sin(position.altitude)*255);
+	var brightness = math > 0 ? math : 0;
+	hl.on(brightness);
+	return brightness;
+}
+
 // Function for blinking LEDs or houselights
 function blinkLED(led, rate, duration) {
 	clearInterval(blinktimer);
@@ -337,16 +356,16 @@ function Feeder(object) {
 			changeState( {
 				"key": object.key,
 				"state": 1
-			});
-		},
+			}); // changeState
+		}, // raise
 		lower: function () {
 			changeState( {
 				"key": object.key,
 				"state": 0
-			});
-		}
-	};
-}
+			}); // changeState
+		} // lower
+	}; // return
+} // Feeder
 
 /* MISC FUNCTIONS*/
 // Quick timestamp function

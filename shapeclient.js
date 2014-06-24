@@ -25,6 +25,9 @@ var block = 1;
 var trials = 5;
 var shape_logfile = "shape.log";
 
+var suncheck = 60000; // how often to check the sun's position
+var daytime; // flag for whether it is day 
+
 // print process.argv
 process.argv.forEach(function(val, index, array) {
 	if (val == "-b") block = array[index+1];
@@ -103,8 +106,6 @@ socket.on("simulatedPeck", function(peck) {
 });
 
 function block1() {
-
-	hl.on(105);
 
 	if (block == 1) {
 		setTimeout(block1, 10500);
@@ -333,6 +334,32 @@ function houseLights(object) {
 	},
   };
 }
+
+// Checks the sun's position
+function sunSimulator(){
+	socket.emit("simulatesun");
+} // sunSimulator
+
+// Checks the sun's position every suncheck miliseconds
+function getSunLoop(){
+	setTimeout(function(){
+		sunSimulator();
+		getSunLoop();
+	}, suncheck); // setTimeout
+} // getSunLoop
+
+// Handles information about the sun's positon
+socket.on("sunstatus", function(brightness) {
+	if (brightness <= 0) {
+		daytime = 0;
+		logger.info('Sun has set. Putting gngclient to sleep.', {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+	} else if (brightness >= 0 && !daytime) {
+		daytime = 1;
+		logger.info('Sun has risen. Starting trials.', {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+		trialPrep();
+	} // else if
+}); // socket.on
+
 
 // feeder object
 function Feeder(object) {

@@ -30,6 +30,7 @@ var response_time = 2000; // how long the bird is given to respond to simulus
 var device = "plughw:1,0"; // the sound card
 var stimuli_database = require("./gngstimuli"); // JSON containing simuli information
 var port = 8000; // port through which o connect to apparatus.js
+var simulatesun = 1; // flag for adjusting lights and running experiments according to sun's positon
 var gng_logfile = "gng.log";
 
 // Parse command line arguments
@@ -41,9 +42,12 @@ process.argv.forEach(function(val, index, array) {
     else if (val == "-r") response_time = array[index+1];
     else if (val == "-p") port = array[index+1];
     else if (val == "-t") targetpeck == array[index+1];
+    else if (val == "-S") simulatesun = array[index+1];
 });
 
 // Initialize global variables
+var suncheck = 60000; // how often to check the sun's position
+var daytime; // flag for whether it is day 
 var trialcount = 0; // counts the number of trials
 var pecked = 0; // flag for whether the bird peck
 var stimset = {}; // a dictionary of stimuli that will be used
@@ -83,27 +87,26 @@ socket.on('connect', function(socket) {
 
 // hacks to make the outputs work
 var leds = {};
-leds.ccr = new LED("ccr");
-leds.ccg = new LED("ccg");
-leds.ccb = new LED("ccb");
-
-leds.rcr = new LED("rcr");
-leds.rcg = new LED("rcg");
-leds.rcb = new LED("rcb");
-
-leds.lcr = new LED("lcr");
-leds.lcg = new LED("lcg");
-leds.lcb = new LED("lcb");
-hl = new houseLights("hl");
+	leds.ccr = new LED("ccr");
+	leds.ccg = new LED("ccg");
+	leds.ccb = new LED("ccb");
+	
+	leds.rcr = new LED("rcr");
+	leds.rcg = new LED("rcg");
+	leds.rcb = new LED("rcb");
+	
+	leds.lcr = new LED("lcr");
+	leds.lcg = new LED("lcg");
+var hl = new houseLights("hl");
 
 var feeders = {};
-feeders.rf = new Feeder("rf");
-feeders.lf = new Feeder("lf");
+	feeders.rf = new Feeder("rf");
+	feeders.lf = new Feeder("lf");
 
 
 // Handling Starboard pecks
 socket.on("simulatedPeck", function(peck) {
-	if (peck.state == 0) {
+	if (peck.state == 0) { // if the IR beam was broken...
 		logger.info(peck.name, "detected",{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
 		if (waiting  == "to_begin" && targetpeck == peck.key) {
 			waiting = null;
@@ -112,7 +115,7 @@ socket.on("simulatedPeck", function(peck) {
 			clearInterval(timer);
 			response = peck.key;
 			pecked = 1;
-		} // if
+		} // else if
 	} //  if
 }); // socket.on
 
@@ -130,21 +133,24 @@ function createStimSet(bank) {
 
 // Prepare to run trial and then wait on bird to begin
 function trialPrep(setstim) {
+	if (daytime) {
+		// prepare global variables for new trial
+		response = "none";
+		pecked = 0;
+		trialcount += 1;
 	
-	// prepare global variables for new trial
-	response = "none";
-	pecked = 0;
-	trialcount += 1;
-
-	// decide which stimulus to play and the correct response
-	rand = Math.random();
-	if (!setstim) stim = stimSelect(rand);
-
-	// wait for center peck
-	targetpeck = "cp";
-	waiting = "to_begin";
-	logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
-} // trialPrep
+		// decide which stimulus to play and the correct response
+		rand = Math.random();
+		if (!setstim) stim = stimSelect(rand);
+	
+		// wait for center peck
+		targetpeck = "cp";
+		waiting = "to_begin";
+		logger.info('Stimulus selected. Wating for bird to begin trial ' + trialcount,{trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+	} else {
+		logger.info('gngclient is sleeping for the night...');
+	}
+} //trialPrep
 
 // Randomly selecting which stimulus to play
 function stimSelect() {
@@ -238,6 +244,31 @@ function houseLights(object) {
   }; // return
 } // houseLights
 
+// Checks the sun's position
+function sunSimulator(){
+	socket.emit("simulatesun");
+} // sunSimulator
+
+// Checks the sun's position every suncheck miliseconds
+function getSunLoop(){
+	setTimeout(function(){
+		sunSimulator();
+		getSunLoop();
+	}, suncheck); // setTimeout
+} // getSunLoop
+
+// Handles information about the sun's positon
+socket.on("sunstatus", function(brightness) {
+	if (brightness <= 0) {
+		daytime = 0;
+		logger.info('Sun has set. Putting gngclient to sleep.', {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+	} else if (brightness >= 0 && !daytime) {
+		daytime = 1;
+		logger.info('Sun has risen. Starting trials.', {trial:trialcount, stimulus: stim.sound, stimulustype: stim.type, timestamp: timeStamp()});
+		trialPrep();
+	} // else if
+}); // socket.on
+
 // feeder object
 function Feeder(object) {
 	return {
@@ -253,7 +284,12 @@ function Feeder(object) {
 function startUp() {
 	console.log("\u001B[2J\u001B[0;0f");
 	logger.info("-----------------------Starport Go-NoGo Prototype-----------------------");
-	trialPrep()
+	if (simulatesun) {
+		sunSimulator(); // turn on house lights
+		getSunLoop(); // set hl brightness every suncheck miliseconds 
+	} else {
+		trialPrep()
+	} // else
 } // startUp
 
 // quick timestamp function

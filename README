@@ -50,7 +50,7 @@ Installation
 
 2. Install the dependices. Inside the folder containing these files:
 
-		npm install -g socket.io winston  serve-favicon
+		npm install -g socket.io suncalc winston serve-favicon
 
 Starting the Server
 -------------------
