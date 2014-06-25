@@ -8,13 +8,13 @@
     "sound":"./musicbox_broken.wav",
     "type":"nogo",
     "freq":"3"
- }
-  "s1":{
+ },
+  "s3":{
     "sound":"./musicbox2.wav",
     "type":"go",
     "freq":"2"
  },
- "s2":{
+ "s4":{
     "sound":"./musicbox_broken2.wav",
     "type":"nogo",
     "freq":"2"

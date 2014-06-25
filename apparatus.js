@@ -26,7 +26,7 @@ var _favicon = favicon('favicon.ico');
 // Default values for the command line argument values 
 var port = 8000; // port for web interface 
 var star_version = "00A0"; // starboard version number (default = dummyboard)
-var app_logfile = 'apparatus.log'; //log file name
+var app_logfile = 'apparatuslog.json'; //log file name
 var lat = 38; // latitude and longitude for UVa. Necessary for sun calculations.
 var lon = -78.5;
 
@@ -35,8 +35,7 @@ process.argv.forEach(function(val, index, array) {
 	if (val == "-p") port = array[index + 1];
 	else if (val == "-v") star_version = array[index + 1];
 	else if (val == "-l") app_logfile = array[index + 1];
-	else if (val == "-L") lat = array[index + 1];
-	lon = array[index + 2];
+	else if (val == "-L") { lat = array[index + 1]; lon = array[index + 2]; }
 }); // process.argv.forEach
 
 // Set the starboard model
@@ -48,7 +47,7 @@ var leds = {};
 var feeders = {};
 var hl;
 
-// Initialize other global variables
+// Declare other global variables
 var blinktimer;
 
 // Setup the winston logger
@@ -64,9 +63,7 @@ var blinktimer;
 
 	logger.on("logging", function(transport, level, msg, meta) {
 		if (transport.name == "file") io.sockets.emit('appLog', msg);
-	}); // logger.on
-
-}); // b.gpio_monitor
+}); // logger.on
 
 // Prepares interaction with starboard and set inital state
 setup(starboard);
@@ -108,6 +105,7 @@ b.gpio_monitor("event1", function(err, data) { // creates an event monitor for
 	starstate[device] = change.state;
 	updateClients(change, timestamp);
 	io.sockets.emit('simulatedPeck', change);
+}); // b.gpio_monitor
 
 /* STATE MANIPULATION FUNCTIONS*/
 // Updates starboard states into state dictionary
@@ -185,42 +183,42 @@ io.sockets.on('connection', function(socket) {
 
 		logger.info("client request: simulate " + starboard[change.key].name, {
 			timestamp: timeStamp(requestTime)
-		});
+		}); // logger.info
 
 		var updatestamp = Date.now();
 		io.sockets.emit('updateState', starstate);
 		io.sockets.emit('simulatedPeck', change);
 		logger.info(starboard[change.key].name, "simulated", {
 			timestamp: timeStamp(updatestamp)
-		});
+		}); // logger.info
 
 		starstate[change.key] = 1;
-	});
+	}); // socket.on
 
 	socket.on('stateQuery', function() { // request for apparatus to return its state 
 		updateClients();
-	});
+	}); // socket.on
 
 	socket.on("ledRequest", function(led, request, blinkparam) { // handles led requests from experiment scripts
 		!blinkparam ? leds[led][request]() : blinkLED(leds[led], blinkparam[0], blinkparam[1]);
-	});
+	}); // socket.on
 
 	socket.on("houseRequest", function(houselights, request, brightness) { // handles house lights requests 
 		hl[request](brightness);
-	});
+	}); // socket.on
 
 	socket.on("feedRequest", function(feeder, request) { // handles feeder requests
 		feeders[feeder][request]();
-	});
+	}); // socket.on
 
 	socket.on("simulatesun", function() {
 		var brightness = sunSimulator();
 		io.sockets.emit("sunstatus", brightness);
-	});
+	}); // socket.on
 
 	socket.on("sendstarboard", function() {
 		io.sockets.emit("receivestarboard", starboard);
-	});
+	}); // socket.on
 }); // io.sockets.on
 
 // Handles http requests from clients
@@ -337,12 +335,12 @@ function houseLights(object) {
 // Adjusting houselights according to the sun's position.
 function sunSimulator() {
 	var now = new Date();
-	var position = suncalc.getPosition(now, 38, - 78.5)
+	var position = suncalc.getPosition(now, lat, lon);
 	var math = Math.round(Math.sin(position.altitude) * 255);
-	var brightness = math > 0 ? math : 0;
+	var brightness = math > 0 ? math > 127 ? 255 : math : 0;
 	hl.on(brightness);
 	return brightness;
-}
+} // sunSimulator
 
 // Function for blinking LEDs or houselights
 function blinkLED(led, rate, duration) {
