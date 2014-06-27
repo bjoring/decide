@@ -15,7 +15,8 @@ State machines communicate by emitting events, data structures that communicate 
 
 - `id`: a string or keyword that identifies the type of event
 - `source`: a string or keyword that indicates the source of the event
-- `time`: a unix timestamp indicating when the event was created
+- `time`: a timestamp indicating when the event was created. Value is the number
+  of milliseconds since the epoch (TODO: handle higher precision?)
 
 Events may have any number of additional fields containing data about the event.
 In the event descriptions below, these fields are collectively referred to as
