@@ -7,7 +7,93 @@ software.
 -   State:  draft
 -   URL: <http://meliza.org/specifications/decide>
 
-*decide* is implemented as a set of finite state machines that communicate via events. This architecture provides a scalable mechanism for building complex experimental paradigms from simple components.
+## Goals and framework
+
+Automated operant behavioral experiments involve the following processes:
+
+1. Physical control of operant apparatus, including sound playback for stimulus
+   presentation.
+2. Sequencing and control of experimental trials. For example, a typical trial
+   comprises presentation of one or more stimuli, detection of correct and
+   incorrect responses, and provision of positive and negative feedback. In
+   addition, trials may be structured into blocks with varying experimental
+   conditions.
+3. Logging of apparatus state changes, experiment events, and trial data.
+4. Automated monitoring of systems and animal behavior over long time windows to
+   ensure adequate food access.
+5. Interfaces to monitor and manipulate the apparatus and experimental progress,
+   including starting and stopping experiments.
+
+In *decide*, these processes are implemented in separate programs that may be
+distributed over multiple computers. The apparatus and experimental control
+processes run on small embedded computers that can communicate directly with
+hardware, while the user interface runs in a browser. This network architecture
+requires protocols for exchanging data between processes.
+
+Some of the components of this system act as finite state machines, and this is
+a useful paradigm for considering how messages are exchanged. When the state of
+one component changes (for example, the animal pecks a key), the other
+components need to be notifed, so there are messages that are for broadcast
+(PUB). In other cases, one component needs to manipulate the state of another
+component (for example, the experiment control program needs to raise a food
+hopper to provide a reward), so there needs to be a system for addressing these
+requests (REQ). In turn, clients need a method for discovering addresses.
+
+## System and network architecture
+
+Each BBB is connected to an array of physical devices. The current complement is
+9 cue LEDs of various colors, 2 food hoppers, one high-power LED for lighting, 4
+beam break detectors that act like switches (3 for peck responses and one to
+detect when a hopper has been raised), and a stereo sound card. Each BBB can run
+one operant protocol. External clients can connect via HTTP to manipulate and
+inspect the state of the apparatus and the running protocol.
+
+In addition, the BBBs can be connected to a network with a standard host
+computer that provides logging, monitoring, and aggregation for the connected
+BBBs. External clients can connect to this computer to manipulate and inspect
+any of the connected BBBs.
+
+One process runs on each BBB and the host computer, and acts as a broker for PUB
+and REQ messages. Other processes may run on any of these computers, but should
+connect to the local broker to send or receive messages.
+
+Every physical and logical component of the system needs to have a unique
+address. Addresses consist of a hierarchical colon-delimited series of keywords.
+Brokers may modify addresses as messages are passed between sockets. For
+example, let's consider the left red cue light for an apparatus in box 1. The
+subsystem that manages the cue light state may refer to this component as
+`left_red`. If the broker for that box references the cue subsystem as `cue`,
+then the address of the LED for any client talking to that broker is
+`cue.left_red`. If the host computer broker references the BBB as `box-1`, then
+the full address is `box-1.cue.left_red`.
+
+## Messages
+
+The protocols described here are intended to be as independent of the wire
+protocol as possible. The current implementation uses websockets, but it should
+be possible to send the messages on other wire protocols. Some wire protocols
+(e.g., zeromq) may take care of addressing, and may implement PUB and REQ using
+separate sockets of different types. Under websockets, the PUB and REQ channels are separated using namespaces.
+
+All messages must be sent as serialized JSON.
+
+### PUB messages
+
+Messages sent over the PUB channel must have the following fields:
+
+- `addr`: the address of the *source* of the message
+- `event`: a string identifying the event type
+- `time`: a timestamp indicating when the event was created. Value is the number
+  of milliseconds since the epoch
+
+Messages may have additional fields depending on the `event` value. Defined PUB event types:
+
+1. `state-changed`: indicates that the internal state of a component has
+   changed. The message must contain a `data` field whose value is a dictionary
+   giving the values that changed (and only those values).
+3. `tick`: indicates that an interval of time has passed. The message must
+   contain the field `interval`, giving the number of seconds elapsed.
+
 
 ## Events
 
@@ -41,10 +127,6 @@ this will make future work more difficult.
 These event types constitute the bulk of normal communication between state
 machines.
 
-1. `state-changed`: emitted by a state machine when its state vector changes.
-   The purpose is to notify other state machines that depend on the state of the
-   notifier. The payload must contain only the elements of the state that have
-   changed, so that recipients do not have to determine this for themselves.
 2. `modify-state`: sent to a state machine to request a change in its state
    vector. The purpose is to propagate information to state machines that are
    not listening to the notifier. This event type is primarily used by state
@@ -52,8 +134,6 @@ machines.
    behavior of subsidiary state machines. The payload and its interpretation are
    determined by the recipient state machine, and must be documented as part of
    the interface.
-3. `tick`: indicates that an interval of time has passed. The payload must
-   contain the field `interval`, giving the number of seconds elapsed.
 
 #### Logging and error-handling
 
