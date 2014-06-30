@@ -66,6 +66,10 @@
     fill: blue;
 }
 
+.omni {
+    fill: black
+}
+
 #applog {
     width: 67%;
     margin-left: auto;

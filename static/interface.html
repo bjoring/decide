@@ -42,7 +42,7 @@
                   d3.entries(msg.data).forEach(function(x) {
                     starboard[msg.addr].state[x.key] = x.value;
                   })
-                  update();
+                  drawInterface();
                 }
                 else if (data.event == "log") {
                   appendConsole(data.reason, "applog");
@@ -124,149 +124,165 @@
                     .attr("display","block")
 
             // filtering data before binding now - CDM
-            svg.selectAll(".omni")
-                    .data(data.filter(function(d) {
-                      return d.value.type == "led" && d.value.color == "red"}))
-                    .enter()
-                    .append("rect")
-                    .attr("class", "omni")
-                    .attr("x", function(d, i) { return xOmniScale(i); })
-                    .attr("y", yScale(1))
-                    .attr("width", xOmniScale.rangeBand())
-                    .attr("height", yScale.rangeBand()*(4/3))
-                    .attr("fill", "black");
+          var omni = svg.selectAll(".omni")
+            .data(data.filter(function(d) { return d.value.type == "led" && d.value.color == "red"}),
+                  function(d) { return d.key });
 
-            svg.selectAll(".led")
-                    .data(data.filter(function(d) { return d.value.type == "led"},
-                                           function(d) { return d.key}))
-                    .enter()
-                    .append("rect")
-                    .attr("class", function(d) { return "led control " + d.value.color;})
-                    .attr("x", function(d, i) { return xLedScale(i); })
-                    .attr("y", yScale(2) + yScale.rangeBand()*(1/3))
-                    .attr("width", xLedScale.rangeBand())
-                    .attr("height", yScale.rangeBand()*(2/3))
-                    .classed("active", function(d) { return d.value.state.brightness > 0 })
-                    .on("click", function(d) {
-                      req.emit("msg", {
-                        req: "change-state",
-                        addr: d.key,
-                        data: {
-                          brightness: !(d.value.state.brightness)
-                        }
-                      })
-                    });
+          omni.enter()
+            .append("rect")
+            .attr("class", "omni")
+            .attr("x", function(d, i) { return xOmniScale(i); })
+            .attr("y", yScale(1))
+            .attr("width", xOmniScale.rangeBand())
+            .attr("height", yScale.rangeBand()*(4/3));
 
+          omni
+            .attr("fill", function(d) {
+              var key = d.key.split("_")
+              var color = ["red", "green", "blue"].map(function(k) {
+                var el = [key[0], key[1], k].join("_");
+                return starboard[el].state.brightness;
+              })
+              return "rgb(" + color + ")";
+            })
 
-            var keys = svg.selectAll(".peckgroup")
-                          .data(data.filter(function(d) { return d.value.type == "key"},
-                                                 function(d) { return d.key}))
-                    .enter()
-                    .append("g")
-                    .attr("class", "peckgroup");
+          var cues = svg.selectAll(".led")
+            .data(data.filter(function(d) { return d.value.type == "led"},
+                                           function(d) { return d.key}));
+          cues.enter()
+            .append("rect")
+            .attr("class", function(d) { return "led control " + d.value.color;})
+            .attr("x", function(d, i) { return xLedScale(i); })
+            .attr("y", yScale(2) + yScale.rangeBand()*(1/3))
+            .attr("width", xLedScale.rangeBand())
+            .attr("height", yScale.rangeBand()*(2/3))
+            .on("click", function(d) {
+              req.emit("msg", {
+                req: "change-state",
+                addr: d.key,
+                data: {
+                  brightness: !(d.value.state.brightness)
+                }
+              })
+            });
 
-            keys.selectAll(".peck")
-                .data(function(d,i) { return d3.entries(d.value.state) })
-                .enter()
-                .append("rect")
-                .attr("class", "peck control")
-                .attr("x", function(d,i) { return xPeckScale(i); })
-                .attr("y", yScale(3) )
-                .attr("width",  xPeckScale.rangeBand())
-                .attr("height", yScale.rangeBand())
-                .classed("active", function(d) { return d.value })
-                .on("mousedown", function(d) {
-                  // could get "keys" from d3.select(this.parentNode).datum().key;
-                  var data = {};
-                  data[d.key] = true;
-                  req.emit("msg", {
-                    req: "change-state",
-                    addr: "keys",
-                    data: data
-                  })
-                })
-                .on("mouseup", function(d) {
-                  var data = {};
-                  data[d.key] = false;
-                  req.emit("msg", {
-                    req: "change-state",
-                    addr: "keys",
-                    data: data
-                  });
-                })
+          cues
+            .classed("active", function(d) { return d.value.state.brightness });
 
-            svg.selectAll(".houselights")
-                    .data(data.filter(function(x) { return x.value.type == "lights"},
-                                      function(x) { return x.key}))
-                    .enter()
-                    .append("rect")
-                    .attr("class", "houselights control")
-                    .attr("x", function(d, i) {
-                      return xHouseScale(i);
-                    })
-                    .attr("y", yScale(0)+yScale.rangeBand()/2)
-                    .attr("width", xHouseScale.rangeBand())
-                    .attr("height", yScale.rangeBand()/2)
-                    // TODO show sun position?
-                    .on("click", function(d) {
-                      if (starstate[d.key] >= 250) {
-                        updateServer(Date.now(),{"key": d.key, "state":0,"name":d.name});
-                      } else if (starstate[d.key] === 0) {
-                        updateServer(Date.now(),{"key": d.key, "state":100,"name":d.name});
-                      } else {
-                        updateServer(Date.now(),{"key": d.key, "state":starstate[d.key]+50,"name":d.name});
-                      }
-                    });
+          cues.exit().remove();
 
-            svg.selectAll(".feeder")
-                    .data(data.filter(function(x) { return x.value.type == "feeder"},
-                                           function(x) { return x.key}))
-                    .enter()
-                    .append("rect")
-                    .attr("class", "feeder control")
-                    .attr("x", function(d, i) {
-                      return xFeedScale(i);
-                    })
-                    .attr("y", yScale(4))
-                    .attr("width", xFeedScale.rangeBand())
-                    .attr("height", yScale.rangeBand()/2)
-                    .on("click", function(d) {
-                      req.emit("msg", {
-                        req: "change-state",
-                        addr: d.key,
-                        data: {feeding: true},
-                      });
-                    });
+          var keygrp = svg.selectAll(".peckgroup")
+            .data(data.filter(function(d) { return d.value.type == "key"},
+                              function(d) { return d.key}));
+          keygrp.enter()
+            .append("g")
+            .attr("class", "peckgroup");
+          keygrp.exit()
+            .remove();
+
+          var keys = keygrp.selectAll(".peck")
+            .data(function(d,i) { return d3.entries(d.value.state) },
+                  function(d) { return d.key;});
+
+          keys.enter()
+            .append("rect")
+            .attr("class", "peck control")
+            .attr("x", function(d,i) { return xPeckScale(i); })
+            .attr("y", yScale(3) )
+            .attr("width",  xPeckScale.rangeBand())
+            .attr("height", yScale.rangeBand())
+            .on("mousedown", function(d) {
+              // could get "keys" from d3.select(this.parentNode).datum().key;
+              var data = {};
+              data[d.key] = true;
+              req.emit("msg", {
+                req: "change-state",
+                addr: "keys",
+                data: data
+              })
+            })
+            .on("mouseup", function(d) {
+              var data = {};
+              data[d.key] = false;
+              req.emit("msg", {
+                req: "change-state",
+                addr: "keys",
+                data: data
+              });
+            })
+
+          keys
+            .classed("active", function(d) { return d.value })
+
+          keys.exit().remove();
+
+          var lights = svg.selectAll(".houselights")
+            .data(data.filter(function(x) { return x.value.type == "lights"},
+                              function(x) { return x.key}));
+
+          // TODO show sun position?
+          lights.enter()
+            .append("rect")
+            .attr("class", "houselights control")
+            .attr("x", function(d, i) { return xHouseScale(i); })
+            .attr("y", yScale(0)+yScale.rangeBand()/2)
+            .attr("width", xHouseScale.rangeBand())
+            .attr("height", yScale.rangeBand()/2)
+            .on("click", function(d) {
+              // TODO: support changing the brightness to other values?
+              req.emit("msg", {
+                req: "change-state",
+                addr: d.key,
+                data: {
+                  brightness: !(d.value.state.brightness > 0)
+                }
+              })
+            })
+            // .on("click", function(d) {
+            //   if (starstate[d.key] >= 250) {
+            //     updateServer(Date.now(),{"key": d.key, "state":0,"name":d.name});
+            //   } else if (starstate[d.key] === 0) {
+            //     updateServer(Date.now(),{"key": d.key, "state":100,"name":d.name});
+            //   } else {
+            //     updateServer(Date.now(),{"key": d.key, "state":starstate[d.key]+50,"name":d.name});
+            //   }
+            // });
+
+          lights.attr("fill", function(d, i) {
+            var brightness = d.value.state.brightness
+            var color = [brightness, brightness, 0];
+            return "rgb("+color+")";
+          });
+
+          lights.exit().remove();
+
+          var feeders = svg.selectAll(".feeder")
+            .data(data.filter(function(x) { return x.value.type == "feeder"},
+                              function(x) { return x.key}));
+
+          feeders.enter()
+            .append("rect")
+            .attr("class", "feeder control")
+            .attr("x", function(d, i) { return xFeedScale(i); })
+            .attr("y", yScale(4))
+            .attr("width", xFeedScale.rangeBand())
+            .attr("height", yScale.rangeBand()/2)
+            .on("click", function(d) {
+              req.emit("msg", {
+                req: "change-state",
+                addr: d.key,
+                data: {feeding: true},
+              });
+            });
+
+          feeders
+            .classed("active", function(d, i) {
+              return d.value.state.feeding;
+            })
+
+          feeders.exit().remove();
         }
 
-        function updateOmni() {
-                var left = [225*starstate.lcr,
-                            225*starstate.lcg,
-                            225*starstate.lcb];
-
-                var center = [225*starstate.ccr,
-                              225*starstate.ccg,
-                              225*starstate.ccb];
-
-                var right = [225*starstate.rcr,
-                              225*starstate.rcg,
-                              225*starstate.rcb];
-
-                svg.selectAll(".omni")
-                    .attr("fill", function(d,i){
-                        if (i == 0) return "rgb("+left+")";
-                        else if (i==1) return "rgb("+center+")";
-                        else return "rgb("+right+")"
-                });
-            }
-
-        function updateHouse() {
-                svg.selectAll(".houselights")
-                .attr("fill", function(d,i){
-                        color = [starstate[d.key],starstate[d.key],0];
-                        return "rgb("+color+")";
-                    });
-            }
 
         function appendConsole(data, console) {
             var target = "#"+console;
@@ -286,25 +302,6 @@
             d3.selectAll("#message").text(function(){
                 return (msg +" -  "+meta.timestamp);
             });
-        }
-
-        function update() {
-          d3.selectAll(".led")
-            .classed("active", function(d) {
-              return starboard[d.key].state.brightness > 0;
-            });
-          d3.selectAll(".peck")
-            .classed("active", function(d) {
-              var parentkey = d3.select(this.parentNode).datum().key;
-              return starboard[parentkey].state[d.key];
-            });
-          d3.selectAll(".feeder")
-            .classed("active", function(d) {
-              return starboard[d.key].state.feeding;
-            });
-
-                // updateOmni();
-                // updateHouse();
         }
 
     </script>
