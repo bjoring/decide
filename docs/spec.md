@@ -118,6 +118,8 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
    may be needed for connection management if the wire protocol doesn't support
    automatic reconnection).
 
+TODO: address in reply?
+
 ### Addressing
 
 Every physical and logical component of the system must have a unique address.
