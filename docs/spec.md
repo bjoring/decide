@@ -113,7 +113,8 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
 3. `get-meta`: requests the addressed component to return its metadata as a
    reply. Metadata may include information about the underlying hardware, which
    is used by some clients to generate an interface.
-3. `hugz`: a heartbeat message, sent by the controller to the server or vice
+4. `get-params`: requests the addressed component to return its parameters
+5. `hugz`: a heartbeat message, sent by the controller to the server or vice
    versa. The recepient must respond with `hugz-ok`. (Additional message types
    may be needed for connection management if the wire protocol doesn't support
    automatic reconnection).

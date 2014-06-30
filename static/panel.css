@@ -1,0 +1,106 @@
+#interface {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.control {
+    stroke-width: 0px;
+    cursor: pointer;
+}
+
+.control:hover {
+    stroke-width: 2px;
+}
+
+.houselights {
+    fill: black;
+    stroke: yellow;
+}
+
+.houselights.active {
+    fill: yellow;
+}
+
+.feeder {
+    fill: black;
+    stroke: blueviolet;
+}
+
+.feeder.active {
+    fill: "blueviolet";
+}
+
+.peck {
+    fill: black;
+    stroke: salmon;
+}
+
+.peck.active {
+    fill: salmon;
+}
+
+.red {
+    fill: rgb(90,0,0);
+    stroke: red;
+}
+
+.red.active {
+    fill: red;
+}
+
+.green {
+    fill: rgb(0,90,0);
+    stroke: green;
+}
+
+.green.active {
+    fill: green;
+}
+
+.blue {
+    fill: rgb(0,0,90);
+    stroke: blue;
+}
+
+.blue.active {
+    fill: blue;
+}
+
+#applog {
+    width: 67%;
+    margin-left: auto;
+    margin-right: auto;
+    font-family:Lucida Console;
+    font-size:small;
+}
+
+#consolecontain {
+    display:inline-block;
+    height:210px;
+    width: 49%;
+    margin: 0 auto;
+}
+
+#appconsole {
+    display:inline-block;
+    height:120%;
+    width: 100%;
+    margin: 0 auto;
+    overflow-y:auto;
+}
+
+#shapeconsole {
+    display:inline-block;
+    height:210px;
+    width: 49%;
+    margin: 0 auto;
+    padding-left: 2%;
+}
+
+#shapelog {
+    display:inline-block;
+    height:120%;
+    width: 100%;
+    margin: 0 auto;
+    overflow-y:auto;
+}
