@@ -14,6 +14,7 @@
         <script src="/static/jquery-1.9.1.min.js"></script>
         <script src="/static/jquery.mobile-1.3.1.min.js"></script>
         <script src="/socket.io/socket.io.js"></script>
+        <script src="/static/queue.v1.min.js" charset="utf-8"></script>
         <script src="/static/d3.v3.min.js" charset="utf-8"></script>
         <!-- Code for socket.io and device orientation handling -->
         <script>
@@ -23,34 +24,35 @@
         // Send data through socket
 
         var starboard;
-        var starstate;
 
-        d3.json("/components", function(err, json) {
-        if (err) console.warn(err);
-          starboard = d3.entries(json);
-        });
+        queue()
+          .defer(d3.json, "/components")
+          .defer(d3.json, "/state")
+          .await(function(err, components, state) {
+            if (err) console.warn(err)
+            else {
+              // merge the camponents and state object
+              starboard = components;
+              for (var key in starboard)
+                starboard[key].state = state[key];
+              drawInterface();
 
-        d3.json("/state", function(err, json) {
-            if (err) console.warn(err);
-            starstate=json;
-            drawInterface();
-            update();
-        });
-
-        pub.on("msg", function(data) {
-          if (data.event == "state-changed") {
-            starstate = data;
-            update();
-          }
-          else if (data.event == "log") {
-            appendConsole(data.reason, "applog");
-          }
-          else if (data.event == "trial-data") {
-        //     trialStatusUpdate("shapelog",msg,meta);
-          }
-
-
-        });
+              pub.on("msg", function(msg) {
+                if (msg.event == "state-changed") {
+                  d3.entries(msg.data).forEach(function(x) {
+                    starboard[msg.addr].state[x.key] = x.value;
+                  })
+                  update();
+                }
+                else if (data.event == "log") {
+                  appendConsole(data.reason, "applog");
+                }
+                else if (data.event == "trial-data") {
+                  //     trialStatusUpdate("shapelog",msg,meta);
+                }
+              });
+            }
+          });
 
         </script>
     </head>
@@ -84,10 +86,11 @@
             var w = window.innerWidth * 0.7;
             var h = w * 0.5626;
 
-            var numLeds = d3.sum(starboard.map(function(x) { return x.value.type == 'led'; }));
-            var numHouse = d3.sum(starboard.map(function(x) { return x.value.type == 'lights'; }));
-            var numFeeds = d3.sum(starboard.map(function(x) { return x.value.type == 'feeder'; }));
-            var numPecks = d3.sum(starboard.map(function(x) {
+            var data = d3.entries(starboard);
+            var numLeds = d3.sum(data.map(function(x) { return x.value.type == 'led'; }));
+            var numHouse = d3.sum(data.map(function(x) { return x.value.type == 'lights'; }));
+            var numFeeds = d3.sum(data.map(function(x) { return x.value.type == 'feeder'; }));
+            var numPecks = d3.sum(data.map(function(x) {
               return (x.value.type == "key") ? Object.keys(x.value.variables).length : 0;
             }));
 
@@ -122,7 +125,7 @@
 
             // filtering data before binding now - CDM
             svg.selectAll(".omni")
-                    .data(starboard.filter(function(d) {
+                    .data(data.filter(function(d) {
                       return d.value.type == "led" && d.value.color == "red"}))
                     .enter()
                     .append("rect")
@@ -134,7 +137,7 @@
                     .attr("fill", "black");
 
             svg.selectAll(".led")
-                    .data(starboard.filter(function(d) { return d.value.type == "led"},
+                    .data(data.filter(function(d) { return d.value.type == "led"},
                                            function(d) { return d.key}))
                     .enter()
                     .append("rect")
@@ -143,26 +146,27 @@
                     .attr("y", yScale(2) + yScale.rangeBand()*(1/3))
                     .attr("width", xLedScale.rangeBand())
                     .attr("height", yScale.rangeBand()*(2/3))
+                    .classed("active", function(d) { return d.value.state.brightness > 0 })
                     .on("click", function(d) {
                       req.emit("msg", {
                         req: "change-state",
                         addr: d.key,
                         data: {
-                          brightness: !(starstate[d.key].brightness)
+                          brightness: !(d.value.state.brightness)
                         }
                       })
                     });
 
 
             var keys = svg.selectAll(".peckgroup")
-                          .data(starboard.filter(function(d) { return d.value.type == "key"},
+                          .data(data.filter(function(d) { return d.value.type == "key"},
                                                  function(d) { return d.key}))
                     .enter()
                     .append("g")
                     .attr("class", "peckgroup");
 
             keys.selectAll(".peck")
-                .data(function(d,i) { return d3.entries(d.value.variables) })
+                .data(function(d,i) { return d3.entries(d.value.state) })
                 .enter()
                 .append("rect")
                 .attr("class", "peck control")
@@ -170,20 +174,30 @@
                 .attr("y", yScale(3) )
                 .attr("width",  xPeckScale.rangeBand())
                 .attr("height", yScale.rangeBand())
-                .on("click", function(d) {
-                  var groupkey = d3.select(this.parentNode).datum().key;
+                .classed("active", function(d) { return d.value })
+                .on("mousedown", function(d) {
+                  // could get "keys" from d3.select(this.parentNode).datum().key;
                   var data = {};
-                  data[d.key] = !(starstate[groupkey][d.key]);
+                  data[d.key] = true;
                   req.emit("msg", {
                     req: "change-state",
-                    addr: groupkey,
+                    addr: "keys",
+                    data: data
+                  })
+                })
+                .on("mouseup", function(d) {
+                  var data = {};
+                  data[d.key] = false;
+                  req.emit("msg", {
+                    req: "change-state",
+                    addr: "keys",
                     data: data
                   });
-                });
+                })
 
             svg.selectAll(".houselights")
-                    .data(starboard.filter(function(x) { return x.value.type == "lights"},
-                                           function(x) { return x.key}))
+                    .data(data.filter(function(x) { return x.value.type == "lights"},
+                                      function(x) { return x.key}))
                     .enter()
                     .append("rect")
                     .attr("class", "houselights control")
@@ -205,7 +219,7 @@
                     });
 
             svg.selectAll(".feeder")
-                    .data(starboard.filter(function(x) { return x.value.type == "feeder"},
+                    .data(data.filter(function(x) { return x.value.type == "feeder"},
                                            function(x) { return x.key}))
                     .enter()
                     .append("rect")
@@ -224,21 +238,6 @@
                       });
                     });
         }
-
-
-        function getColor(d, i) {
-                var color;
-                var brightness;
-
-                if (starstate[d.key] == 1 || d == 1) brightness = 225;
-                else brightness = 90
-
-                if (d.color == "red" || i % 3 == 0) color = [brightness,0,0];
-                else if (d.color == "green" || i % 3 == 1) color = [0,brightness,0];
-                else if (d.color == "blue" || i % 3 == 2) color = [0,0,brightness];
-
-                return "rgb("+color+")";
-            }
 
         function updateOmni() {
                 var left = [225*starstate.lcr,
@@ -261,27 +260,11 @@
                 });
             }
 
-        function updatePeck() {
-                svg.selectAll(".peck")
-                .attr("fill", function(d,i){
-                        if (starstate[d.key] == 1) return "black";
-                        else return "salmon";
-                    });
-            }
-
         function updateHouse() {
                 svg.selectAll(".houselights")
                 .attr("fill", function(d,i){
                         color = [starstate[d.key],starstate[d.key],0];
                         return "rgb("+color+")";
-                    });
-            }
-
-        function updateFeed() {
-                svg.selectAll(".feed")
-                .attr("fill", function(d,i){
-                        if (starstate[d.key] == 0) return "black";
-                        else return "blueviolet";
                     });
             }
 
@@ -306,16 +289,22 @@
         }
 
         function update() {
-                svg.selectAll(".led")
-                    .attr("fill", function(d,i){
+          d3.selectAll(".led")
+            .classed("active", function(d) {
+              return starboard[d.key].state.brightness > 0;
+            });
+          d3.selectAll(".peck")
+            .classed("active", function(d) {
+              var parentkey = d3.select(this.parentNode).datum().key;
+              return starboard[parentkey].state[d.key];
+            });
+          d3.selectAll(".feeder")
+            .classed("active", function(d) {
+              return starboard[d.key].state.feeding;
+            });
 
-                        var color = getColor(d,i);
-                        return color;
-                });
-                updateOmni();
-                updatePeck();
-                updateHouse();
-                updateFeed();
+                // updateOmni();
+                // updateHouse();
         }
 
     </script>
