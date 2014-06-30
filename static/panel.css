@@ -13,12 +13,7 @@
 }
 
 .houselights {
-    fill: black;
     stroke: yellow;
-}
-
-.houselights.active {
-    fill: yellow;
 }
 
 .feeder {
@@ -27,7 +22,7 @@
 }
 
 .feeder.active {
-    fill: "blueviolet";
+    fill: blueviolet;
 }
 
 .peck {
@@ -62,12 +57,13 @@
     stroke: blue;
 }
 
-.blue.active {
-    fill: blue;
+.omni {
+    stroke: black;
+    stroke-width: 1px;
 }
 
-.omni {
-    fill: black
+.blue.active {
+    fill: blue;
 }
 
 #applog {

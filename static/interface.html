@@ -141,7 +141,7 @@
               var key = d.key.split("_")
               var color = ["red", "green", "blue"].map(function(k) {
                 var el = [key[0], key[1], k].join("_");
-                return starboard[el].state.brightness;
+                return starboard[el].state.brightness * 244;
               })
               return "rgb(" + color + ")";
             })
@@ -234,7 +234,7 @@
                 req: "change-state",
                 addr: d.key,
                 data: {
-                  brightness: !(d.value.state.brightness > 0)
+                  brightness: !d.value.state.brightness * 255
                 }
               })
             })
