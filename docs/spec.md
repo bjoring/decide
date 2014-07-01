@@ -114,6 +114,14 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
    reply. Metadata may include information about the underlying hardware, which
    is used by some clients to generate an interface.
 4. `get-params`: requests the addressed component to return its parameters
+5. `route`: requests the broker to route REQ messages to the client's socket.
+   The message must contain a field `return-addr`, which is the requested
+   address for the client in the broker's routing table. The broker must respond
+   with `route-ok` to indicate success, or `route-err` to indicate an error.
+6. `unroute`: requests the broker to remove the client from the routing table.
+   The message must contain a field `return-addr`, which is the previously
+   requested address for the client in the broker's routing table. The broker
+   must respond with `unroute-ok` for success and `unroute-err` for failure.
 5. `hugz`: a heartbeat message, sent by the controller to the server or vice
    versa. The recepient must respond with `hugz-ok`. (Additional message types
    may be needed for connection management if the wire protocol doesn't support
@@ -262,4 +270,7 @@ Normal operation for a controller connected to a host is to forward all PUB
 messages for logging on the host. If controller dies, host should notify a
 human. If host dies, controller needs to start saving log messages.
 
+### websockets
+
+Under websockets, messages consist of a string followed by some data. All messages use "msg" as their identifying string except for the following: `route`, `unroute`, and `hugz`. These messages are sent on the REQ channel, but are not routed to specific components.
 

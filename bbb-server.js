@@ -47,7 +47,9 @@ function controller(params) {
   };
 
   // no requests expected from apparatus
-  this.req = function(msg) {};
+  this.req = function(msg, rep) {
+    rep(null, {});
+  };
 
   // forward pub to connected clients and apparatus components
   pubc.on("connection", function(socket) {
@@ -65,11 +67,35 @@ function controller(params) {
   // route req to apparatus
   reqc.on("connection", function(socket) {
     winston.info("connection on REQ:", socket.handshake.address)
-    socket.on("msg", function(msg) {
-      winston.debug("REQ from client:", msg)
-      apparatus.req(msg);
+    socket.on("msg", function(msg, rep) {
+      apparatus.req(msg, function(err, data) {
+        if (err)
+          rep("msg-err", err);
+        else
+          rep("msg-ok", data);
+      });
     });
-    // TODO allow clients to register for reqs
+
+    socket.on("route", function(key, rep) {
+      // register a client in the apparatus
+      apparatus.register(key, {
+        // client gets pubs through socket already
+        pub: function() {},
+        req: function(msg, rep) { socket.emit("msg", msg, rep) }
+      });
+      // TODO clients asking for same name?
+      rep("route-ok");
+    });
+
+    socket.on("unroute", function(key, rep) {
+      apparatus.unregister(key);
+      rep("unroute-ok");
+    });
+
+    socket.on("hugz", function(data, rep) {
+      rep("hugz-ok");
+    })
+
     socket.on("disconnect", function() {
       winston.info("disconnect on REQ:", socket.handshake.address)
     })
@@ -90,11 +116,21 @@ app.get("/", function(req, res) {
 });
 
 app.get("/state", function(req, res) {
-  res.send(apparatus.req({ req: "get-state", addr: ""}));
+  apparatus.req({ req: "get-state", addr: ""}, function(err, rep) {
+    if (err)
+      res.send(500, err)
+    else
+      res.send(rep);
+  });
 });
 
 app.get("/components", function(req, res) {
-  res.send(apparatus.req({ req: "get-meta", addr: ""}));
+  apparatus.req({ req: "get-meta", addr: ""}, function(err, rep) {
+    if (err)
+      res.send(500, err)
+    else
+      res.send(rep);
+  });
 });
 
 // all other static content resides in /static
