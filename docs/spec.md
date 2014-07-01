@@ -104,16 +104,19 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
 
 1. `change-state`: requests a modification to the state of the component
    specified by `addr`. Message must contain a data field with updates to the
-   state vector. The recipient will not respond directly, but must emit a
-   `state-changed` PUB message if its state changes as a resut of the request.
-2. `get-state`: requests the current value of the state. The response is a
-   nested dictionary giving the state vector(s) of all requested components. See
-   below for addressing scheme. This message can be used to discover connected
-   components.
+   state vector. The recipient will respond with `req-err` if there was a
+   problem with the request, and `req-ok` if not. Changes to the state that
+   result from the request, however, must be sent via a `state-changed` PUB
+   message.
+2. `get-state`: requests the current value of the state. The response is
+   `req-ok` followed by a nested dictionary giving the state vector(s) of all
+   requested components. See below for addressing scheme. This message can be
+   used to discover connected components. Reply is `req-err` for bad requests.
 3. `get-meta`: requests the addressed component to return its metadata as a
    reply. Metadata may include information about the underlying hardware, which
-   is used by some clients to generate an interface.
-4. `get-params`: requests the addressed component to return its parameters
+   is used by some clients to generate an interface. Replies are as for `get-state`.
+4. `get-params`: requests the addressed component to return its parameters.
+   Replies are as for `get-state`.
 5. `route`: requests the broker to route REQ messages to the client's socket.
    The message must contain a field `return-addr`, which is the requested
    address for the client in the broker's routing table. The broker must respond
@@ -272,5 +275,5 @@ human. If host dies, controller needs to start saving log messages.
 
 ### websockets
 
-Under websockets, messages consist of a string followed by some data. All messages use "msg" as their identifying string except for the following: `route`, `unroute`, and `hugz`. These messages are sent on the REQ channel, but are not routed to specific components.
+Under websockets, messages consist of a string followed by some data. All PUB messages use "msg" as their identifying string, as do all REQ messages except for the following: `route`, `unroute`, and `hugz`. These messages are sent on the REQ channel, but are not routed to specific components.
 

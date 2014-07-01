@@ -1,6 +1,7 @@
 // this is the broker process for the controller
 
 var fs = require("fs");
+var _ = require("underscore");
 var express = require("express");
 var winston = require("winston"); // logger
 var apparatus = require("./lib/apparatus");
@@ -68,11 +69,12 @@ function controller(params) {
   reqc.on("connection", function(socket) {
     winston.info("connection on REQ:", socket.handshake.address)
     socket.on("msg", function(msg, rep) {
+      rep = rep || function() {};
       apparatus.req(msg, function(err, data) {
         if (err)
-          rep("msg-err", err);
+          rep("req-err", err);
         else
-          rep("msg-ok", data);
+          rep("req-ok", data);
       });
     });
 
@@ -81,14 +83,16 @@ function controller(params) {
       apparatus.register(key, {
         // client gets pubs through socket already
         pub: function() {},
-        req: function(msg, rep) { socket.emit("msg", msg, rep) }
+        req: function(msg, rep) { socket.emit("msg", msg, _.partial(rep, null)) }
       });
+      socket.apparatus_key = key;
       // TODO clients asking for same name?
       rep("route-ok");
     });
 
     socket.on("unroute", function(key, rep) {
       apparatus.unregister(key);
+      socket.apparatus_key = undefined;
       rep("unroute-ok");
     });
 
@@ -97,6 +101,8 @@ function controller(params) {
     })
 
     socket.on("disconnect", function() {
+      if (socket.apparatus_key)
+        apparatus.unregister(socket.apparatus_key);
       winston.info("disconnect on REQ:", socket.handshake.address)
     })
   })
@@ -135,7 +141,6 @@ app.get("/components", function(req, res) {
 
 // all other static content resides in /static
 app.use("/static", express.static(__dirname + "/static"));
-
 
 // initialize the apparatus
 apparatus.init(params)

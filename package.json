@@ -1,0 +1,33 @@
+{
+  "name": "decide",
+  "preferGlobal": false,
+  "version": "0.1.0",
+  "author": "Meliza Lab (http://meliza.org/starboard)",
+  "description": "operant control system",
+  "contributors": [
+    "Tyler Robbins",
+    "Dan Meliza <cdm8j -at- virginia.edu>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://meliza-server.virginia.edu/SourceNinja/simple-node-sample.git"
+  },
+  "license": "BSD",
+  "dependencies": {
+    "npm": ">= 1.1.2",
+    "express": "4.4.5",
+    "winston": "0.7.3",
+    "glob": "4.0.3",
+    "queue-async": "1.0.7",
+    "suncalc": "1.5.2",
+    "socket.io": "1.0.6",
+    "socket.io-client": "1.0.6",
+    "underscore": "1.6.0"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "0.10"
+  },
+  "homepage": "http://meliza.org/starboard"
+}
