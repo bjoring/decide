@@ -1,0 +1,15 @@
+Time to completely redesign this.
+
+toolkit:
+	Will contain all the functions necessary to build experiments.
+	Functions will include "cue_left", "wait_for_peck", etc. Ideally,
+	building a new experiment will be as easy as putting toolkit 
+	functions into a specific order. Perhaps it would even be best
+	if the experiment files did not interact at all with
+	apparatus?
+
+
+Protocols: 
+	Other stuff should be able to interact with the experiments (
+	"start", "stop", and "resume". This will all have to be done
+	through the broker.
