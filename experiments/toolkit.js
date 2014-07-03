@@ -3,9 +3,7 @@ var io = require('socket.io-client');
 var pub = io.connect("http://localhost:8000/PUB");
 var req = io.connect("http://localhost:8000/REQ");
 
-sound("/root/LabFiles/decide/lib/musicbox.wav");
-
-function play_sound(what) { //TODO: more sound functionality?
+function aplayer(what) { //TODO: more sound functionality?
 	req.emit("msg", {
 		req: "change-state",
                 addr: "aplayer",
@@ -151,5 +149,6 @@ module.exports = {
 	cue: cue,
 	feed: feed,
 	lights: lights,
-	keys: keys	
+	keys: keys,
+	aplayer: aplayer	
 };
