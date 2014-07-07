@@ -2,7 +2,21 @@
 var io = require('socket.io-client');
 var pub = io.connect("http://localhost:8000/PUB");
 var req = io.connect("http://localhost:8000/REQ");
+var async = require('async');
 
+var running = true;
+
+function initialize(name, object) {
+	
+}
+function trial_loop(something) {
+	if (running == true) {
+		something(function(){trial_loop(something);});
+	}
+	else {
+		setTimeout(function(){trial_loop(something);}, 10000);		
+	}
+}
 function aplayer(what) {
 	return {
 		play: function(callback) {
@@ -131,7 +145,6 @@ function keys(target) {
 				}
 			});
 			function report() {
-				console.log(response);
 				if (response.response != "none") {
 					if (target == "none") correct = false;
 				} else {
@@ -199,5 +212,6 @@ module.exports = {
 	feed: feed,
 	lights: lights,
 	keys: keys,
-	aplayer: aplayer
+	aplayer: aplayer,
+	trial_loop: trial_loop
 };

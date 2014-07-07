@@ -10,6 +10,7 @@ var target_key = "peck_center";
 var stim_set = {};
 var correction_trial;
 var correction_limit = 3;
+var correction_count;
 var stimuli_database = require("../stimuli/gngstimuli")
 var default_feed = "left";
 var feed_duration = 2000;
@@ -26,7 +27,6 @@ t.lights().on();
 function trial() {
 	
 	var stim;
-	var corrections = 0;
 	prep_trial();
 	
 
