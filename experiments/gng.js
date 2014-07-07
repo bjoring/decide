@@ -2,31 +2,32 @@
 var t = require("./toolkit");
 var winston = require("winston"); // logger
 
-
-// Parameters
+// Trial variables
 var trial_count = 0;
-var response_time = 2000;
-var target_key = "peck_center";
 var stim_set = {};
-var correction_trial;
-var correction_limit = 3;
 var correction_count;
-var stimuli_database = require("../stimuli/gngstimuli")
-var default_feed = "left";
-var feed_duration = 2000;
-var punish_duration = 2000;
+var stim;
+var correction_trial;
+
+// Default parameters
+var par = {
+	target_key: "peck_center",
+	response_window_duration: 2000,
+	correction_limit: 3,
+	stimuli_database: "../stimuli/gngstimuli",
+	default_feed: "left",
+	feed_duration: 2000,
+	punish_duration: 2000
+}
 
 // Create the stimulus set
-create_stim_set(stimuli_database);
-
-trial();
-
+create_stim_set(par.stimuli_database);
 t.lights().on();
+t.initialize("gng");
+t.trial_loop(trial);
 
 // Set global variables
-function trial() {
-	
-	var stim;
+function trial(callback) {	
 	prep_trial();
 	
 
@@ -35,7 +36,7 @@ function trial() {
 		console.log("preparing trial",trial_count, correction_trial ? "correction " + correction_count : "");
 		stim = force_stim ? force_stim : select_stimulus();
 		console.log("waiting for peck");
-		t.keys(target_key).wait_for(false, play_stimulus);
+		t.keys(par.target_key).wait_for(false, play_stimulus);
 	}
 
 	function select_stimulus() {
@@ -52,21 +53,20 @@ function trial() {
 	}
 
 	function response_check() {
-		var correct_response = stim.type == 1 ? target_key : "none"; 
+		var correct_response = stim.type == 1 ? par.target_key : "none"; 
 		console.log("checking response");
-		t.keys(correct_response).response_window(response_time, response_reaction);
+		t.keys(correct_response).response_window(par.response_window_duration, response_reaction);
 	}
 
 	function response_reaction(result) {
-		console.log(result);
 		if (result.correct == true) {
 			console.log("correct response");
-			if (result.response != "none") t.feed(default_feed, feed_duration, trial);
-			else trial();
+			if (result.response != "none") t.feed(par.default_feed, par.feed_duration, callback);
+			else callback()  //trial();
 		}
 		else {
 			console.log("incorrect response");
-			if (result.response != "none") t.lights().off(punish_duration, run_correction_trial);
+			if (result.response != "none") t.lights().off(par.punish_duration, run_correction_trial);
 			else run_correction_trial();
 		}
 	}
@@ -75,18 +75,19 @@ function trial() {
 		if (!correction_trial) correction_count = 0;
 		correction_trial = true;
 		correction_count++;
-		if (correction_count <= correction_limit) {
+		if (correction_count <= par.correction_limit) {
 			prep_trial(stim);
 		}
 		else {
 			correction_trial = false;
-			trial();
+			callback(); //trial();
 		}
 	}
 }
 
-function create_stim_set(bank) {
-        var i = 0;
+function create_stim_set(loc) {
+        var bank = require(loc);
+	var i = 0;
         for (stimulus in bank) {
                 var f = bank[stimulus].freq;
                 for (var j = 0; j < f; j++) {

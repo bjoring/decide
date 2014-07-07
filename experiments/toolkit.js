@@ -4,13 +4,20 @@ var pub = io.connect("http://localhost:8000/PUB");
 var req = io.connect("http://localhost:8000/REQ");
 var async = require('async');
 
-var running = true;
+var state = {
+	program: null,
+	running: false,
+	current_status: null
+}
 
 function initialize(name, object) {
-	
+	state.program = name;
+	state.running = true;
+	req.emit("route", "experiment", console.log);	
 }
+
 function trial_loop(something) {
-	if (running == true) {
+	if (state.running == true) {
 		something(function(){trial_loop(something);});
 	}
 	else {
@@ -193,18 +200,19 @@ function write_feed(which, state) {
 	});
 }
 
-// state manipulation sketch
-function init(name, object) {
-	// create component
-	// set state stuff
+this.req = function(msg, rep) {
+	var ret;
+	if (msg.event == "change_state") {
+		console.log("changed!");
+		ret = function(){
+			for (key in msg.data) {
+				state[key] = msg.data[key];
+			}
+		}
+	}
+	else if (msg.event == "get-state") ret = state;
+	if (rep) rep(null, ret);	
 }
-
-function change_state(key, change) {
-	// set value of state stuff
-}
-
-
-
 
 
 module.exports = {
@@ -213,5 +221,6 @@ module.exports = {
 	lights: lights,
 	keys: keys,
 	aplayer: aplayer,
-	trial_loop: trial_loop
+	trial_loop: trial_loop,
+	initialize: initialize
 };
