@@ -200,19 +200,18 @@ function write_feed(which, state) {
 	});
 }
 
-this.req = function(msg, rep) {
+req.on("msg",function(msg, rep) {
 	var ret;
-	if (msg.event == "change_state") {
-		console.log("changed!");
-		ret = function(){
-			for (key in msg.data) {
-				state[key] = msg.data[key];
+	if (msg.req == "change-state") {
+		for (key in msg.data) {
+			state[key] = msg.data[key];
 			}
+		ret = msg.data
 		}
-	}
-	else if (msg.event == "get-state") ret = state;
-	if (rep) rep(null, ret);	
-}
+		else if (msg.req == "get-state") ret = state;
+		if (rep) rep(null, ret);
+		// TODO: state changes broadcast on pub
+});
 
 
 module.exports = {
