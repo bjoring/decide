@@ -1,22 +1,12 @@
 {
  "s1":{
-    "sound":"/root/LabFiles/decide/musicbox.wav",
+    "sound":"/root/LabFiles/decide/stimuli/musicbox.wav",
     "type":"1",
     "freq":"3"
  },
  "s2":{
-    "sound":"/root/LabFiles/decide/musicbox_broken.wav",
+    "sound":"/root/LabFiles/decide/stimuli/musicbox_broken.wav",
     "type":"2",
     "freq":"3"
- },
-  "s3":{
-    "sound":"/root/LabFiles/decide/musicbox2.wav",
-    "type":"1",
-    "freq":"2"
- },
- "s4":{
-    "sound":"/root/Labfiles/decide/musicbox_broken2.wav",
-    "type":"2",
-    "freq":"2"
  }
 }

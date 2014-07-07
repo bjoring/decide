@@ -5,7 +5,7 @@ var req = io.connect("http://localhost:8000/REQ");
 
 function aplayer(what) {
 	return {
-		play: function() {
+		play: function(callback) {
 				req.emit("msg", {
 					req: "change-state",
 					addr: "aplayer",
@@ -16,7 +16,8 @@ function aplayer(what) {
 				});
 				pub.on("msg",function (msg) {
 						if (msg.event == "state-changed" && msg.data.playing == false) {
-							callback();
+							pub.removeListener("msg");
+							if(callback) callback();
 						}
 					});
 				}
@@ -32,23 +33,23 @@ function cue(which) {
 			write_led(which, true);
 			if (duration) setTimeout(function () {
 				cue(which).off();
+				if (callback) callback();
 			}, duration); // if
-			callback();
 		}, // return
 		off: function (duration, callback) {
 			write_led(which, false);
 			clearInterval(timer);
 			if (duration) setTimeout(function () {
 				cue(which).on();
+				if (callback) callback();
 			}, duration);
-			callback();
 		},
 		blink: function (duration, interval, callback) {
 			timer = setInterval(toggle, interval);
 			if (duration) setTimeout(function () {
 				cue(which).off();
+				if (callback) callback();
 			}, duration);
-			callback();
 		}
 	};
 	function toggle() {
@@ -57,20 +58,20 @@ function cue(which) {
 	}
 }
 
-function feed(which, duration, callback) {
+function feed(which, duration, callback) { // TODO: change feed() to follow closure format
 	write_feed(which, true);
 	setTimeout(function () {
 		write_feed(which, false);
+		if (callback) callback();
 	}, duration);
-	callback();
 }
 
 function lights() {
 	var which = "house_lights";
 	return {
 		man_set: function (brightness, callback) {
-			write_led(which, brightness);
-			callback();
+			write_led(which, brightness);	
+			if (callback) callback();
 		},
 		clock_set: function (callback) {
 			req.emit("msg", {
@@ -80,7 +81,7 @@ function lights() {
 					clock_on: true
 				}
 			});
-			callback();
+			if (callback) callback();
 		},
 		clock_set_off: function (callback) {
 			req.emit("msg", {
@@ -90,32 +91,32 @@ function lights() {
 					clock_on: false
 				}
 			});
-			callback();
+			if(callback) callback();		
 		},
 		on: function (duration, callback) {
 			write_led(which, 255);
 			if (duration) setTimeout(function () {
-				lights.off();
+				lights().off();	
+				if (callback) callback();
 			}, duration);
-			callback();
 		},
 		off: function (duration, callback) {
 			write_led(which, 0);
 			if (duration) setTimeout(function () {
-				lights.on();
+				lights().on();
+				if (callback) callback();
 			}, duration);
-			callback();
 		}
 	};
 }
 
 function keys(target) {
-	var response;
+	var response = {response: "none"};
 	var correct;
 	var timer;
 	return {
-		response_window:function (duration, callback) {
-			timer = setInterval(report, duration);
+		response_window: function (duration, callback) {
+			timer = setInterval(function(){pub.removeListener("msg");clearInterval(timer); report();}, duration);
 			pub.on("msg", function (msg) {
 				if (msg.event == "state-changed" && msg.addr == "keys") {
 					pub.removeListener("msg");
@@ -124,26 +125,25 @@ function keys(target) {
 					response = {
 						time: msg.time, response: rep[0]
 					};
-					if (target == "none" || target == null || !msg.data[target]) correct = false;
+					if (target == "none" || !msg.data[target]) correct = false;
 					else if (msg.data[target]) correct = true;
 					report();
 				}
 			});
 			function report() {
-				if (response) {
-					if (target == "none" || target == null) correct = false;
+				console.log(response);
+				if (response.response != "none") {
+					if (target == "none") correct = false;
 				} else {
-					if (target == "none" || target == null) correct = true;
-					else {
-						correct = false;
-						var now = Date.now();
-						response = {
-							time: now, response: null
-						}
+					if (target == "none") correct = true;
+					else correct = false;
+					var now = Date.now();
+					response = {
+						time: now, response: "none"
 					}
 				}
 				response.correct = correct;
-				return callback(response);
+				if (callback) callback(response);
 			}
 		},
 		wait_for: function (repeat, callback) {
@@ -154,7 +154,7 @@ function keys(target) {
 					var data = {
 						time: msg.time, response: rep[0], target: target
 					};
-					callback(data);
+					if (callback) callback(data);
 				}
 			});
 		}
