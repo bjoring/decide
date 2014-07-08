@@ -2,41 +2,31 @@
 var t = require("./toolkit");
 var winston = require("winston"); // logger
 
-main();
+// Trial variables
+var trial_count = 0;
+var correction_count;
+var stim;
+var correction_trial;
 
-function main() {
-	// Trial variables
-	var trial_count = 0;
-	var stim_set = {};
-	var correction_count;
-	var stim;
-	var correction_trial;
-
-	// Default parameters
-	var par = {
-		target_key: "peck_center",
-		response_window_duration: 2000,
-		correction_limit: 3,
-		stimuli_database: "../stimuli/gngstimuli",
-		default_feed: "left",
-		feed_duration: 2000,
-		punish_duration: 2000
-	}
-
-	// Create the stimulus set
-	create_stim_set(par.stimuli_database);
-
-	// Make sure the lights are on
-	t.lights().on();
-
-	// Create a "gng" component in apparatus
-	t.initialize("gng");
-
-	// Run trial() in a loop
-	t.trial_loop(trial);
+// Default parameters
+var par = {
+	target_key: "peck_center",
+	response_window_duration: 2000,
+	correction_limit: 3,
+	stimuli_database: "../stimuli/gngstimuli",
+	default_feed: "left",
+	feed_duration: 2000,
+	punish_duration: 2000
 }
 
-// Set global variables
+// Setup
+var stim_set = create_stim_set(par.stimuli_database); // Create stimulus set
+t.lights().on(); // Make sure the lights are on
+t.initialize("gng"); // Create a "gng" component in apparatus
+
+// Run trial() in a loop
+t.trial_loop(trial);
+
 function trial(callback) {
 
 	prep_trial();
@@ -96,14 +86,15 @@ function trial(callback) {
 }
 
 function create_stim_set(loc) {
-        var bank = require(loc);
+    var bank = require(loc);
 	var i = 0;
-        for (stimulus in bank) {
-                var f = bank[stimulus].freq;
-                for (var j = 0; j < f; j++) {
-                        stim_set[i] = bank[stimulus];
-                        i++;
-                } 
-        }
+	var stim_set = {};
+    for (stimulus in bank) {
+        var f = bank[stimulus].freq;
+        for (var j = 0; j < f; j++) {
+            stim_set[i] = bank[stimulus];
+            i++;
+        } 
+    }
+    return stim_set;
 }
-
