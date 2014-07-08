@@ -157,7 +157,7 @@
             .attr("width", xLedScale.rangeBand())
             .attr("height", yScale.rangeBand()*(2/3))
             .on("click", function(d) {
-              req.emit("msg", {
+		req.emit("msg", {
                 req: "change-state",
                 addr: d.key,
                 data: {
@@ -229,7 +229,7 @@
             .attr("width", xHouseScale.rangeBand())
             .attr("height", yScale.rangeBand()/2)
             .on("click", function(d) {
-              // TODO: support changing the brightness to other values?
+		// TODO: support changing the brightness to other values?
               req.emit("msg", {
                 req: "change-state",
                 addr: d.key,
@@ -268,7 +268,7 @@
             .attr("width", xFeedScale.rangeBand())
             .attr("height", yScale.rangeBand()/2)
             .on("click", function(d) {
-              req.emit("msg", {
+		req.emit("msg", {
                 req: "change-state",
                 addr: d.key,
                 data: {feeding: true},

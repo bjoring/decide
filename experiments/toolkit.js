@@ -1,7 +1,7 @@
 // toolkit.js
 var io = require('socket.io-client');
-var pubc = io.connect("http://localhost:8000/pubc");
-var reqc = io.connect("http://localhost:8000/reqc");
+var pubc = io.connect("http://localhost:8000/PUB");
+var reqc = io.connect("http://localhost:8000/REQ");
 var async = require('async');
 
 // TODO:
@@ -11,7 +11,7 @@ var async = require('async');
 
 var state = {
 	running: false,
-	phase: null
+	phase: "idle"
 }
 
 var meta = {
@@ -28,7 +28,7 @@ var active_program;
 
 function initialize(name, object) {
 	state.running = true;
-	reqc.emit("route", "gng", console.log);
+	//reqc.emit("route", "gng", console.log);
 
 	reqc.emit("msg", {
 		req: "change-state",
@@ -248,13 +248,12 @@ reqc.on("msg",function(msg, rep) {
 		for (key in msg.data) {
 			state[key] = msg.data[key];
 			}
-		ret = msg.data
+			ret = msg.data
 		}
 	else if (msg.req == "get-state") ret = state;
 	else if (msg.req == "get-meta") ret = meta;
 	else if (msg.req == "get-params") ret = params;
 	if (rep) rep(null, ret);
-	// TODO: state changes broadcast on pubc
 });
 
 module.exports = {
@@ -265,5 +264,5 @@ module.exports = {
 	feed: feed,
 	lights: lights,
 	keys: keys,
-	state_update: state_update
+	phase_update: phase_update
 };

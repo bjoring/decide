@@ -43,16 +43,16 @@ function trial(callback) {
 
 	function prep_trial(force_stim) {
 		trial_data.trial++;
-		winston.log("preparing trial",trial_data.trial, trial_data.correction ? "correction " + correction_count : "");
+		console.log("preparing trial",trial_data.trial, trial_data.correction ? "correction " + trial_data.correction_count : "");
 		t.phase_update("preparing-stimulus");
 		trial_data.stim = force_stim ? force_stim : select_stimulus();
-		winston.log("waiting for peck");
+		console.log("waiting for peck");
 		t.phase_update("inter-trial");
 		t.keys(par.target_key).wait_for(false, play_stimulus);
 	}
 
 	function select_stimulus() {
-		winston.log("selecting stimulus");
+		console.log("selecting stimulus");
 		var rand = Math.random();
 		var length = Object.keys(stim_set).length - 1;
 		var select = Math.round(rand*length);
@@ -62,13 +62,13 @@ function trial(callback) {
 	function play_stimulus() {
 		trial_data.begin = Date.now();
 		t.phase_update("playing-sound");
-		winston.log("playing stimulus:",trial_data.stim.sound);
+		console.log("playing stimulus:",trial_data.stim.sound);
 		t.aplayer(trial_data.stim.sound).play(response_check);
 	}
 
 	function response_check() {
 		trial_data.correct_response = trial_data.stim.type == 1 ? par.target_key : "none"; 
-		winston.log("checking response");
+		console.log("checking response");
 		t.phase_update("evaluating-response");
 		t.keys(trial_data.correct_response).response_window(par.response_window_duration, response_reaction);
 	}
@@ -78,7 +78,7 @@ function trial(callback) {
 		trial_data.response = result.response;
 		trial_data.correct = result.correct;
 		if (trial_data.correct === true) {
-			winston.log("correct response");
+			console.log("correct response");
 			trial_data.err = 0;
 			if (trial_data.response != "none") {
 				t.phase_update("rewarding");
@@ -90,7 +90,7 @@ function trial(callback) {
 			}
 		}
 		else {
-			winston.log("incorrect response");
+			console.log("incorrect response");
 			if (result.response != "none") {
 				trial_data.err = 1;
 				trial_data.punished = true;
@@ -106,8 +106,8 @@ function trial(callback) {
 
 	function run_correction() {
 		trial_data.correction = true;
-		correction_count++;
-		if (correction_count <= par.correction_limit) {
+		trial_data.correction_count++;
+		if (trial_data.correction_count <= par.correction_limit) {
 			log_data();
 			prep_trial(trial_data.stim);
 		}
@@ -119,16 +119,16 @@ function trial(callback) {
 
 	function next_trial() {
 		trial_data.correction = false;
-		trial_data.correction_count = false;
+		trial_data.correction_count = 0;
 		log_data();	
 		callback();
 	}
 
 	function log_data() {
 		trial_data.end = Date.now();
-		winston.log(trial_data);
+		console.log(trial_data);
 		for (var key in trial_data) {
-			if (key != trial && key != correction && key != correction_count) {
+			if (key != "trial" && key != "stim" && key != "correction" && key != "correction_count") {
 				trial_data[key] = "not-logged";
 			}
 		}
