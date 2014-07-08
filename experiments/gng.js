@@ -3,7 +3,7 @@ var t = require("./toolkit");
 var winston = require("winston"); // logger
 
 // Trial variables initialization
-var trial_data {
+var trial_data = {
 	trial: 0,
 	begin: 0,
 	end: 0,
@@ -16,7 +16,7 @@ var trial_data {
 	punished: false,
 	correction: false,
 	correction_count: 0,
-}
+};
 
 // Default parameters
 var par = {
@@ -27,7 +27,7 @@ var par = {
 	default_feed: "left",
 	feed_duration: 2000,
 	punish_duration: 2000
-}
+};
 
 // Setup
 var stim_set = create_stim_set(par.stimuli_database); // Create stimulus set
@@ -77,12 +77,12 @@ function trial(callback) {
 		trial_data.rewarded = trial_data.punished = false; // reset these values for now
 		trial_data.response = result.response;
 		trial_data.correct = result.correct;
-		if (trial_data.correct == true) {
+		if (trial_data.correct === true) {
 			winston.log("correct response");
 			trial_data.err = 0;
 			if (trial_data.response != "none") {
 				t.phase_update("rewarding");
-				trial_data.rewarded = true,
+				trial_data.rewarded = true;
 				t.feed(par.default_feed, par.feed_duration, next_trial);
 			}
 			else {
@@ -99,11 +99,12 @@ function trial(callback) {
 			} 
 			else  { 
 				trial_data.err = 2;
-				run_trial_data.correction();
+				run_correction();
+			}
 		}
-	}
+	}	
 
-	function run_trial_data.correction() {
+	function run_correction() {
 		trial_data.correction = true;
 		correction_count++;
 		if (correction_count <= par.correction_limit) {
@@ -126,7 +127,7 @@ function trial(callback) {
 	function log_data() {
 		trial_data.end = Date.now();
 		winston.log(trial_data);
-		for (key in trial_data) {
+		for (var key in trial_data) {
 			if (key != trial && key != correction && key != correction_count) {
 				trial_data[key] = "not-logged";
 			}
@@ -138,7 +139,7 @@ function create_stim_set(loc) {
     var bank = require(loc);
 	var i = 0;
 	var stim_set = {};
-    for (stimulus in bank) {
+    for (var stimulus in bank) {
         var f = bank[stimulus].freq;
         for (var j = 0; j < f; j++) {
             stim_set[i] = bank[stimulus];
