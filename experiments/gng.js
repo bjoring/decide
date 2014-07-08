@@ -2,34 +2,44 @@
 var t = require("./toolkit");
 var winston = require("winston"); // logger
 
-// Trial variables
-var trial_count = 0;
-var stim_set = {};
-var correction_count;
-var stim;
-var correction_trial;
+main();
 
-// Default parameters
-var par = {
-	target_key: "peck_center",
-	response_window_duration: 2000,
-	correction_limit: 3,
-	stimuli_database: "../stimuli/gngstimuli",
-	default_feed: "left",
-	feed_duration: 2000,
-	punish_duration: 2000
+function main() {
+	// Trial variables
+	var trial_count = 0;
+	var stim_set = {};
+	var correction_count;
+	var stim;
+	var correction_trial;
+
+	// Default parameters
+	var par = {
+		target_key: "peck_center",
+		response_window_duration: 2000,
+		correction_limit: 3,
+		stimuli_database: "../stimuli/gngstimuli",
+		default_feed: "left",
+		feed_duration: 2000,
+		punish_duration: 2000
+	}
+
+	// Create the stimulus set
+	create_stim_set(par.stimuli_database);
+
+	// Make sure the lights are on
+	t.lights().on();
+
+	// Create a "gng" component in apparatus
+	t.initialize("gng");
+
+	// Run trial() in a loop
+	t.trial_loop(trial);
 }
 
-// Create the stimulus set
-create_stim_set(par.stimuli_database);
-t.lights().on();
-t.initialize("gng");
-t.trial_loop(trial);
-
 // Set global variables
-function trial(callback) {	
+function trial(callback) {
+
 	prep_trial();
-	
 
 	function prep_trial(force_stim) {
 		trial_count++;
