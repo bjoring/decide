@@ -1,13 +1,13 @@
 // toolkit.js
 var io = require('socket.io-client');
-var pub = io.connect("http://localhost:8000/PUB");
-var req = io.connect("http://localhost:8000/REQ");
+var pubc = io.connect("http://localhost:8000/pubc");
+var reqc = io.connect("http://localhost:8000/reqc");
 var async = require('async');
 
 // TODO:
-// 	1. State implimentation
-//  2. Pub such
-//  3. Better 
+// 	Better sun support
+//  More elaborate stat machine
+//  Handle logs over pubc
 
 var state = {
 	running: false,
@@ -19,14 +19,26 @@ var meta = {
 	dir: "input",
 	variables: {
 		running: [true,false],
-		phase: null // depends upon experiment
+		phase: ["rewarding","punishing","wating-for-response","evaluating-response","playing-sound","inter-trial", "preparing-stimulus"] 
+		// Simplified now for convenience. May implement more complex state machine in the future
 	}
 }
 
+var active_program;
+
 function initialize(name, object) {
-	state.program = name;
 	state.running = true;
-	req.emit("route", "experiment", console.log);	
+	reqc.emit("route", "gng", console.log);
+
+	reqc.emit("msg", {
+		req: "change-state",
+		addr: "experiment",
+		data: {
+			program: name
+		}
+	});	
+
+	active_program = name;
 }
 
 function trial_loop(something) {
@@ -34,13 +46,13 @@ function trial_loop(something) {
 		something(function(){trial_loop(something);});
 	}
 	else {
-		setTimeout(function(){trial_loop(something);}, 10000);		
+		setTimeout(function(){trial_loop(something);}, 5000);		
 	}
 }
 function aplayer(what) {
 	return {
 		play: function(callback) {
-				req.emit("msg", {
+				reqc.emit("msg", {
 					req: "change-state",
 					addr: "aplayer",
 					data: {
@@ -48,9 +60,9 @@ function aplayer(what) {
 						playing: true
 					}
 				});
-				pub.on("msg",function (msg) {
+				pubc.on("msg",function (msg) {
 						if (msg.event == "state-changed" && msg.data.playing == false) {
-							pub.removeListener("msg");
+							pubc.removeListener("msg");
 							if(callback) callback();
 						}
 					});
@@ -92,7 +104,7 @@ function cue(which) {
 	}
 }
 
-function feed(which, duration, callback) { gt// TODO: change feed() to follow closure format
+function feed(which, duration, callback) { // TODO: change feed() to follow closure format
 	write_feed(which, true);
 	setTimeout(function () {
 		write_feed(which, false);
@@ -108,7 +120,7 @@ function lights() {
 			if (callback) callback();
 		},
 		clock_set: function (callback) {
-			req.emit("msg", {
+			reqc.emit("msg", {
 				req: "change-state",
 				addr: "house_lights",
 				data: {
@@ -118,7 +130,7 @@ function lights() {
 			if (callback) callback();
 		},
 		clock_set_off: function (callback) {
-			req.emit("msg", {
+			reqc.emit("msg", {
 				req: "change-state",
 				addr: "houselights",
 				data: {
@@ -150,10 +162,10 @@ function keys(target) {
 	var timer;
 	return {
 		response_window: function (duration, callback) {
-			timer = setInterval(function(){pub.removeListener("msg");clearInterval(timer); report();}, duration);
-			pub.on("msg", function (msg) {
+			timer = setInterval(function(){pubc.removeListener("msg");clearInterval(timer); report();}, duration);
+			pubc.on("msg", function (msg) {
 				if (msg.event == "state-changed" && msg.addr == "keys") {
-					pub.removeListener("msg");
+					pubc.removeListener("msg");
 					clearInterval(timer);
 					var rep = Object.keys(msg.data);
 					response = {
@@ -180,9 +192,9 @@ function keys(target) {
 			}
 		},
 		wait_for: function (repeat, callback) {
-			pub.on("msg", function (msg) {
+			pubc.on("msg", function (msg) {
 				if (msg.event == "state-changed" && msg.data[target]) {
-					if (repeat == false) pub.removeListener("msg");
+					if (repeat == false) pubc.removeListener("msg");
 					var rep = Object.keys(msg.data);
 					var data = {
 						time: msg.time, response: rep[0], target: target
@@ -194,7 +206,7 @@ function keys(target) {
 	};
 }
 function write_led(which, state) {
-	req.emit("msg", {
+	reqc.emit("msg", {
 		req: "change-state",
 		addr: which == "house_lights" ? which : "cue_" + which,
 		data: {
@@ -204,7 +216,7 @@ function write_led(which, state) {
 }
 
 function write_feed(which, state) {
-	req.emit("msg", {
+	reqc.emit("msg", {
 		req: "change-state",
 		addr: "feeder_" + which,
 		data: {
@@ -213,7 +225,24 @@ function write_feed(which, state) {
 	});
 }
 
-req.on("msg",function(msg, rep) {
+function phase_update(new_state) {
+	state.phase = new_state;
+	var msg = {
+		event: "state-changed",
+		addr: active_program,
+		time: Date.now(),
+		data: {
+			phase: new_state
+		}
+	}
+	pub(msg);
+}
+
+function pub(msg) {
+	pubc.emit("msg", msg);
+}
+
+reqc.on("msg",function(msg, rep) {
 	var ret;
 	if (msg.req == "change-state") {
 		for (key in msg.data) {
@@ -225,7 +254,7 @@ req.on("msg",function(msg, rep) {
 	else if (msg.req == "get-meta") ret = meta;
 	else if (msg.req == "get-params") ret = params;
 	if (rep) rep(null, ret);
-	// TODO: state changes broadcast on pub
+	// TODO: state changes broadcast on pubc
 });
 
 module.exports = {
@@ -236,4 +265,5 @@ module.exports = {
 	feed: feed,
 	lights: lights,
 	keys: keys,
+	state_update: state_update
 };

@@ -147,4 +147,3 @@ apparatus.init(params)
 
 // start the broker
 apparatus.register("controller", new controller(params.controller))
-
