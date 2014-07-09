@@ -6,8 +6,7 @@ var async = require('async');
 
 // TODO:
 // 	Better sun support
-//  More elaborate stat machine
-//  Handle logs over pubc
+//  	More elaborate state machine
 
 var state = {
 	running: false,
@@ -28,7 +27,7 @@ var active_program;
 
 function initialize(name, object) {
 	state.running = true;
-	//reqc.emit("route", "gng", console.log);
+	reqc.emit("route", "gng", console.log);
 
 	reqc.emit("msg", {
 		req: "change-state",
@@ -111,12 +110,13 @@ function feed(which, duration, callback) { // TODO: change feed() to follow clos
 		if (callback) callback();
 	}, duration);
 }
-
+cue("left_green").off();
 function lights() {
 	var which = "house_lights";
+	var use_clock;
 	return {
 		man_set: function (brightness, callback) {
-			write_led(which, brightness);	
+			write_led(which, brightness);
 			if (callback) callback();
 		},
 		clock_set: function (callback) {
@@ -127,6 +127,7 @@ function lights() {
 					clock_on: true
 				}
 			});
+			use_clock = true;
 			if (callback) callback();
 		},
 		clock_set_off: function (callback) {
@@ -140,6 +141,7 @@ function lights() {
 			if(callback) callback();		
 		},
 		on: function (duration, callback) {
+			lights().clock_set_off();
 			write_led(which, 255);
 			if (duration) setTimeout(function () {
 				lights().off();	
@@ -147,7 +149,9 @@ function lights() {
 			}, duration);
 		},
 		off: function (duration, callback) {
-			write_led(which, 0);
+			lights().clock_set_off(function() {
+				write_led(which, 0);
+			});	
 			if (duration) setTimeout(function () {
 				lights().on();
 				if (callback) callback();
@@ -225,16 +229,15 @@ function write_feed(which, state) {
 	});
 }
 
-function phase_update(new_state) {
+function state_update(key, new_state) {
 	state.phase = new_state;
 	var msg = {
 		event: "state-changed",
 		addr: active_program,
 		time: Date.now(),
-		data: {
-			phase: new_state
-		}
+		data: {}
 	}
+	msg.data[key] = new_state;
 	pub(msg);
 }
 
@@ -248,12 +251,13 @@ reqc.on("msg",function(msg, rep) {
 		for (key in msg.data) {
 			state[key] = msg.data[key];
 			}
-			ret = msg.data
+			ret = msg.data;
+			state_update(key, msg.data[key]);
 		}
 	else if (msg.req == "get-state") ret = state;
 	else if (msg.req == "get-meta") ret = meta;
 	else if (msg.req == "get-params") ret = params;
-	if (rep) rep(null, ret);
+	if (rep) rep(ret);
 });
 
 module.exports = {
@@ -264,5 +268,5 @@ module.exports = {
 	feed: feed,
 	lights: lights,
 	keys: keys,
-	phase_update: phase_update
+	state_update: state_update
 };

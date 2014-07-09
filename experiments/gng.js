@@ -2,12 +2,12 @@
 var t = require("./toolkit");
 var winston = require("winston"); // logger
 
-// Trial variables initialization
+// Trial variables
 var trial_data = {
 	trial: 0,
 	begin: 0,
 	end: 0,
-	stim: "",
+	stim: "/path/to/stim.wav",
 	correct_response: "none",
 	response: "none",
 	correct: false,
@@ -44,10 +44,10 @@ function trial(callback) {
 	function prep_trial(force_stim) {
 		trial_data.trial++;
 		console.log("preparing trial",trial_data.trial, trial_data.correction ? "correction " + trial_data.correction_count : "");
-		t.phase_update("preparing-stimulus");
+		t.state_update("phase","preparing-stimulus");
 		trial_data.stim = force_stim ? force_stim : select_stimulus();
 		console.log("waiting for peck");
-		t.phase_update("inter-trial");
+		t.state_update("phase","inter-trial");
 		t.keys(par.target_key).wait_for(false, play_stimulus);
 	}
 
@@ -61,7 +61,7 @@ function trial(callback) {
 
 	function play_stimulus() {
 		trial_data.begin = Date.now();
-		t.phase_update("playing-sound");
+		t.state_update("phase","playing-sound");
 		console.log("playing stimulus:",trial_data.stim.sound);
 		t.aplayer(trial_data.stim.sound).play(response_check);
 	}
@@ -69,7 +69,7 @@ function trial(callback) {
 	function response_check() {
 		trial_data.correct_response = trial_data.stim.type == 1 ? par.target_key : "none"; 
 		console.log("checking response");
-		t.phase_update("evaluating-response");
+		t.state_update("phase","evaluating-response");
 		t.keys(trial_data.correct_response).response_window(par.response_window_duration, response_reaction);
 	}
 
@@ -77,11 +77,11 @@ function trial(callback) {
 		trial_data.rewarded = trial_data.punished = false; // reset these values for now
 		trial_data.response = result.response;
 		trial_data.correct = result.correct;
-		if (trial_data.correct === true) {
+		if (trial_data.correct == true) {
 			console.log("correct response");
 			trial_data.err = 0;
 			if (trial_data.response != "none") {
-				t.phase_update("rewarding");
+				t.state_update("phase","rewarding");
 				trial_data.rewarded = true;
 				t.feed(par.default_feed, par.feed_duration, next_trial);
 			}
@@ -91,11 +91,11 @@ function trial(callback) {
 		}
 		else {
 			console.log("incorrect response");
-			if (result.response != "none") {
+			if (trial_data.response != "none") {
 				trial_data.err = 1;
 				trial_data.punished = true;
-				t.lights().off(par.punish_duration, run_trial_data.correction);
-				t.phase_update("punishing");	
+				t.lights().off(par.punish_duration, run_correction);
+				t.state_update("phase","punishing");	
 			} 
 			else  { 
 				trial_data.err = 2;
