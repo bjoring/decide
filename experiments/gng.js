@@ -31,16 +31,17 @@ var par = {
 
 // Setup
 var stim_set = create_stim_set(par.stimuli_database); // Create stimulus set
-t.lights().on(); // Make sure the lights are on
-t.initialize("gng"); // Create a "gng" component in apparatus
+t.lights().clock_set(); // make sure lights are on
+t.initialize("gng", function(){ // create gng component in apparatus
+	t.run_by_clock( function() {// run trials only during daytime
+		t.trial_loop(trial); // run trial() in a loop
+	});
+});
 
-// Run trial() in a loop
-t.trial_loop(trial);
+
 
 function trial(callback) {
-
 	prep_trial();
-
 	function prep_trial(force_stim) {
 		trial_data.trial++;
 		console.log("preparing trial",trial_data.trial, trial_data.correction ? "correction " + trial_data.correction_count : "");
@@ -83,7 +84,7 @@ function trial(callback) {
 			if (trial_data.response != "none") {
 				t.state_update("phase","rewarding");
 				trial_data.rewarded = true;
-				t.feed(par.default_feed, par.feed_duration, next_trial);
+				t.hopper(par.default_feed).feed(par.feed_duration, next_trial);
 			}
 			else {
 				next_trial();

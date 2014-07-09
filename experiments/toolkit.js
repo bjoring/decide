@@ -5,8 +5,9 @@ var reqc = io.connect("http://localhost:8000/REQ");
 var async = require('async');
 
 // TODO:
-// 	Better sun support
 //  	More elaborate state machine
+//	Add an exit() funciton
+//      More user friendly looping/clock running
 
 var state = {
 	running: false,
@@ -25,19 +26,48 @@ var meta = {
 
 var active_program;
 
-function initialize(name, object) {
-	state.running = true;
-	reqc.emit("route", "gng", console.log);
+function initialize(name, callback) {	
+	setTimeout(function() {
+		active_program = name;
+		reqc.emit("route", "gng",function(x) {
+			console.log(x);
+			reqc.emit("msg", {
+				req: "change-state",
+				addr: "experiment",
+				data: {
+					program: name
+				}
+			});
+			callback();
+		});
+	}, 1000); // one second delay magically avoids issues with interface updating 
+		
+}
 
-	reqc.emit("msg", {
-		req: "change-state",
-		addr: "experiment",
-		data: {
-			program: name
+function run_by_clock(callback) {
+	var initial = true;
+	request_lights_state();
+	setInterval(request_lights_state, 55000);
+	function request_lights_state() {
+		reqc.emit("msg", {req: "get-state", addr: "house_lights"}, check_state);
+	}
+	function check_state(result, data) {
+		if (result != "req-ok") console.log(result);
+		if (data.sun_altitude > Math.PI || data.sun_altitude < 0.1) { 
+			state_update("running", false);
+			console.log("night time,",active_program,"sleeping");
 		}
-	});	
-
-	active_program = name;
+		else { 
+			if (state.running == false) {
+				state_update("running", true);
+				console.log("day time",active_program,"running trials");
+			}
+			if (initial) {
+				initial = false;
+				callback();	
+			}
+		}
+	}
 }
 
 function trial_loop(something) {
@@ -45,7 +75,7 @@ function trial_loop(something) {
 		something(function(){trial_loop(something);});
 	}
 	else {
-		setTimeout(function(){trial_loop(something);}, 5000);		
+		setTimeout(function(){trial_loop(something);}, 60000);		
 	}
 }
 function aplayer(what) {
@@ -103,19 +133,27 @@ function cue(which) {
 	}
 }
 
-function feed(which, duration, callback) { // TODO: change feed() to follow closure format
-	write_feed(which, true);
-	setTimeout(function () {
-		write_feed(which, false);
-		if (callback) callback();
-	}, duration);
+function hopper(which) { // TODO: change feed() to follow closure format
+	return {
+		feed: function(duration, callback) {
+			write_feed(which, true);
+			setTimeout(function () {
+				write_feed(which, false);
+				if (callback) callback();
+			}, duration);
+		}
+	}
 }
-cue("left_green").off();
+
+var use_clock;
 function lights() {
 	var which = "house_lights";
-	var use_clock;
 	return {
 		man_set: function (brightness, callback) {
+			if (use_clock) {
+				console.log("Error: clock mode must be off to set brightness manually");
+				return;
+			}
 			write_led(which, brightness);
 			if (callback) callback();
 		},
@@ -133,7 +171,7 @@ function lights() {
 		clock_set_off: function (callback) {
 			reqc.emit("msg", {
 				req: "change-state",
-				addr: "houselights",
+				addr: "house_lights",
 				data: {
 					clock_on: false
 				}
@@ -141,7 +179,10 @@ function lights() {
 			if(callback) callback();		
 		},
 		on: function (duration, callback) {
-			lights().clock_set_off();
+			if (use_clock) {
+				console.log("Error: clock mode must be off to set brightness manually");
+				return;
+			}
 			write_led(which, 255);
 			if (duration) setTimeout(function () {
 				lights().off();	
@@ -153,7 +194,8 @@ function lights() {
 				write_led(which, 0);
 			});	
 			if (duration) setTimeout(function () {
-				lights().on();
+				if (use_clock) lights().clock_set();
+				else lights().on()
 				if (callback) callback();
 			}, duration);
 		}
@@ -230,7 +272,7 @@ function write_feed(which, state) {
 }
 
 function state_update(key, new_state) {
-	state.phase = new_state;
+	state[key] = new_state;
 	var msg = {
 		event: "state-changed",
 		addr: active_program,
@@ -265,8 +307,9 @@ module.exports = {
 	trial_loop: trial_loop,
 	aplayer: aplayer,
 	cue: cue,
-	feed: feed,
+	hopper: hopper,
 	lights: lights,
 	keys: keys,
-	state_update: state_update
+	state_update: state_update,
+	run_by_clock: run_by_clock,
 };
