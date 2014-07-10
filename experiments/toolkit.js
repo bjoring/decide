@@ -2,7 +2,6 @@
 var io = require('socket.io-client');
 var pubc = io.connect("http://localhost:8000/PUB");
 var reqc = io.connect("http://localhost:8000/REQ");
-var async = require('async');
 
 // TODO:
 //  	More elaborate state machine
@@ -120,7 +119,8 @@ function cue(which) {
 			}, duration);
 		},
 		blink: function (duration, interval, callback) {
-			timer = setInterval(toggle, interval);
+			var inter = interval ? interval : 100;
+			timer = setInterval(toggle, inter);
 			if (duration) setTimeout(function () {
 				cue(which).off();
 				if (callback) callback();
