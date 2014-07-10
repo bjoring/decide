@@ -8,6 +8,11 @@ var reqc = io.connect("http://localhost:8000/REQ");
 //	Add an exit() funciton
 //      More user friendly looping/clock running
 
+
+// Playground
+	
+
+
 var state = {
 	running: false,
 	phase: "idle"
@@ -28,7 +33,7 @@ var active_program;
 function initialize(name, callback) {	
 	setTimeout(function() {
 		active_program = name;
-		reqc.emit("route", "gng",function(x) {
+		reqc.emit("route", active_program,function(x) {
 			console.log(x);
 			reqc.emit("msg", {
 				req: "change-state",
@@ -46,7 +51,7 @@ function initialize(name, callback) {
 function run_by_clock(callback) {
 	var initial = true;
 	request_lights_state();
-	setInterval(request_lights_state, 55000);
+	setInterval(request_lights_state, 61000);
 	function request_lights_state() {
 		reqc.emit("msg", {req: "get-state", addr: "house_lights"}, check_state);
 	}
@@ -74,7 +79,7 @@ function trial_loop(something) {
 		something(function(){trial_loop(something);});
 	}
 	else {
-		setTimeout(function(){trial_loop(something);}, 60000);		
+		setTimeout(function(){trial_loop(something);}, 65000);		
 	}
 }
 function aplayer(what) {
@@ -99,9 +104,9 @@ function aplayer(what) {
 	}
 }
 
+var blink_timers = {};
 function cue(which) {
 	var togglestate;
-	var timer;
 	return {
 		on: function (duration, callback) {
 			write_led(which, true);
@@ -112,7 +117,7 @@ function cue(which) {
 		}, // return
 		off: function (duration, callback) {
 			write_led(which, false);
-			clearInterval(timer);
+			clearInterval(blink_timers[which]);
 			if (duration) setTimeout(function () {
 				cue(which).on();
 				if (callback) callback();
@@ -120,7 +125,7 @@ function cue(which) {
 		},
 		blink: function (duration, interval, callback) {
 			var inter = interval ? interval : 100;
-			timer = setInterval(toggle, inter);
+			blink_timers[which] = setInterval(toggle, inter);
 			if (duration) setTimeout(function () {
 				cue(which).off();
 				if (callback) callback();

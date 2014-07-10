@@ -35,7 +35,7 @@
 }
 
 .red {
-    fill: rgb(90,0,0);
+    fill: darkred;
     stroke: red;
 }
 
@@ -44,16 +44,16 @@
 }
 
 .green {
-    fill: rgb(0,90,0);
-    stroke: green;
+    fill: darkgreen;
+    stroke: lime;
 }
 
 .green.active {
-    fill: green;
+    fill: lime;
 }
 
 .blue {
-    fill: rgb(0,0,90);
+    fill: darkblue;
     stroke: blue;
 }
 
