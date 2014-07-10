@@ -1,3 +1,28 @@
+/* 
+gngclient.js 
+	This script starts a "go-nogo" experiment. 
+
+	To run the script:
+		node gngclient.js
+	
+	Procedure:
+	 1. wait for center key peck, 
+	 2. play random stimulus,
+	 3. wait for center key peck.  
+	 4. reward/punish accordingly: 
+		 	only GO responses are consequated:
+		 	correct hits are rewarded with food access; 
+		 	false positives are punished with lights out.  
+	 5. if response was correct, a new stimulus is presented. 
+	 
+	 Session ends when the lights go out for the day.
+*/
+
+/*
+	TODO:
+		Actual logging!
+*/
+
 // Import required modules
 var t = require("./toolkit");
 var winston = require("winston"); // logger
@@ -40,7 +65,7 @@ t.initialize("gng", function(){ // create gng component in apparatus
 
 
 
-function trial(callback) {
+function trial(next_trial) {
 	prep_trial();
 	function prep_trial(force_stim) {
 		trial_data.trial++;
@@ -84,10 +109,10 @@ function trial(callback) {
 			if (trial_data.response != "none") {
 				t.state_update("phase","rewarding");
 				trial_data.rewarded = true;
-				t.hopper(par.default_feed).feed(par.feed_duration, next_trial);
+				t.hopper(par.default_feed).feed(par.feed_duration, end_trial);
 			}
 			else {
-				next_trial();
+				end_trial();
 			}
 		}
 		else {
@@ -114,15 +139,15 @@ function trial(callback) {
 		}
 		else {
 			trial_data.correction = false;
-			next_trial();
+			end_trial();
 		}
 	}
 
-	function next_trial() {
+	function end_trial() {
 		trial_data.correction = false;
 		trial_data.correction_count = 0;
 		log_data();	
-		callback();
+	next_trial();
 	}
 
 	function log_data() {
