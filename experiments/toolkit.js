@@ -43,7 +43,7 @@ function initialize(name, callback) {	// routes program <name> to apparatus and 
 				req: "change-state",
 				addr: "experiment",
 				data: {
-					program: name
+					program: active_program
 				}
 			});
 			callback();
@@ -107,12 +107,12 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 			}, duration);
 		},
 		off: function (duration, callback) {
-			write_led(which, false);
 			clearInterval(blink_timers[which]);
 			if (duration) setTimeout(function () {
 				cue(which).on();
 				if (callback) callback();
-			}, duration);
+			}, duration);	
+			write_led(which, false);
 		},
 		blink: function (duration, interval, callback) {
 			var inter = interval ? interval : 100;
@@ -132,9 +132,8 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 function hopper(which) { 			// manipulates hoppers (feeders)
 	return {
 		feed: function(duration, callback) {
-			write_feed(which, true);
+			write_feed(which, true, duration);
 			setTimeout(function () {
-				write_feed(which, false);
 				if (callback) callback();
 			}, duration);
 		}
@@ -297,12 +296,13 @@ function write_led(which, state) {
 	});
 }
 
-function write_feed(which, state) {
+function write_feed(which, state, duration) {
 	reqc.emit("msg", {
 		req: "change-state",
 		addr: "feeder_" + which,
 		data: {
-			feeding: state
+			feeding: state,
+			interval: duration
 		}
 	});
 }
