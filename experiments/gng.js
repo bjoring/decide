@@ -1,72 +1,82 @@
 /* 
-gngclient.js 
-	This script starts a "go-nogo" experiment. 
+gng.js 
+	This script starts a "go-nogo" experiment. Subject learns 
+	to associate various stimuli a peck or no peck Requires 
+	a running bbb-server.js. 
 
 	To run the script:
-		node gngclient.js
+		node gng.js
 	
 	Procedure:
-	 1. wait for center key peck, 
-	 2. play random stimulus,
-	 3. wait for center key peck.  
-	 4. reward/punish accordingly: 
+		1. Wait for center key peck, 
+		2. Play random stimulus,
+		3. Wait for center key peck.  
+		4. Reward/punish accordingly: 
 		 	only GO responses are consequated:
 		 	correct hits are rewarded with food access; 
 		 	false positives are punished with lights out.  
-	 5. if response was correct, a new stimulus is presented. 
+		5. If response was correct, a new stimulus is presented. 
 	 
-	 Session ends when the lights go out for the day.
+	Session ends when the lights go out for the day.
+
+	Adapted from CDM's gng.cc used in Chicago lab
 */
 
 /*
 	TODO:
 		Actual logging!
+		Configuration file support
 */
 
 // Import required modules
-var t = require("./toolkit");
-var winston = require("winston"); // logger
+// Import required modules
+var t = require("./toolkit");					// bank of apparatus manipulation functions
+var winston = require("winston"); 				// logger
 
-// Trial variables
+/* TRIAL DATA */
+// This dictionary contains all values that will be logged as data at the end of each trial
 var trial_data = {
-	trial: 0,
-	begin: 0,
-	end: 0,
-	stim: "/path/to/stim.wav",
-	correct_response: "none",
-	response: "none",
-	correct: false,
-	err: 0,
-	rewarded: false,
-	punished: false,
-	correction: false,
-	correction_count: 0,
+	trial: 0,									// trial numner
+	begin: 0,									// when the trial began
+	end: 0,										// when the trial ended
+	stim: "/path/to/stim.wav",					// stimulus played during trial
+	correct_response: "none",					// the correct response for trial
+	response: "none",							// subject's actual response
+	correct: false,								// whether subject responded correctly
+	err: 0,										// [0,1,2]: type of error (Type I = false positive, Type II false negative)
+	rewarded: false,							// whether subject was rewarded for response
+	punished: false,							// whether subject was punished for response
+	correction: false,							// whether the trial is a correction trial
+	correction_count: 0,						// number of subsequent correction trials
 };
 
-// Default parameters
+/* Parameters */
+// TODO: Modify parameter by either json config file or command line 
 var par = {
-	target_key: "peck_center",
-	response_window_duration: 2000,
-	correction_limit: 3,
-	stimuli_database: "../stimuli/gngstimuli",
-	default_feed: "left",
-	feed_duration: 2000,
-	punish_duration: 2000
+	target_key: "peck_center",					// key used to intiate trials and register responses
+	response_window_duration: 2000,				// how long subject has to respond after stimulus played
+	correction_limit: 3,						// limit to number of subsequent correction trials
+	stimuli_database: "../stimuli/gngstimuli",	// database of stimuli to use in trials
+	default_feed: "left",						// hopper with which to feed/reward subject
+	feed_duration: 2000,						// how long to feed/reward subject
+	punish_duration: 2000						// how long to punish subject
 };
 
-// Setup
-var stim_set = create_stim_set(par.stimuli_database); // Create stimulus set
-t.lights().clock_set(); // make sure lights are on
-t.initialize("gng", function(){ // create gng component in apparatus
-	t.run_by_clock( function() {// run trials only during daytime
-		t.trial_loop(trial); // run trial() in a loop
+/* Setup */
+var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
+t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
+t.initialize("gng", function(){ 						// create gng component in apparatus
+	t.run_by_clock( function() {						// run trials only during daytime
+		t.trial_loop(trial); 							// run trial() in a loop
 	});
 });
 
 
 
 function trial(next_trial) {
+	
 	prep_trial();
+
 	function prep_trial(force_stim) {
 		trial_data.trial++;
 		console.log("preparing trial",trial_data.trial, trial_data.correction ? "correction " + trial_data.correction_count : "");
@@ -100,7 +110,7 @@ function trial(next_trial) {
 	}
 
 	function response_reaction(result) {
-		trial_data.rewarded = trial_data.punished = false; // reset these values for now
+		trial_data.rewarded = trial_data.punished = false;
 		trial_data.response = result.response;
 		trial_data.correct = result.correct;
 		if (trial_data.correct == true) {
