@@ -13,22 +13,25 @@ shape.js
 			Hopper comes up. Center key flashes for 5 sec, prior to the 
 		    hopper access. If the center key is pressed while flashing, 
 		    then the hopper comes up and then the session jumps to block 2
-		    immediately. The block also terminates if the bird hasn't
-		    figured it out on the first day.
+		    immediately.
 		 
-		 Block 2:
+		Block 2:
 		    The center key flashes until pecked.  When pecked the
-		    hopper comes up for 4 sec. Run 100 trials.
-		 
-		 Block 3:
+		    hopper comes up for 4 sec.
+
+		2AC:
+		Block 3:
 		    The center key flashes until pecked, then either the right
 		    or left (p = .5) key flashes until pecked, then the hopper
 		    comes up for 3 sec. Run 100 trials.
 		 
-		 Block 4:
+		Block 4:
 		    Wait for peck to non-flashing center key, then right or
-		    left key flashes until pecked, then food for 2.5 sec.  Run
-		    100 trials.
+		    left key flashes until pecked, then food for 2.5 sec.  
+
+		GNG: 
+			Wait for a peck to non-flashing center key, when you get
+ *          it, the hopper comes up for 2.5 sec.
 	
 	Adapted from CDM's shape.cc used in Chicago lab
 */
@@ -55,7 +58,6 @@ var trial_data = {
 };
 
 /* Parameters */
-// TODO: Modify parameter by either json config file or command line 
 var par = {
 	paradigm: "2ac",					// ["2ac","gng"]: operant paradigm with which to train subjects
 	block_limit: 2,  					// number of times to run each block 

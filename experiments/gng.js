@@ -25,12 +25,13 @@ gng.js
 /*
 	TODO:
 		Actual logging!
+		Configuration file support
 */
 
 // Import required modules
 // Import required modules
-var t = require("./toolkit");			// bank of apparatus manipulation functions
-var winston = require("winston"); 		// logger
+var t = require("./toolkit");					// bank of apparatus manipulation functions
+var winston = require("winston"); 				// logger
 
 /* TRIAL DATA */
 // This dictionary contains all values that will be logged as data at the end of each trial
@@ -109,7 +110,7 @@ function trial(next_trial) {
 	}
 
 	function response_reaction(result) {
-		trial_data.rewarded = trial_data.punished = false; // reset these values for now
+		trial_data.rewarded = trial_data.punished = false;
 		trial_data.response = result.response;
 		trial_data.correct = result.correct;
 		if (trial_data.correct == true) {
