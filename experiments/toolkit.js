@@ -313,7 +313,9 @@ function write_feed(which, state, duration) {
 		addr: "feeder_" + which,
 		data: {
 			feeding: state,
-			interval: dur;
+			interval: duration
+	}
+});
 }
 
 function pub(msg) {
