@@ -134,6 +134,7 @@ function hopper(which) { 			// manipulates hoppers (feeders)
 		feed: function(duration, callback) {
 			write_feed(which, true, duration);
 			setTimeout(function () {
+				write_feed(which, false, duration);
 				if (callback) callback();
 			}, duration);
 		}
@@ -284,14 +285,14 @@ function state_update(key, new_state) {	// updates states of <active_program>
 	pub(msg);
 }
 
-function log_data(indata) {
+function log_data(indata, callback) {
 	pubc.emit("msg", {
 		addr: active_program,
-		event: "trial_data",
+		event: "trial-data",
 		time: Date.now(),
 		data: indata
 	});
-	pub(msg);
+	callback();
 }
 
 
@@ -312,9 +313,7 @@ function write_feed(which, state, duration) {
 		addr: "feeder_" + which,
 		data: {
 			feeding: state,
-			interval: duration
-		}
-	});
+			interval: dur;
 }
 
 function pub(msg) {
@@ -348,4 +347,5 @@ module.exports = {
 	keys: keys,
 	aplayer: aplayer,
 	state_update: state_update,
+	log_data: log_data
 };

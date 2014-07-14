@@ -34,7 +34,7 @@ function controller(params) {
     protocol: null
   };
 
-  state.host_name = requrie('os').hostname();
+  state.host_name = require('os').hostname();
 
   server.listen(par.port, function() {
     state.online = true;
@@ -49,21 +49,27 @@ function controller(params) {
     
     var clientio = require('socket.io-client');
     var host = clientio.connect('http://mino.local:8027');
-    host.on("connection" function(data, data2) {
+    host.on("connection", function(data, data2) {
       console.log("Connected!");
-      console.log(data);
-      console.log(data2);
     });
 
     host.on("register-box", function(reply) {
-        reply(state.host_name);
+        reply(state.host_name, state.ip_address);
+	console.log('box registered!');
     });
-  //
+
+    host.on("test", function(){console.log("private message received"); host.emit("msg","hello")});
+    
+    function host_msg(msg) {
+    }
+ //
 
   // these methods are called by the apparatus module
   this.pub = function(msg) {
     // forward to connected clients
     pubc.emit("msg", msg);
+    // forward to host
+    host.emit("msg",msg);
   };
 
   // no requests expected from apparatus
@@ -77,7 +83,7 @@ function controller(params) {
     socket.on("msg", function(msg) {
       apparatus.pub(msg);
       socket.broadcast.emit("msg", msg);
-    });
+   });
 
     socket.on("disconnect", function() {
       winston.info("disconnect on PUB:", socket.handshake.address)

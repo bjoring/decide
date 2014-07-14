@@ -101,7 +101,7 @@ function trial(next_trial) {
 
 	function block1() {
 		set_trial();
-		par.feed_duration = 5000;
+	//	par.feed_duration = 5000;
 		// For 5 seconds, LED blinks and subject may repond with key press
 		t.cue(par.default_cue).blink();
 		t.keys("peck_center").response_window(5000, check_response);
@@ -129,7 +129,7 @@ function trial(next_trial) {
 
 	function block2() {
 		set_trial();
-		par.feed_duration = 4000; 
+	//	par.feed_duration = 4000; 
 
 		// Blink LED until key press, then feed
 		cue_until_key(par.default_cue, "peck_center", basic_reward);
@@ -137,7 +137,7 @@ function trial(next_trial) {
 
 	function block3_2ac() {
 		set_trial();
-		par.feed_duration = 3000; 
+        	par.feed_duration = 3000; 
 		var rand = Math.random();
 		feed_select = rand > 0.5 ? "left" : "right";
 
@@ -147,7 +147,7 @@ function trial(next_trial) {
 
 	function block3_gng() {
 		set_trial();
-		par.feed_duration = 2500; 
+	//	par.feed_duration = 2500; 
 
 		// Wait for peck, then feed
 		t.keys("peck_center").wait_for(false, basic_reward);
@@ -155,7 +155,7 @@ function trial(next_trial) {
 
 	function block4_2ac() {
 		set_trial();
-		par.feed_duration = 2500; 
+	//	par.feed_duration = 2500; 
 
 		// Wait for key press
 		t.keys("peck_center").wait_for(false, block4_continue);
@@ -202,8 +202,7 @@ function trial(next_trial) {
 
 	function end_trial() {				 // signals end of trial, adjusts variables to begin correct next trial
 		trial_data.end = Date.now();
-
-		log_data(function() { 			 // make sure data is logged before proceeding to next trial
+		t.log_data(trial_data, function() { 			 // make sure data is logged before proceeding to next trial
 			if (trial_data.block == 1) {
 				trial_data.block++;
 				trial_data.block_trial = 0;
@@ -219,11 +218,6 @@ function trial(next_trial) {
 			}
 			next_trial();
 		});
-	}
-
-	function log_data(callback) {
-		winston.log(trial_data);
-		callback();
 	}
 
 }
