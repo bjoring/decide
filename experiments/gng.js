@@ -12,9 +12,9 @@ gng.js
 		2. Play random stimulus,
 		3. Wait for center key peck.  
 		4. Reward/punish accordingly: 
-		 	only GO responses are consequated:
-		 	correct hits are rewarded with food access; 
-		 	false positives are punished with lights out.  
+			only GO responses are consequated:
+			correct hits are rewarded with food access; 
+			false positives are punished with lights out.  
 		5. If response was correct, a new stimulus is presented. 
 	 
 	Session ends when the lights go out for the day.
@@ -30,24 +30,24 @@ gng.js
 
 // Import required modules
 // Import required modules
-var t = require("./toolkit");					// bank of apparatus manipulation functions
-var winston = require("winston"); 				// logger
+var t = require("./toolkit");				// bank of apparatus manipulation functions
+var winston = require("winston"); 			// logger
 
 /* TRIAL DATA */
 // This dictionary contains all values that will be logged as data at the end of each trial
 var trial_data = {
-	trial: 0,									// trial numner
-	begin: 0,									// when the trial began
-	end: 0,										// when the trial ended
-	stim: "/path/to/stim.wav",					// stimulus played during trial
-	correct_response: "none",					// the correct response for trial
-	response: "none",							// subject's actual response
-	correct: false,								// whether subject responded correctly
-	err: 0,										// [0,1,2]: type of error (Type I = false positive, Type II false negative)
-	rewarded: false,							// whether subject was rewarded for response
-	punished: false,							// whether subject was punished for response
-	correction: false,							// whether the trial is a correction trial
-	correction_count: 0,						// number of subsequent correction trials
+	trial: 0,								// trial numner
+	begin: 0,								// when the trial began
+	end: 0,									// when the trial ended
+	stim: "/path/to/stim.wav",				// stimulus played during trial
+	correct_response: "none",				// the correct response for trial
+	response: "none",						// subject's actual response
+	correct: false,							// whether subject responded correctly
+	err: 0,									// [0,1,2]: type of error (Type I = false positive, Type II false negative)
+	rewarded: false,						// whether subject was rewarded for response
+	punished: false,						// whether subject was punished for response
+	correction: false,						// whether the trial is a correction trial
+	correction_count: 0,					// number of subsequent correction trials
 };
 
 /* Parameters */
@@ -66,7 +66,7 @@ var par = {
 var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
 t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
 t.initialize("gng", function(){ 						// create gng component in apparatus
-	t.run_by_clock( function() {						// run trials only during daytime
+		t.run_by_clock( function() {						// run trials only during daytime
 		t.trial_loop(trial); 							// run trial() in a loop
 	});
 });
@@ -157,12 +157,12 @@ function trial(next_trial) {
 		trial_data.correction = false;
 		trial_data.correction_count = 0;
 		log_data();	
-	next_trial();
+		next_trial();
 	}
 
 	function log_data() {
 		trial_data.end = Date.now();
-		console.log(trial_data);
+		t.log_data(trial_data);
 		for (var key in trial_data) {
 			if (key != "trial" && key != "stim" && key != "correction" && key != "correction_count") {
 				trial_data[key] = "not-logged";
@@ -172,15 +172,15 @@ function trial(next_trial) {
 }
 
 function create_stim_set(loc) {
-    var bank = require(loc);
+	var bank = require(loc);
 	var i = 0;
 	var stim_set = {};
-    for (var stimulus in bank) {
-        var f = bank[stimulus].freq;
-        for (var j = 0; j < f; j++) {
-            stim_set[i] = bank[stimulus];
-            i++;
-        } 
-    }
-    return stim_set;
+	for (var stimulus in bank) {
+		var f = bank[stimulus].freq;
+		for (var j = 0; j < f; j++) {
+			stim_set[i] = bank[stimulus];
+			i++;
+		} 
+	}
+	return stim_set;
 }

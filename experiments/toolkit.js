@@ -29,7 +29,6 @@ var meta = {
 	variables: {
 		running: [true,false],
 		phase: ["rewarding","punishing","wating-for-response", "evaluating-response","playing-sound","inter-trial", "preparing-stimulus"] 		
-
 	}
 }
 
@@ -281,6 +280,16 @@ function state_update(key, new_state) {	// updates states of <active_program>
 		data: {}
 	}
 	msg.data[key] = new_state;
+	pub(msg);
+}
+
+function log_data(indata) {
+	pubc.emit("msg", {
+		addr: active_program,
+		event: "trial_data",
+		time: Date.now(),
+		data: indata
+	}
 	pub(msg);
 }
 

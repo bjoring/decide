@@ -26,6 +26,16 @@ function controller(params) {
   util.update(par, params);
 
   var io = require("socket.io")(server);
+  var ioc = require('socket.io-client');
+
+  // playground 
+
+    ioc.connect('http://mino.local:8027');
+    io.on("connection" function(data){
+      console.log(data);
+    })
+
+  //
 
   var state = {
     online: false,
