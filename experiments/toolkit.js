@@ -8,6 +8,7 @@ var reqc = io.connect("http://localhost:8000/REQ");
  		Add an exit() funciton
         More user friendly looping/clock running
 		Initialize allows custom state spaces
+		On connect
 */
 /* Toolkit Variables */
 var active_program;				// name of program using toolkit
@@ -289,7 +290,7 @@ function log_data(indata) {
 		event: "trial_data",
 		time: Date.now(),
 		data: indata
-	}
+	});
 	pub(msg);
 }
 

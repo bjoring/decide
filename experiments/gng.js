@@ -29,13 +29,14 @@ gng.js
 */
 
 // Import required modules
-// Import required modules
 var t = require("./toolkit");				// bank of apparatus manipulation functions
 var winston = require("winston"); 			// logger
 
 /* TRIAL DATA */
 // This dictionary contains all values that will be logged as data at the end of each trial
 var trial_data = {
+	box: require('os').hostname(),			// box id
+	subject: 0, 							// subject id
 	trial: 0,								// trial numner
 	begin: 0,								// when the trial began
 	end: 0,									// when the trial ended
@@ -51,7 +52,6 @@ var trial_data = {
 };
 
 /* Parameters */
-// TODO: Modify parameter by either json config file or command line 
 var par = {
 	target_key: "peck_center",					// key used to intiate trials and register responses
 	response_window_duration: 2000,				// how long subject has to respond after stimulus played
@@ -66,7 +66,7 @@ var par = {
 var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
 t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
 t.initialize("gng", function(){ 						// create gng component in apparatus
-		t.run_by_clock( function() {						// run trials only during daytime
+		t.run_by_clock( function() {					// run trials only during daytime
 		t.trial_loop(trial); 							// run trial() in a loop
 	});
 });
@@ -164,7 +164,7 @@ function trial(next_trial) {
 		trial_data.end = Date.now();
 		t.log_data(trial_data);
 		for (var key in trial_data) {
-			if (key != "trial" && key != "stim" && key != "correction" && key != "correction_count") {
+			if (key != "trial" && key != "stim" && key != "correction" && key != "correction_count" && key != "subject" && key != "box") {
 				trial_data[key] = "not-logged";
 			}
 		}

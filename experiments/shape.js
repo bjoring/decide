@@ -49,6 +49,8 @@ var winston = require("winston"); 		// logger
 /* Trial Data */
 // This dictionary contains all values that will be logged as data at the end of each trial
 var trial_data = {
+	box: require('os').hostname(),		// box id
+	subject: 0, 						// subject number
 	trial: 0,							// trial number
 	block: 0,  		    				// shape paradigm block
 	block_trial: 0,						// number of trials within block

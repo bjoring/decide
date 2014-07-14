@@ -26,30 +26,39 @@ function controller(params) {
   util.update(par, params);
 
   var io = require("socket.io")(server);
-  var ioc = require('socket.io-client');
-
-  // playground 
-
-    ioc.connect('http://mino.local:8027');
-    io.on("connection" function(data){
-      console.log(data);
-    })
-
-  //
 
   var state = {
+    host_name: null,
     online: false,
     ip_address: null,
     protocol: null
   };
+
+  state.host_name = requrie('os').hostname();
+
   server.listen(par.port, function() {
     state.online = true;
-    state.ip_address = server.address();
-    winston.info("server listening on", server.address());
+    state.ip_address = getIPAddress();
+    winston.info("server listening on", state.ip_address);
   })
 
   var pubc = io.of("/PUB");
   var reqc = io.of("/REQ");
+
+  // playground 
+    
+    var clientio = require('socket.io-client');
+    var host = clientio.connect('http://mino.local:8027');
+    host.on("connection" function(data, data2) {
+      console.log("Connected!");
+      console.log(data);
+      console.log(data2);
+    });
+
+    host.on("register-box", function(reply) {
+        reply(state.host_name);
+    });
+  //
 
   // these methods are called by the apparatus module
   this.pub = function(msg) {
@@ -157,3 +166,16 @@ apparatus.init(params)
 
 // start the broker
 apparatus.register("controller", new controller(params.controller))
+
+// getting the correct ip address
+function getIPAddress() {
+  var interfaces = require('os').networkInterfaces();
+  for (var devName in interfaces) {
+    var iface = interfaces[devName];
+    for (var i = 0; i < iface.length; i++) {
+      var alias = iface[i];
+      if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) return alias.address;
+    } // for
+  } // for
+  return '0.0.0.0';
+} // getIPAddress
