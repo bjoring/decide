@@ -24,6 +24,7 @@ var state = {
 
 }
 
+
 var meta = {
 	type: "experiment",
 	dir: "input",
@@ -112,11 +113,11 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 				cue(which).on();
 				if (callback) callback();
 			}, duration);	
-			write_led(which, false);
+			write_led(which, false, null, null);
 		},
 		blink: function (duration, interval, callback) {
-			var inter = interval ? interval : 100;
-			blink_timers[which] = setInterval(toggle, inter);
+		 	var inter = interval ? interval :100;
+			write_led(which, true, "timer", inter);
 			if (duration) setTimeout(function () {
 				cue(which).off();
 				if (callback) callback();
@@ -297,12 +298,14 @@ function log_data(indata, callback) {
 
 
 /* Not-Exported Functions */
-function write_led(which, state) {
+function write_led(which, state, trigger, period) {
 	reqc.emit("msg", {
 		req: "change-state",
 		addr: which == "house_lights" ? which : "cue_" + which,
 		data: {
-			brightness: state
+			brightness: state,
+			trigger: trigger ? trigger : null,
+			period: period ? period : null
 		}
 	});
 }

@@ -35,6 +35,7 @@ var winston = require("winston"); 			// logger
 /* TRIAL DATA */
 // This dictionary contains all values that will be logged as data at the end of each trial
 var trial_data = {
+	program: "gng",
 	box: require('os').hostname(),			// box id
 	subject: 0, 							// subject id
 	trial: 0,								// trial numner
@@ -164,7 +165,8 @@ function trial(next_trial) {
 		trial_data.end = Date.now();
 		t.log_data(trial_data);
 		for (var key in trial_data) {
-			if (key != "trial" && key != "stim" && key != "correction" && key != "correction_count" && key != "subject" && key != "box") {
+			if (key != "program", key != "trial" && key != "stim" && key != "correction" && key != "correction_count" && key != "subject" && key != "box") {
+
 				trial_data[key] = "not-logged";
 			}
 		}

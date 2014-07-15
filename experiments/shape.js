@@ -49,6 +49,7 @@ var winston = require("winston"); 		// logger
 /* Trial Data */
 // This dictionary contains all values that will be logged as data at the end of each trial
 var trial_data = {
+	program: "shape",
 	box: require('os').hostname(),		// box id
 	subject: 0, 						// subject number
 	trial: 0,							// trial number
@@ -66,7 +67,7 @@ var par = {
 	default_cue: "center_green",		// cue used when not specified
 	alt_cue_color: "green",				// color of cues used on non default sides
 	default_hopper: "left",				// hopper used when not specified
-	feed_duration: 5000,				// how long to feed the bird (changes with each block)
+	feed_duration: 5000				// how long to feed the bird (changes with each block)
 };
 
 /* Setup */
@@ -91,7 +92,7 @@ function trial(next_trial) {
 			break;
 		case 3:
 			if (par.paradigm == "2ac") block3_2ac();
-			//else if (par.paradigm == "gng") block3_gng();
+			else if (par.paradigm == "gng") block3_gng();
 			break;
 		case 4:
 			if (par.paradigm == "2ac") block4_2ac();
@@ -101,7 +102,7 @@ function trial(next_trial) {
 
 	function block1() {
 		set_trial();
-	//	par.feed_duration = 5000;
+		par.feed_duration = 5000;
 		// For 5 seconds, LED blinks and subject may repond with key press
 		t.cue(par.default_cue).blink();
 		t.keys("peck_center").response_window(5000, check_response);
@@ -121,7 +122,10 @@ function trial(next_trial) {
 				// Else, run block 1 again
 				else {
 					trial_data.end = Date.now();
-					next_trial();
+					
+					t.log_data(trial_data, function() {
+						next_trial();
+					});
 				}
 			});
 		}
@@ -129,7 +133,7 @@ function trial(next_trial) {
 
 	function block2() {
 		set_trial();
-	//	par.feed_duration = 4000; 
+		par.feed_duration = 4000; 
 
 		// Blink LED until key press, then feed
 		cue_until_key(par.default_cue, "peck_center", basic_reward);
@@ -138,6 +142,7 @@ function trial(next_trial) {
 	function block3_2ac() {
 		set_trial();
         	par.feed_duration = 3000; 
+	
 		var rand = Math.random();
 		feed_select = rand > 0.5 ? "left" : "right";
 
@@ -147,7 +152,7 @@ function trial(next_trial) {
 
 	function block3_gng() {
 		set_trial();
-	//	par.feed_duration = 2500; 
+		par.feed_duration = 2500; 
 
 		// Wait for peck, then feed
 		t.keys("peck_center").wait_for(false, basic_reward);
@@ -155,7 +160,7 @@ function trial(next_trial) {
 
 	function block4_2ac() {
 		set_trial();
-	//	par.feed_duration = 2500; 
+		par.feed_duration = 2500; 
 
 		// Wait for key press
 		t.keys("peck_center").wait_for(false, block4_continue);
@@ -180,8 +185,8 @@ function trial(next_trial) {
 		var feed_select = feeder ? feeder : par.default_hopper;
 		t.cue(cue_select).off();
 		t.hopper(feed_select).feed(par.feed_duration, function() {
-			trial_data.fed = true;
-			end_trial();
+			trial_data.fed = true;	
+			setTimeout(end_trial, 100);
 		});
 	}
 
@@ -209,7 +214,9 @@ function trial(next_trial) {
 			}
 			else if (trial_data.block_trial >= par.block_limit) {
 				if (trial_data.block == 4 || (par.paradigm == "gng" && trial_data.block == 3)) {
-					finished();
+					//finished();
+					next_trial();
+					return
 				}
 				else {
 					trial_data.block++;
