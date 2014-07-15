@@ -15,7 +15,6 @@
 .houselights {
     stroke: yellow;
 }
-
 .feeder {
     fill: black;
     stroke: blueviolet;
@@ -42,6 +41,19 @@
 .red.active {
     fill: red;
 }
+
+.red.blink {
+    animation: redblink 200ms steps(10, start) infinite;
+  -webkit-animation: redblink 200ms steps(10, start) infinite;
+}
+
+@keyframes redblink {
+  to { fill: darkred; }
+}
+@-webkit-keyframes redblink {
+  to {fill: darkred; }
+}
+
 
 .green {
     fill: darkgreen;
