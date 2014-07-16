@@ -15,12 +15,20 @@ var active_program;				// name of program using toolkit
 var use_clock;					// flag for whether lights are set by clock
 var blink_timers = {};			// array of timers, allowing more than one blinking LED
 
+
+// Playground
+
+cue("center_green").blink();
+
+//
+
+
 /* State Machine Setup*/
 var state = {
 	running: false,				// flag for whether the program is running trials
 	phase: "idle"				// present phase of the program, state-space defined by meta.variables.phase
 
-	// More complex state machine may be implemented later 
+	// More complex state machine may be implemented later
 
 }
 
@@ -30,7 +38,7 @@ var meta = {
 	dir: "input",
 	variables: {
 		running: [true,false],
-		phase: ["rewarding","punishing","wating-for-response", "evaluating-response","playing-sound","inter-trial", "preparing-stimulus"] 		
+		phase: ["rewarding","punishing","wating-for-response", "evaluating-response","playing-sound","inter-trial", "preparing-stimulus"]
 	}
 }
 
@@ -38,6 +46,7 @@ var meta = {
 function initialize(name, callback) {	// routes program <name> to apparatus and registers it in experiment
 	setTimeout(function() {
 		active_program = name;
+		if (!use_clock) state.running = true;
 		reqc.emit("route", active_program, function(x) {
 			console.log(x);
 			reqc.emit("msg", {
@@ -62,7 +71,7 @@ function trial_loop(trial) {		// runs trial in a loop	if state.running is true, 
 	else {
 		setTimeout(function() {
 			trial_loop(trial);
-		}, 65000);		
+		}, 65000);
 	}
 }
 
@@ -75,18 +84,18 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 	}
 	function check_state(result, data) {
 		if (result != "req-ok") console.log(result);
-		if (data.sun_altitude > Math.PI || data.sun_altitude < 0.1) { 
+		if (data.sun_altitude > Math.PI || data.sun_altitude < 0.1) {
 			state_update("running", false);
 			console.log("night time,",active_program,"sleeping");
 		}
-		else { 
+		else {
 			if (state.running == false) {
 				state_update("running", true);
 				console.log("day time",active_program,"running trials");
 			}
 			if (initial) {
 				initial = false;
-				callback();	
+				callback();
 			}
 		}
 	}
@@ -95,7 +104,7 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 /* Apparatus Manipulation Functions */
 // These functions send REQ msgs to apparatus to manipulate component states.
 // All follow this format: component("specific_component").action(args),
-// with all "args" optional 
+// with all "args" optional
 
 function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 	var togglestate;
@@ -112,11 +121,11 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 			if (duration) setTimeout(function () {
 				cue(which).on();
 				if (callback) callback();
-			}, duration);	
+			}, duration);
 			write_led(which, false, null, null);
 		},
 		blink: function (duration, interval, callback) {
-		 	var inter = interval ? interval :100;
+		 	var inter = interval ? interval : 300;
 			write_led(which, true, "timer", inter);
 			if (duration) setTimeout(function () {
 				cue(which).off();
@@ -172,7 +181,7 @@ function lights() {					// manipulates house lights, supports setting brightness
 					clock_on: false
 				}
 			});
-			if(callback) callback();		
+			if(callback) callback();
 		},
 		on: function (duration, callback) {
 			if (use_clock) {
@@ -181,14 +190,14 @@ function lights() {					// manipulates house lights, supports setting brightness
 			}
 			write_led(which, 255);
 			if (duration) setTimeout(function () {
-				lights().off();	
+				lights().off();
 				if (callback) callback();
 			}, duration);
 		},
 		off: function (duration, callback) {
 			lights().clock_set_off(function() {
 				write_led(which, 0);
-			});	
+			});
 			if (duration) setTimeout(function () {
 				if (use_clock) lights().clock_set();
 				else lights().on()
@@ -206,7 +215,7 @@ function keys(target) {				// checks for responses from apparatus keys
 		response_window: function (duration, callback) {
 			timer = setInterval(function(){
 				pubc.removeListener("msg");
-				clearInterval(timer); 
+				clearInterval(timer);
 				report();
 			}, duration);
 			pubc.on("msg", function (msg) {

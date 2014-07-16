@@ -167,8 +167,9 @@
             });
 
           cues
-            .classed("active", function(d) { return d.value.state.brightness });
-            .classed("blink", function(d) { return d.value.state.trigger == "timer"});
+            .classed("active", function(d) { return d.value.state.brightness});
+
+	   cues.classed("blink", function(d) { return d.value.state.trigger == "timer"});
 
           cues.exit().remove();
 
