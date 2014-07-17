@@ -4,12 +4,12 @@ var pubc = io.connect("http://localhost:8000/PUB");
 var reqc = io.connect("http://localhost:8000/REQ");
 
 /* TODO:
-    	More elaborate state machine
- 		Add an exit() funciton
+ 		Add an exit()/disconnect funciton
         More user friendly looping/clock running
 		Initialize allows custom state spaces
 		On connect
 */
+
 /* Toolkit Variables */
 var active_program;				// name of program using toolkit
 var use_clock;					// flag for whether lights are set by clock
@@ -21,7 +21,6 @@ var state = {
 	phase: "idle"				// present phase of the program, state-space defined by meta.variables.phase
 
 	// More complex state machine may be implemented later
-
 }
 
 
@@ -30,7 +29,7 @@ var meta = {
 	dir: "input",
 	variables: {
 		running: [true,false],
-		phase: ["rewarding","punishing","wating-for-response", "evaluating-response","playing-sound","inter-trial", "preparing-stimulus"]
+		phase: ["rewarding","punishing","wating-for-response", "evaluating-response","presenting-stimulus","inter-trial"]
 	}
 }
 
@@ -50,8 +49,7 @@ function initialize(name, callback) {	// routes program <name> to apparatus and 
 			});
 			callback();
 		});
-	}, 1000);
-	//one second delay magically avoids issues with interface updating
+	}, 1000); //one second delay magically avoids issues with interface updating
 }
 
 function trial_loop(trial) {		// runs trial in a loop	if state.running is true, otherwise checks state.running every 65 seconds
@@ -78,12 +76,12 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 		if (result != "req-ok") console.log(result);
 		if (data.sun_altitude > Math.PI || data.sun_altitude < 0.1) {
 			state_update("running", false);
-			console.log("night time,",active_program,"sleeping");
+			pubc.emit("msg" {addr: active_program, event: "log", level:"info", reason: "night time, "+active_program+" sleeping"});
 		}
 		else {
 			if (state.running == false) {
 				state_update("running", true);
-				console.log("day time",active_program,"running trials");
+				pubc.emit("msg" {addr: active_program, event: "log", level:"info", reason:"day time, "+active_program+"running trials"});
 			}
 			if (initial) {
 				initial = false;
@@ -148,7 +146,7 @@ function lights() {					// manipulates house lights, supports setting brightness
 	return {
 		man_set: function (brightness, callback) {
 			if (use_clock) {
-				console.log("Error: clock mode must be off to set brightness manually");
+				pubc.emit("msg" {addr: active_program, event: "log", level:"error", reason:"clock mode must be off to set brightness manually"});
 				return;
 			}
 			write_led(which, brightness);
@@ -177,7 +175,7 @@ function lights() {					// manipulates house lights, supports setting brightness
 		},
 		on: function (duration, callback) {
 			if (use_clock) {
-				console.log("Error: clock mode must be off to set brightness manually");
+				pubc.emit("msg" {addr: active_program, event: "log", level:"error", reason:"Error: clock mode must be off to set brightness manually"});
 				return;
 			}
 			write_led(which, 255);
@@ -297,7 +295,15 @@ function log_data(indata, callback) {
 	callback();
 }
 
-
+function log_info(indata, callback) {
+	pubc.emit("msg" {
+		addr: active_program, 
+		event: "log", 
+		level:"info", 
+		reason: indata
+	});
+	callback();
+}
 /* Not-Exported Functions */
 function write_led(which, state, trigger, period) {
 	reqc.emit("msg", {
@@ -342,6 +348,11 @@ reqc.on("msg",function(msg, rep) {
 	if (rep) rep(ret);
 });
 
+reqc.on("disconnect" funciton(){
+	state.running = false;
+})
+
+
 /* Module-izing */
 module.exports = {
 	initialize: initialize,
@@ -353,5 +364,6 @@ module.exports = {
 	keys: keys,
 	aplayer: aplayer,
 	state_update: state_update,
-	log_data: log_data
+	log_data: log_data,
+	log_info: log_info
 };

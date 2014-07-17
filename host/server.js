@@ -10,7 +10,10 @@ var par = {
 var io = require('socket.io')(par.port);
 console.log('Server running on: http://' + getIPAddress() + ':' + par.port);
 
-io.sockets.on('connection', function(socket) {
+var pub = io.of("/PUB");
+
+pub.on('connection', function(socket) {
+	// Set up this socket's unique loggers (FUNCTION-IZE THIS!!1!)
 	var name = "unregistered";
 	var datafile = "data.json"
 	var datalog = new(winston.Logger)({
@@ -33,6 +36,7 @@ io.sockets.on('connection', function(socket) {
 		})]
 	});
 	eventlog.levels['event'] = 3;
+	
 
 	socket.emit('register-box', function(hostname, ip) {
 		name = hostname;
@@ -40,10 +44,11 @@ io.sockets.on('connection', function(socket) {
 		boxes[name].ip = ip;
 		boxes[name].socket = socket.id;
 		console.log(name,"connected");
-		test(name);
+		get_store(name);
 	});
 
 	socket.on('msg', function(msg){
+		console.log("msg received: " + JSON.stringify(msg));
 		msg.addr = msg.addr ? name+"."+msg.addr : name;
 		if (msg.event == "trial-data") {
 			if (datafile = "data.json") {
@@ -51,16 +56,17 @@ io.sockets.on('connection', function(socket) {
 				datalog.transports.file.filename = datafile;
 				datalog.transports.file._basename = datafile;
 			} 
+				if (msg.data.end == 0) msg.error = "LOG ERROR";
 				datalog.log('data',"data-logged", {data: msg.data});
 		} 
 		else {
-			if (eventfile == "event.json" && name == "unregistered") {
+			if (eventfile == "event.json" || name == "unregistered") {
 				eventfile = name+"_events.json";
 				eventlog.transports.file.filename = eventfile;
 				eventlog.transports.file._basename = eventfile;
 			}
 			if (msg.event == "log"){
-				if (msg.level = "error") eventlog.log('error', "error logged", msg);
+				if (msg.level == "error") eventlog.log('error', "error logged", msg);
 				else eventlog.log('info', "info logged", msg);
 			} else {
 				eventlog.log('event',"event logged",msg);
@@ -74,7 +80,7 @@ io.sockets.on('connection', function(socket) {
 	})
 }); // io.sockets.on
 
-function test(name) { io.to(boxes[name].socket).emit("test"); }
+function get_store(name) { io.to(boxes[name].socket).emit("send-store"); }
 
 function getIPAddress() {
 	var interfaces = require('os').networkInterfaces();
