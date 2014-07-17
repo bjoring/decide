@@ -61,19 +61,30 @@ var trial_data = {
 
 /* Parameters */
 var par = {
+	subject: 0,							// sets the subject number
 	paradigm: "2ac",					// ["2ac","gng"]: operant paradigm with which to train subjects
 	block_limit: 2,						// number of times to run each block
 	default_cue: "center_green",		// cue used when not specified
 	alt_cue_color: "green",				// color of cues used on non default sides
 	default_hopper: "left",				// hopper used when not specified
-	feed_duration: 5000					// how long to feed the bird (changes with each block)
+	feed_duration: 5000					// how long to feed the bird (NOTE: overridden by each block)
 };
+
+var params = {};
+
+process.argv.forEach(function(val, index, array) {
+	if (val == "-c") params = require(array[index+1]);
+});
+
+require("../lib/util").update(par, params);
+
 
 /* Setup */
 t.lights().on();						// make sure lights are on
 //t.lights().clock_set()				// set house lights by sun altitude
 t.initialize("shape", function(){		// create component in apparatus
 	trial_data.block = 1;				// begin on block 1
+	trial_data.subject = par.subject;	// set the subject number
 	//t.run_by_clock( function() {		// run trials only during daytime
 	t.trial_loop(trial);				// run trial() in a loop
 	//});
@@ -201,6 +212,7 @@ function trial(next_trial) {
 		trial_data.fed = false;
 		trial_data.end = 0;
 		t.log_info("beginning trial " + trial_data.trial + " block" + trial_data.block + " ,block_trial " + trial_data.block_trial);
+		console.log("beginning trial " + trial_data.trial + " block" + trial_data.block + " ,block_trial " + trial_data.block_trial);
 	}
 
 	function finished() {				// a place-holder function until I come up with something smarter

@@ -48,7 +48,6 @@ pub.on('connection', function(socket) {
 	});
 
 	socket.on('msg', function(msg){
-		console.log("msg received: " + JSON.stringify(msg));
 		msg.addr = msg.addr ? name+"."+msg.addr : name;
 		if (msg.event == "trial-data") {
 			if (datafile = "data.json") {
@@ -58,6 +57,7 @@ pub.on('connection', function(socket) {
 			} 
 				if (msg.data.end == 0) msg.error = "LOG ERROR";
 				datalog.log('data',"data-logged", {data: msg.data});
+				console.log(name+": data logged")
 		} 
 		else {
 			if (eventfile == "event.json" || name == "unregistered") {
@@ -66,9 +66,15 @@ pub.on('connection', function(socket) {
 				eventlog.transports.file._basename = eventfile;
 			}
 			if (msg.event == "log"){
-				if (msg.level == "error") eventlog.log('error', "error logged", msg);
-				else eventlog.log('info', "info logged", msg);
+				if (msg.level == "error") {
+					eventlog.log('error', "error-logged", msg);
+					console.log(name + ": error logged");
+				}
+				else {
+					eventlog.log('info', "info-logged", msg);
+					console.log(name + ": info logged");
 			} else {
+				console.log(name + ": event-logged")
 				eventlog.log('event',"event logged",msg);
 			}
 		}

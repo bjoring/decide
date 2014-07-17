@@ -83,7 +83,7 @@ function trial(next_trial) {
 		t.state_update("phase","inter-trial");
 		t.log_info("waiting to begin trial"+trial_data.trial + trial_data.correction ? " correction " + trial_data.correction_count : "");
 		trial_data.stim = force_stim ? force_stim : select_stimulus();
-		//console.log("waiting for peck");
+		console.log("waiting for peck");
 		t.keys(par.target_key).wait_for(false, play_stimulus);
 	}
 
@@ -99,13 +99,13 @@ function trial(next_trial) {
 	function play_stimulus() {
 		trial_data.begin = Date.now();
 		t.state_update("phase","presenting-stimulus");
-		//console.log("playing stimulus:",trial_data.stim.sound);
+		console.log("playing stimulus:",trial_data.stim.sound);
 		t.aplayer(trial_data.stim.sound).play(response_check);
 	}
 
 	function response_check() {
 		trial_data.correct_response = trial_data.stim.type == 1 ? par.target_key : "none";
-		//console.log("checking response");
+		console.log("checking response");
 		t.state_update("phase","evaluating-response");
 		t.keys(trial_data.correct_response).response_window(par.response_window_duration, response_reaction);
 	}
@@ -115,7 +115,7 @@ function trial(next_trial) {
 		trial_data.response = result.response;
 		trial_data.correct = result.correct;
 		if (trial_data.correct == true) {
-			//console.log("correct response");
+			console.log("correct response");
 			trial_data.err = 0;
 			if (trial_data.response != "none") {
 				t.state_update("phase","rewarding");
@@ -127,7 +127,7 @@ function trial(next_trial) {
 			}
 		}
 		else {
-			//console.log("incorrect response");
+			console.log("incorrect response");
 			if (trial_data.response != "none") {
 				trial_data.err = 1;
 				trial_data.punished = true;
