@@ -36,7 +36,7 @@ pub.on('connection', function(socket) {
 		})]
 	});
 	eventlog.levels['event'] = 3;
-	
+
 
 	socket.emit('register-box', function(hostname, ip) {
 		name = hostname;
@@ -54,11 +54,11 @@ pub.on('connection', function(socket) {
 				datafile = msg.data.subject+"_"+msg.data.program+"_"+msg.data.box+".json";
 				datalog.transports.file.filename = datafile;
 				datalog.transports.file._basename = datafile;
-			} 
+			}
 				if (msg.data.end == 0) msg.error = "LOG ERROR";
 				datalog.log('data',"data-logged", {data: msg.data});
 				console.log(name+": data logged")
-		} 
+		}
 		else {
 			if (eventfile == "event.json" || name == "unregistered") {
 				eventfile = name+"_events.json";
@@ -73,6 +73,7 @@ pub.on('connection', function(socket) {
 				else {
 					eventlog.log('info', "info-logged", msg);
 					console.log(name + ": info logged");
+				    }
 			} else {
 				console.log(name + ": event-logged")
 				eventlog.log('event',"event logged",msg);
@@ -86,7 +87,10 @@ pub.on('connection', function(socket) {
 	})
 }); // io.sockets.on
 
-function get_store(name) { io.to(boxes[name].socket).emit("send-store"); }
+function get_store(name) {
+    console.log("requesting "+name+" log store");
+    io.to(boxes[name].socket).emit("send-store");
+    }
 
 function getIPAddress() {
 	var interfaces = require('os').networkInterfaces();
