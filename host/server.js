@@ -1,9 +1,11 @@
 var _ = require("underscore");
 var winston = require("winston");
 var boxes = {};
+var mailer = require("nodemailer").createTransport();
 
 var par = {
-	port: 8027
+	port: 8027,
+	mail_list: "robbinsdart@gmail.com"
 }
 
 
@@ -83,9 +85,22 @@ pub.on('connection', function(socket) {
 
 	socket.on("disconnect", function() {
 		console.log(name,"disconnected");
+		mail("Beaglebone disconnect",name+" disconnected from host - " + Date.now());
 		delete boxes[name];
 	})
 }); // io.sockets.on
+
+function mail(subject, message, callback) {
+    console.log("sending email");
+    mailer.sendMail({
+	from: "Aplonis <host_server@"+require('os').hostname()+">",
+	to: par.mail_list,
+	subject: subject,
+	text: message,
+    }, function(){
+	if (callback) callback();
+    });
+}
 
 function get_store(name) {
     console.log("requesting "+name+" log store");
