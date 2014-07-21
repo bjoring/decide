@@ -15,7 +15,7 @@ console.log('Server running on: http://' + getIPAddress() + ':' + par.port);
 var pub = io.of("/PUB");
 
 pub.on('connection', function(socket) {
-	// Set up this socket's unique loggers (FUNCTION-IZE THIS!!1!)
+	// Set up this socket's unique loggers (TODO: FUNCTION-IZE THIS!)
 	var name = "unregistered";
 	var datafile = "data.json"
 	var datalog = new(winston.Logger)({
