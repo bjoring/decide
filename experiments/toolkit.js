@@ -2,18 +2,21 @@
 var io = require('socket.io-client');
 var pubc = io.connect("http://localhost:8000/PUB");
 var reqc = io.connect("http://localhost:8000/REQ");
+var mailer = require('nodemailer').createTransport();
 
 /* TODO:
- 		Add an exit()/disconnect funciton
-        More user friendly looping/clock running
-		Initialize allows custom state spaces
-		On connect
+ 	Add exit() function for running as child process
+	Add exit, cleanup function
+	More user friendly looping/clock running
+	Initialize allows custom state spaces
+	On connect
 */
 
 /* Toolkit Variables */
 var active_program;				// name of program using toolkit
-var use_clock;					// flag for whether lights are set by clock
-var blink_timers = {};			// array of timers, allowing more than one blinking LED
+var use_clock;					// flag, lights are set by clock
+var mail_disaster;				// flag, send email when bad stuff happens
+var mail_list;					// address(es) to mail when terribleness strikes
 
 /* State Machine Setup*/
 var state = {
@@ -91,6 +94,11 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 	}
 }
 
+function mail_on_disaster(list) {
+    mail_list = list;
+    mail_disaster = true;
+}
+
 /* Apparatus Manipulation Functions */
 // These functions send REQ msgs to apparatus to manipulate component states.
 // All follow this format: component("specific_component").action(args),
@@ -107,7 +115,6 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 			}, duration);
 		},
 		off: function (duration, callback) {
-			clearInterval(blink_timers[which]);
 			if (duration) setTimeout(function () {
 				cue(which).on();
 				if (callback) callback();
@@ -127,6 +134,7 @@ function cue(which) { 				// manipulates cues (LEDS) of the apparatus
 		togglestate = togglestate ? false: true;
 		write_led(which, togglestate);
 	}
+
 }
 
 function hopper(which) { 			// manipulates hoppers (feeders)
@@ -203,7 +211,7 @@ function keys(target) {				// checks for responses from apparatus keys
 	var timer;
 	return {
 		response_window: function (duration, callback) {
-			timer = setInterval(function(){
+	timer = setInterval(function(){
 				pubc.removeListener("msg");
 				clearInterval(timer);
 				report();
@@ -257,9 +265,9 @@ function aplayer(what) {			// play sounds using alsa
 			reqc.emit("msg", {
 				req: "change-state",
 				addr: "aplayer",
-				data: {
+	data: {
 					stimulus: what,
-					playing: true
+					laying: true
 				}
 			});
 			pubc.on("msg",function (msg) {
@@ -289,10 +297,9 @@ function log_data(indata, callback) {
 	pubc.emit("msg", {
 		addr: active_program,
 		event: "trial-data",
-		time: Date.now(),
 		data: indata
 	});
-	callback();
+	if (callback) callback();
 }
 
 function log_info(indata, callback) {
@@ -332,6 +339,40 @@ function pub(msg) {
 	pubc.emit("msg", msg);
 }
 
+function mail(subject, message, callback) {
+    console.log("SENDING MAIL");
+    mailer.sendMail({
+	from: active_program+"@"+require('os').hostname(),
+	to: mail_list,
+	subject: subject,
+	text: message,
+	date: Date.now()
+    }, function(){
+	if (callback) callback();
+    });
+}
+
+process.on('exit', function(code) {
+    reqc.emit("msg", {
+	req: "change-state",
+	addr: "experiment",
+	data: {
+	    program: "none"
+	}
+    });
+});
+
+process.on('uncaughtException', function(err) {
+    var message = 'Caught exception: ' + err;
+    if (mail_disaster) mail(message, null, process.exit);
+});
+
+process.on('SIGINT', function() {
+    console.log('SIGINT received. Killing experiment');
+    process.exit();
+});
+
+
 /* Handling REQ Such */
 reqc.on("msg",function(msg, rep) {
 	var ret;
@@ -349,7 +390,13 @@ reqc.on("msg",function(msg, rep) {
 });
 
 reqc.on("disconnect", function(){
+	var message = "Disconnected from bbb-server: " + Date.now();
+
 	state.running = false;
+	console.log(message);
+
+	if (mail_disaster) mail(message);
+
 })
 
 
@@ -365,5 +412,6 @@ module.exports = {
 	aplayer: aplayer,
 	state_update: state_update,
 	log_data: log_data,
-	log_info: log_info
+	log_info: log_info,
+	mail_on_disaster: mail_on_disaster
 };

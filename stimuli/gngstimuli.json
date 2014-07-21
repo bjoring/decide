@@ -1,11 +1,11 @@
 {
  "s1":{
-    "sound":"/root/LabFiles/decide/stimuli/musicbox.wav",
+    "sound":"/root/decide/stimuli/musicbox.wav",
     "type":"1",
     "freq":"3"
  },
  "s2":{
-    "sound":"/root/LabFiles/decide/stimuli/musicbox_broken.wav",
+    "sound":"/root/decide/stimuli/musicbox_broken.wav",
     "type":"2",
     "freq":"3"
  }
