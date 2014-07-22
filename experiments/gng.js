@@ -70,15 +70,16 @@ process.argv.forEach(function(val, index, array) {
 });
 
 require("../lib/util").update(par, params);
+trial_data.subject = par.subject;						// set the subject number in data
 
 /* Setup */
 var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
 t.lights().on();
 //t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
-t.initialize("gng", function(){ 						// create gng component in apparatus
-	trial_data.subject = par.subject;					// set the subject number
+
+t.initialize("gng", par.subject, function(){ 			// create gng component in apparatus					// set the subject number
 	t.mail_on_disaster(par.mail_list);					// email someone when something bad happens
-//	t.run_by_clock( function() {						// run trials only during daytime
+	//	t.run_by_clock( function() {						// run trials only during daytime
 		t.trial_loop(trial); 							// run trial() in a loop
 	//});
 });

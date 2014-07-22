@@ -70,6 +70,29 @@
     fill: blue;
 }
 
+#page1 {
+    font-family: monospace;
+}
+
+.hbar {
+    font-family: monospace;
+    background: black;
+}
+
+.ainfo {
+    margin: 5px;
+}
+
+.command {
+    text-decoration: underline;
+    cursor: pointer;
+    margin: 5px;
+}
+
+.command:hover {
+    color:green;
+}
+
 #applog {
     width: 67%;
     margin-left: auto;

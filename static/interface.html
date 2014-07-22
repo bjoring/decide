@@ -56,10 +56,10 @@
 
 		pub.on("msg", function(msg) {
 			if (msg.level == "info" && msg.reason.indexOf("component unregistered:") !== -1) {
-		var arr = msg.reason.split(' ');
-		console.log("removing " + arr[2] + " from component list");
-		delete starboard[arr[2]];
-		trialStatusUpdate(null, null); 
+		        var arr = msg.reason.split(' ');
+		        console.log("removing " + arr[2] + " from component list");
+		        delete starboard[arr[2]];
+		        trialStatusUpdate(null, null); 
 			}
 		});
 
@@ -67,24 +67,24 @@
 		</head>
 
 		<body>
-				<div data-role="page" id="page1" style="font-family: monospace">
-						<div data-role="header" style="background: black">
-								<h3 style="font-family: monospace">Starboard Control Panel</h3>
+				<div data-role="page" id="page1">
+						<div data-role="header" class="hbar">
+								<h3>Starboard Control Panel</h3>
 						</div>
 						<svg id="interface"/>
 						<div id="consolecontain">
 							<div id="shapeconsole">
-								<h4 style="margin: 5px">Status</h4>
-									<h5 style="margin: 5px" id="status"/>
-								<h4 style="margin: 5px">Last Trial</h4>
-									<h5 style="margin: 5px" id="trial"></h5>
+								<h4 class="ainfo">Status</h4>
+									<h5 class="ainfo" id="status"/>
+								<h4 class="ainfo">Last Trial</h4>
+									<h5 class="ainfo" id="trial"></h5>
 									 <div id="message"/>
 							<!--<div id="appconsole">
 								<h4>Apparatus Log</h4>
 								<div id="applog">
 								</div>
 							</div> -->
-							<h5 style="margin:5px" onclick="run_experiment()">run experiment</h6>
+							<h5 class="command" onclick="run_experiment()">run experiment</h6>
 							</div>
 						</div>
 				</div>
@@ -242,7 +242,7 @@
 					keys
 						.classed("active", function(d) { return d.value })
 						.select("title")
-						.text(function(d,i){ return d.key; });
+						.text(function(d,i){ return d.key+" "+d.value; });
 
 					keys.exit().remove();
 
@@ -318,9 +318,12 @@
 						.text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
 
 					feeders.exit().remove();
+				
+				d3.selectAll("#status")
+				  .html("&nbspSubject: " + starboard.experiment.state.subject + 
+				        "<br/>&nbspProgram: " + starboard.experiment.state.program);
 				}
-
-
+				
 				/*function appendConsole(data, console) {
 						var target = "#"+console;
 						d3.selectAll(target).append("p").text(data);
@@ -331,10 +334,8 @@
 				}*/
 
 				function trialStatusUpdate(console, data) {
-						if (starboard.experiment.state.program !== "none") {
-							var status = "&nbspSubject: " + data.subject + "<br/>&nbspProgram: " + data.program;
-							d3.selectAll("#status").html(status);
-									
+					//if (starboard.experiment.state.program !== "none") {
+						
 							d3.selectAll("#trial").html(function(){
 											var txt = "&nbspTrial: " + data.trial + 
 															 (data.block ?  "<br/>&nbspBlock: " + data.block : "") +
@@ -342,12 +343,12 @@
 															 "<br/>&nbspEnd: " + data.end;
 											return txt;
 									});
-						}
+					//	}
 						
-						else {
+					/*	else {
 							d3.selectAll("#trial").html("");
 							d3.selectAll("#status").html("");
-						}
+						} */
 								
 						/*d3.selectAll("#message").text(function(){
 								return (JSON.stringify(data) +" -  "+Date.now());
@@ -355,10 +356,13 @@
 				}
 				
 				function run_experiment() {
-					var command = prompt("Coming soon...", "shape -c shape_config1 -e robbinsdart@gmail.com");
+					var command = prompt("Coming soon...", "shape -c ./shape_config/s1_2ac.json");
+					var command = command.split(' ');
+					var file = command.shift();
 					
-					if (command != null) {
-							alert("Running " + command.split(" ")[0] + "! (But not really)")
+					if (command!= null) {
+							alert("Running " + file);
+							req.emit("runexp", file, command);
 					}
 				}
 
