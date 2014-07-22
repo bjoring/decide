@@ -372,7 +372,6 @@ process.on('SIGINT', function() {
     process.exit();
 });
 
-
 /* Handling REQ Such */
 reqc.on("msg",function(msg, rep) {
 	var ret;

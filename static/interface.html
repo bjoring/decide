@@ -59,7 +59,7 @@
 		        var arr = msg.reason.split(' ');
 		        console.log("removing " + arr[2] + " from component list");
 		        delete starboard[arr[2]];
-		        trialStatusUpdate(null, null); 
+		        trialStatusUpdate(null, null);
 			}
 		});
 
@@ -84,7 +84,7 @@
 								<div id="applog">
 								</div>
 							</div> -->
-							<h5 class="command" onclick="run_experiment()">run experiment</h6>
+							<h5 class="command" onclick="run_experiment()">run experiment</h5>
 							</div>
 						</div>
 				</div>
@@ -93,7 +93,7 @@
 
 				var svg;
 				function drawInterface(){
-						var w = window.innerWidth * 0.7;
+						var w = window.innerWidth * 0.6;
 						var h = w * 0.5626;
 
 						var data = d3.entries(starboard);
@@ -242,7 +242,7 @@
 					keys
 						.classed("active", function(d) { return d.value })
 						.select("title")
-						.text(function(d,i){ return d.key+" "+d.value; });
+						.text(function(d,i){ return d.key; });
 
 					keys.exit().remove();
 
@@ -318,12 +318,12 @@
 						.text(function(d,i){ return d.key+": "+JSON.stringify(d.value.state); });
 
 					feeders.exit().remove();
-				
+
 				d3.selectAll("#status")
-				  .html("&nbspSubject: " + starboard.experiment.state.subject + 
+				  .html("&nbspSubject: " + starboard.experiment.state.subject +
 				        "<br/>&nbspProgram: " + starboard.experiment.state.program);
 				}
-				
+
 				/*function appendConsole(data, console) {
 						var target = "#"+console;
 						d3.selectAll(target).append("p").text(data);
@@ -335,34 +335,33 @@
 
 				function trialStatusUpdate(console, data) {
 					//if (starboard.experiment.state.program !== "none") {
-						
+
 							d3.selectAll("#trial").html(function(){
-											var txt = "&nbspTrial: " + data.trial + 
+											var txt = "&nbspTrial: " + data.trial +
 															 (data.block ?  "<br/>&nbspBlock: " + data.block : "") +
 															 "<br/>&nbspBegin: " + data.begin +
 															 "<br/>&nbspEnd: " + data.end;
 											return txt;
 									});
 					//	}
-						
+
 					/*	else {
 							d3.selectAll("#trial").html("");
 							d3.selectAll("#status").html("");
 						} */
-								
+
 						/*d3.selectAll("#message").text(function(){
 								return (JSON.stringify(data) +" -  "+Date.now());
 						});*/
 				}
-				
+
 				function run_experiment() {
 					var command = prompt("Coming soon...", "shape -c ./shape_config/s1_2ac.json");
 					var command = command.split(' ');
 					var file = command.shift();
-					
+
 					if (command!= null) {
-							alert("Running " + file);
-							req.emit("runexp", file, command);
+							req.emit("runexp", file, command, null, function(x){alert(x);});
 					}
 				}
 

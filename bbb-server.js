@@ -13,6 +13,7 @@ winston.levels['req'] = 3
 
 var app = require("express")();
 var server = require("http").Server(app);
+var exp;
 
 function controller(params) {
 
@@ -147,8 +148,17 @@ function controller(params) {
 	  rep("hugz-ok");
 	});
 
-	socket.on("runexp", function(exp, args, opt) {
-	    require('child_process').fork(par.exp_dir+"shape", args, opt);
+	socket.on("runexp", function(inexp, args, opt, callback) {
+		if (!exp) {
+			exp = require('child_process').fork(par.exp_dir+inexp, args, opt);
+			if(callback)callback("Running " + inexp);
+		}
+		else if(callback) callback("Error: Experiment already running.");
+	});
+
+	socket.on("killexp", function(){
+		if (exp) exp.kill('SIGINT');
+		exp = null;
 	});
 
 	socket.on("disconnect", function() {
@@ -211,3 +221,23 @@ function getIPAddress() {
   } // for
   return '0.0.0.0';
 } // getIPAddress
+
+function mail(subject, message, callback) {
+    console.log("SENDING MAIL");
+    require('nodemailer').createTransport().sendMail({
+		from: "controller@"+require('os').hostname(),
+		to: "robbinsdart@gmail.com",
+		subject: subject,
+		text: message
+	    }, function(){
+		if (callback) callback();
+    });
+}
+
+process.on('uncaughtException', function(err) {
+    var subject = "Caught Exception - " + Date.now();
+    var message = err;
+    mail(subject, message, process.exit);
+    console.log(subject);
+});
+
