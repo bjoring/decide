@@ -60,7 +60,8 @@ var par = {
 	stimuli_database: "../stimuli/gngstimuli",	// database of stimuli to use in trials
 	default_feed: "left",						// hopper with which to feed/reward subject
 	feed_duration: 2000,						// how long to feed/reward subject
-	punish_duration: 2000						// how long to punish subject
+	punish_duration: 2000,						// how long to punish subject
+	mail_list: ""								// who to email upon disaster (string or string array)
 };
 
 var params = {};
@@ -75,8 +76,9 @@ var stim_set = create_stim_set(par.stimuli_database);   // Create stimulus set
 t.lights().on();
 //t.lights().clock_set(); 								// make sure lights are on and set by sun altitude
 t.initialize("gng", function(){ 						// create gng component in apparatus
-	trial_data.subject = par.subject;	// set the subject number
-//	t.run_by_clock( function() {					// run trials only during daytime
+	trial_data.subject = par.subject;					// set the subject number
+	t.mail_on_disaster(par.mail_list);					// email someone when something bad happens
+//	t.run_by_clock( function() {						// run trials only during daytime
 		t.trial_loop(trial); 							// run trial() in a loop
 	//});
 });

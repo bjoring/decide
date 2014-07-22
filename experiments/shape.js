@@ -67,8 +67,8 @@ var par = {
 	default_cue: "center_green",		// cue used when not specified
 	alt_cue_color: "green",				// color of cues used on non default sides
 	default_hopper: "left",				// hopper used when not specified
-	feed_duration: 5000,					// how long to feed the bird (NOTE: overridden by each block)
-	mail_list: ""				// who to email upon disaster (string or string array)
+	feed_duration: 5000,				// how long to feed the bird (NOTE: overridden by each block)
+	mail_list: ""						// who to email upon disaster (string or string array)
 };
 
 var params = {};
@@ -109,12 +109,13 @@ function trial(next_trial) {
 		case 4:
 			if (par.paradigm == "2ac") block4_2ac();
 			break;
-		//TODO: Add an "exit" case after figuring out how to do this with toolbox
+		//TODO: Add an "exit" case?
 	}
 
 	function block1() {
 		set_trial();
 		par.feed_duration = 5000;
+		
 		// For 5 seconds, LED blinks and subject may repond with key press
 		t.cue(par.default_cue).blink();
 		t.state_update("phase","waiting-for-response");

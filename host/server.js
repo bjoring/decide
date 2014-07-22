@@ -90,6 +90,12 @@ pub.on('connection', function(socket) {
 	})
 }); // io.sockets.on
 
+process.on('uncaughtException', function(err) {
+    var subject = "Uncaught Exception";
+    var message = 'Caught exception: ' + err;
+    mail(subject, message, process.exit);
+});
+
 function mail(subject, message, callback) {
     console.log("sending email");
     mailer.sendMail({

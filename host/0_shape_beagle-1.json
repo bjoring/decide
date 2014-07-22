@@ -1,0 +1,6 @@
+{"data":{"program":"shape","box":"beagle-1","subject":0,"trial":1,"block":1,"block_trial":1,"begin":1400137298634,"end":1400137309776,"fed":true},"level":"data","message":"data-logged","timestamp":1405618129199}
+{"data":{"program":"shape","box":"beagle-1","subject":0,"trial":2,"block":1,"block_trial":2,"begin":1400137311797,"end":1400137320357,"fed":true},"level":"data","message":"data-logged","timestamp":1405618139836}
+{"data":{"program":"shape","box":"beagle-1","subject":0,"trial":3,"block":2,"block_trial":1,"begin":1400137322369,"end":1400137331699,"fed":true},"level":"data","message":"data-logged","timestamp":1405618151166}
+{"data":{"program":"shape","box":"beagle-1","subject":0,"trial":4,"block":2,"block_trial":2,"begin":1400137333702,"end":1400137340017,"fed":true},"level":"data","message":"data-logged","timestamp":1405618159540}
+{"data":{"program":"shape","box":"beagle-1","subject":0,"trial":5,"block":3,"block_trial":1,"begin":1400137342029,"end":1400137349808,"fed":true},"level":"data","message":"data-logged","timestamp":1405618169252}
+{"data":{"program":"shape","box":"beagle-1","subject":0,"trial":6,"block":3,"block_trial":2,"begin":1400137351813,"end":1400137385653,"fed":true},"level":"data","message":"data-logged","timestamp":1405618205220}
