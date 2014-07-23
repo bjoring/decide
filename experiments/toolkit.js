@@ -368,7 +368,7 @@ process.on('uncaughtException', function(err) {
 });
 
 process.on('SIGINT', function() {
-    console.log('SIGINT received. Killing experiment');
+    console.log('SIGINT received. Stopping '+ active_program);
     process.exit();
 });
 

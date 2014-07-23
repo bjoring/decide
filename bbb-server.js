@@ -47,8 +47,7 @@ function controller(params) {
   var pubc = io.of("/PUB");
   var reqc = io.of("/REQ");
 
-  // playground
-
+  // host server interaction
   var clientio = require('socket.io-client');
   var host_pub = clientio.connect('http://mino.local:8027/PUB');
   host_pub.on("connection", function() {
@@ -82,7 +81,6 @@ function controller(params) {
 		host_forward = true;
 	}
 
- //
 
   // these methods are called by the apparatus module
   this.pub = function(msg) {
@@ -97,7 +95,11 @@ function controller(params) {
 
   // no requests expected from apparatus
   this.req = function(msg, rep) {
-	rep(null, {});
+  	var ret = {};
+  	if (msg.req == "get-state") {
+  		ret = state;
+  	}
+	rep(null, ret);
   };
 
   // forward pub to connected clients and apparatus components
@@ -149,16 +151,45 @@ function controller(params) {
 	});
 
 	socket.on("runexp", function(inexp, args, opt, callback) {
+		var rep;
 		if (!exp) {
-			exp = require('child_process').fork(par.exp_dir+inexp, args, opt);
-			if(callback)callback("Running " + inexp);
+			var path = par.exp_dir+inexp
+			// TODO: Fix awful, messy error handling
+			if (fs.existsSync(path) || fs.existsSync(path+".js")) {
+				if (args) {
+					for (var i = 0; i < args.length; i++) {
+						if (args[i] == "-c") {
+							var argpath = par.exp_dir+args[i+1];
+							if (fs.existsSync(argpath) || fs.existsSync(argpath+".js") || fs.existsSync(argpath+".json")) {
+								exp = require('child_process').fork(path, args, opt);
+								rep = "Running " + inexp;
+							} else {
+								rep = "Error: No such config file";
+							}
+							i = args.length;
+						}
+					}
+				} else {
+					exp = require('child_process').fork(path, args, opt);
+					rep = "Running " + inexp;
+				}
+			}
+			else {
+				rep = "Error: No such experiment"; 
+			}
 		}
-		else if(callback) callback("Error: Experiment already running.");
+		else rep = "Error: Experiment already running.";
+		if (callback) callback(rep);
 	});
 
-	socket.on("killexp", function(){
-		if (exp) exp.kill('SIGINT');
-		exp = null;
+	socket.on("killexp", function(callback){
+		if (exp) {
+			exp.kill('SIGINT');
+			exp = null;
+			callback("Experiment stopped");
+		} else {
+			callback("Error: No experiment to stop!");
+		}
 	});
 
 	socket.on("disconnect", function() {

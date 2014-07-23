@@ -69,22 +69,25 @@
 		<body>
 				<div data-role="page" id="page1">
 						<div data-role="header" class="hbar">
-								<h3>Starboard Control Panel</h3>
+								<h3 id="hbartext">Starboard Control Panel</h3>
 						</div>
 						<svg id="interface"/>
 						<div id="consolecontain">
 							<div id="shapeconsole">
-								<h4 class="ainfo">Status</h4>
-									<h5 class="ainfo" id="status"/>
-								<h4 class="ainfo">Last Trial</h4>
-									<h5 class="ainfo" id="trial"></h5>
-									 <div id="message"/>
+								<p class="ahead">Status</p>
+									<p class="ainfo" id="status"/>
+								<p class="ahead" id="lt">Last Trial</p>
+									<p class="ainfo" id="trial"></p>
+									 <!--<div id="message"/>-->
+								<p class="ahead">Commands</h4>
+									<!-- TODO: Make Run/Stop one button -->
+									<p class="command ainfo" onclick="run_experiment()">Run Experiment</p>
+									<p class="command ainfo" onclick="stop_experiment()">Stop Experiment</p>
 							<!--<div id="appconsole">
 								<h4>Apparatus Log</h4>
 								<div id="applog">
 								</div>
 							</div> -->
-							<h5 class="command" onclick="run_experiment()">run experiment</h5>
 							</div>
 						</div>
 				</div>
@@ -259,7 +262,7 @@
 						.attr("width", xHouseScale.rangeBand())
 						.attr("height", yScale.rangeBand()/2)
 						.on("click", function(d) {
-		// TODO: support changing the brightness to other values?
+					// TODO: support changing the brightness to other values?
 							req.emit("msg", {
 								req: "change-state",
 								addr: d.key,
@@ -302,7 +305,7 @@
 						.attr("width", xFeedScale.rangeBand())
 						.attr("height", yScale.rangeBand()/2)
 						.on("click", function(d) {
-		req.emit("msg", {
+					req.emit("msg", {
 								req: "change-state",
 								addr: d.key,
 								data: {feeding: true},
@@ -319,9 +322,17 @@
 
 					feeders.exit().remove();
 
-				d3.selectAll("#status")
-				  .html("&nbspSubject: " + starboard.experiment.state.subject +
-				        "<br/>&nbspProgram: " + starboard.experiment.state.program);
+					d3.selectAll("#hbartext")
+						.html(function(){
+							var host = starboard.controller.state.host_name;
+							host = host.charAt(0).toUpperCase() + host.slice(1);
+							var title = host + " Control Panel"
+							return title;
+						});
+
+					d3.selectAll("#status")
+				  		.html("Subject: " + starboard.experiment.state.subject +
+				        	  "<br/>Program: " + starboard.experiment.state.program);
 				}
 
 				/*function appendConsole(data, console) {
@@ -334,21 +345,20 @@
 				}*/
 
 				function trialStatusUpdate(console, data) {
-					//if (starboard.experiment.state.program !== "none") {
+					if (starboard.experiment.state.program !== "none") {
 
-							d3.selectAll("#trial").html(function(){
-											var txt = "&nbspTrial: " + data.trial +
-															 (data.block ?  "<br/>&nbspBlock: " + data.block : "") +
-															 "<br/>&nbspBegin: " + data.begin +
-															 "<br/>&nbspEnd: " + data.end;
-											return txt;
-									});
-					//	}
+						d3.selectAll("#trial").html(function(){
+								var txt = "Trial: " + data.trial +
+							    (data.block ?  "<br/>Block: " + data.block : "") +
+								               "<br/>Begin: " + data.begin +
+											   "<br/>End: " + data.end;
+									return txt;
+								});
+						}
 
-					/*	else {
+						else {
 							d3.selectAll("#trial").html("");
-							d3.selectAll("#status").html("");
-						} */
+						}
 
 						/*d3.selectAll("#message").text(function(){
 								return (JSON.stringify(data) +" -  "+Date.now());
@@ -356,12 +366,20 @@
 				}
 
 				function run_experiment() {
-					var command = prompt("Coming soon...", "shape -c ./shape_config/s1_2ac.json");
+					var command = prompt("Command:", "experiment -c /path/to/config.json");
 					var command = command.split(' ');
 					var file = command.shift();
 
 					if (command!= null) {
 							req.emit("runexp", file, command, null, function(x){alert(x);});
+					}
+				}
+
+				function stop_experiment() {
+					var command = confirm("Completely stop running experiment?");
+
+					if (command == true) {
+							req.emit("killexp", function(x){alert(x);});
 					}
 				}
 

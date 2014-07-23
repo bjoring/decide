@@ -79,14 +79,19 @@
     background: black;
 }
 
-.ainfo {
+.ahead {
     margin: 5px;
+    font-size: small;
+    font-weight: bold;
+}
+
+.ainfo {
+    margin: 2px 5px 2px 15px;
+    font-size: smaller;
 }
 
 .command {
-    text-decoration: underline;
     cursor: pointer;
-    margin: 5px;
 }
 
 .command:hover {
@@ -104,10 +109,10 @@
 #consolecontain {
     display:inline-block;
     height:210px;
-    width: 49%;
-    margin: 0 auto;
+    width: 20%;
+    margin-top: 5%;
     position: absolute;
-    top:5%;
+    top:0;
 }
 
 #appconsole {
