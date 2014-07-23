@@ -156,7 +156,7 @@ function controller(params) {
 			var path = par.exp_dir+inexp
 			// TODO: Fix awful, messy error handling
 			if (fs.existsSync(path) || fs.existsSync(path+".js")) {
-				if (args) {
+				if (args[0]) {
 					for (var i = 0; i < args.length; i++) {
 						if (args[i] == "-c") {
 							var argpath = par.exp_dir+args[i+1];
