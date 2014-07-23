@@ -1,44 +1,35 @@
 var _ = require("underscore");
 var winston = require("winston");
-var boxes = {};
+var express = require("express");
 var mailer = require("nodemailer").createTransport();
+var app = require("express")();
+var server = require("http").Server(app);
 
 var par = {
 	port: 8027,
-	mail_list: "robbinsdart@gmail.com"
+	mail_list: "robbinsdart@gmail.com",
+	log_path: __dirname +"/logs/"
 }
 
+var boxes = {};
 
-var io = require('socket.io')(par.port);
-console.log('Server running on: http://' + getIPAddress() + ':' + par.port);
+server.listen(par.port);
 
-var pub = io.of("/PUB");
+var io = require('socket.io')(server);
 
-pub.on('connection', function(socket) {
+console.log('Server listening on: http://' + getIPAddress() + ':' + par.port);
+
+// channels for communicating with BBBs
+var bpub = io.of("/BPUB");
+var breq = io.of("/BREQ");
+
+// channels for communicating with host-side clients
+var hpub = io.of("/HPUB");
+var breq = io.of("/HREQ");
+
+bpub.on('connection', function(socket) {
 	// Set up this socket's unique loggers (TODO: FUNCTION-IZE THIS!)
 	var name = "unregistered";
-	var datafile = "data.json"
-	var datalog = new(winston.Logger)({
-		transports: [
-		new(winston.transports.File)({
-			filename: datafile,
-			json: true,
-			timestamp: function(){return Date.now()}
-		})]
-	});
-	datalog.levels['data'] = 3;
-
-	var eventfile = "event.json"
-	var eventlog = new(winston.Logger)({
-		transports: [
-		new(winston.transports.File)({
-			filename: "eventlog.json",
-			json: true,
-			timestamp: function(){return Date.now()}
-		})]
-	});
-	eventlog.levels['event'] = 3;
-
 
 	socket.emit('register-box', function(hostname, ip) {
 		name = hostname;
@@ -50,23 +41,27 @@ pub.on('connection', function(socket) {
 	});
 
 	socket.on('msg', function(msg){
+		// add the BBB hostname to the front of pub addresses
 		msg.addr = msg.addr ? name+"."+msg.addr : name;
+
+		// forward BBB pub messages to the host-side clients
+		hpub.emit("msg", msg);
+
+		// log trial-data
+		// TODO: separate this into own process
 		if (msg.event == "trial-data") {
-			if (datafile = "data.json") {
-				datafile = msg.data.subject+"_"+msg.data.program+"_"+msg.data.box+".json";
-				datalog.transports.file.filename = datafile;
-				datalog.transports.file._basename = datafile;
-			}
+				var datafile = msg.data.subject+"_"+msg.data.program+"_"+msg.data.box+".json";
+				datalog.transports.file.filename = datalog.transports.file._basename = datafile;
+
 				if (msg.data.end == 0) msg.error = "LOG ERROR";
+
 				datalog.log('data',"data-logged", {data: msg.data});
 				console.log(name+": data logged")
 		}
 		else {
-			if (eventfile == "event.json" || name == "unregistered") {
-				eventfile = name+"_events.json";
-				eventlog.transports.file.filename = eventfile;
-				eventlog.transports.file._basename = eventfile;
-			}
+			var eventfile = name+"_events.json";
+			eventlog.transports.file.filename = eventlog.transports.file._basename = eventfile;
+
 			if (msg.event == "log"){
 				if (msg.level == "error") {
 					eventlog.log('error', "error-logged", msg);
@@ -77,8 +72,8 @@ pub.on('connection', function(socket) {
 					console.log(name + ": info logged");
 				    }
 			} else {
-				console.log(name + ": event-logged")
-				eventlog.log('event',"event logged",msg);
+				eventlog.log('event',"event-logged",msg);
+				console.log(name + ": event logged")
 			}
 		}
 	});
@@ -88,6 +83,27 @@ pub.on('connection', function(socket) {
 		mail("Beaglebone disconnect",name+" disconnected from host - " + Date.now());
 		delete boxes[name];
 	})
+
+	// set up unique loggers for each box
+	var datalog = new(winston.Logger)({
+		transports: [
+		new(winston.transports.File)({
+			filename: par.log_path+"data.json",
+			json: true,
+			timestamp: function(){return Date.now()}
+		})]
+	});
+	datalog.levels['data'] = 3;
+
+	var eventlog = new(winston.Logger)({
+		transports: [
+		new(winston.transports.File)({
+			filename: par.log_path+"eventlog.json",
+			json: true,
+			timestamp: function(){return Date.now()}
+		})]
+	});
+	eventlog.levels['event'] = 3;
 }); // io.sockets.on
 
 process.on('uncaughtException', function(err) {
@@ -112,6 +128,14 @@ function get_store(name) {
     console.log("requesting "+name+" log store");
     io.to(boxes[name].socket).emit("send-store");
     }
+
+// handle http requests from clients
+app.get("/", function(req, res) {
+  res.sendfile(__dirname + "/static/interface.html");
+});
+
+// all other static content resides in /static
+app.use("/static", express.static(__dirname + "/static"));
 
 function getIPAddress() {
 	var interfaces = require('os').networkInterfaces();

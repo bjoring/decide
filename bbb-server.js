@@ -13,7 +13,6 @@ winston.levels['req'] = 3
 
 var app = require("express")();
 var server = require("http").Server(app);
-var exp;
 
 function controller(params) {
 
@@ -28,7 +27,7 @@ function controller(params) {
   util.update(par, params);
 
   var io = require("socket.io").listen(server);
-  io.set('log level', 1);
+
   var state = {
 	host_name: null,
 	online: false,
@@ -49,7 +48,7 @@ function controller(params) {
 
   // host server interaction
   var clientio = require('socket.io-client');
-  var host_pub = clientio.connect('http://mino.local:8027/PUB');
+  var host_pub = clientio.connect('http://mino.local:8027/BPUB');
   host_pub.on("connection", function() {
 	  winston.info("connected to host");
   });
@@ -150,6 +149,7 @@ function controller(params) {
 	  rep("hugz-ok");
 	});
 
+	var exp;
 	socket.on("runexp", function(inexp, args, opt, callback) {
 		var rep;
 		if (!exp) {

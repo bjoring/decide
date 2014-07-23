@@ -1,0 +1,3 @@
+{"addr":"beagle-1.keys","time":1406153075109,"event":"state-changed","data":{"peck_center":true},"level":"event","message":"event-logged","timestamp":1406153078292}
+{"addr":"beagle-1.cue_right_green","time":1406153075165,"event":"state-changed","data":{"brightness":1,"trigger":"timer","period":300},"level":"event","message":"event-logged","timestamp":1406153078345}
+{"addr":"beagle-1.keys","time":1406153075194,"event":"state-changed","data":{"peck_center":false},"level":"event","message":"event-logged","timestamp":1406153078377}
