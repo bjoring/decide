@@ -8,7 +8,8 @@ var server = require("http").Server(app);
 var par = {
 	port: 8027,
 	mail_list: "robbinsdart@gmail.com",
-	log_path: __dirname +"/logs/"
+	log_path: __dirname +"/logs/",
+	send_emails: false
 }
 
 var boxes = {};
@@ -25,18 +26,26 @@ var breq = io.of("/BREQ");
 
 // channels for communicating with host-side clients
 var hpub = io.of("/HPUB");
-var breq = io.of("/HREQ");
+var hreq = io.of("/HREQ");
 
 bpub.on('connection', function(socket) {
 	// Set up this socket's unique loggers (TODO: FUNCTION-IZE THIS!)
 	var name = "unregistered";
 
-	socket.emit('register-box', function(hostname, ip) {
+	socket.emit('register-box', function(hostname, ip, port) {
 		name = hostname;
 		boxes[name] = {}
+		boxes[name].name = hostname;
 		boxes[name].ip = ip;
+		boxes[name].port = port;
 		boxes[name].socket = socket.id;
 		console.log(name,"connected");
+		hpub.emit("msg",{
+			addr:"",
+			time: Date.now(),
+			event: "box-registered",
+			data: boxes[name]
+		});
 		get_store(name);
 	});
 
@@ -45,18 +54,18 @@ bpub.on('connection', function(socket) {
 		msg.addr = msg.addr ? name+"."+msg.addr : name;
 
 		// forward BBB pub messages to the host-side clients
-		hpub.emit("msg", msg);
+		hpub(msg);
 
 		// log trial-data
 		// TODO: separate this into own process
 		if (msg.event == "trial-data") {
-				var datafile = msg.data.subject+"_"+msg.data.program+"_"+msg.data.box+".json";
-				datalog.transports.file.filename = datalog.transports.file._basename = datafile;
+			var datafile = msg.data.subject+"_"+msg.data.program+"_"+msg.data.box+".json";
+			datalog.transports.file.filename = datalog.transports.file._basename = datafile;
 
-				if (msg.data.end == 0) msg.error = "LOG ERROR";
+			if (msg.data.end == 0) msg.error = "LOG ERROR";
 
-				datalog.log('data',"data-logged", {data: msg.data});
-				console.log(name+": data logged")
+			datalog.log('data',"data-logged", {data: msg.data});
+			console.log(name+": data logged")
 		}
 		else {
 			var eventfile = name+"_events.json";
@@ -70,7 +79,7 @@ bpub.on('connection', function(socket) {
 				else {
 					eventlog.log('info', "info-logged", msg);
 					console.log(name + ": info logged");
-				    }
+				}
 			} else {
 				eventlog.log('event',"event-logged",msg);
 				console.log(name + ": event logged")
@@ -78,11 +87,11 @@ bpub.on('connection', function(socket) {
 		}
 	});
 
-	socket.on("disconnect", function() {
-		console.log(name,"disconnected");
-		mail("Beaglebone disconnect",name+" disconnected from host - " + Date.now());
-		delete boxes[name];
-	})
+socket.on("disconnect", function() {
+	console.log(name,"disconnected");
+	mail("Beaglebone disconnect",name+" disconnected from host - " + Date.now());
+	delete boxes[name];
+})
 
 	// set up unique loggers for each box
 	var datalog = new(winston.Logger)({
@@ -107,31 +116,37 @@ bpub.on('connection', function(socket) {
 }); // io.sockets.on
 
 process.on('uncaughtException', function(err) {
-    var subject = "Uncaught Exception";
-    var message = 'Caught exception: ' + err;
-    mail(subject, message, process.exit);
+	var subject = "Uncaught Exception";
+	var message = 'Caught exception: ' + err;
+	mail(subject, message, process.exit);
 });
 
 function mail(subject, message, callback) {
-    console.log("sending email");
-    mailer.sendMail({
-	from: "Aplonis <host_server@"+require('os').hostname()+">",
-	to: par.mail_list,
-	subject: subject,
-	text: message,
-    }, function(){
-	if (callback) callback();
-    });
+	if (par.send_emails) {
+		console.log("sending email");
+		mailer.sendMail({
+			from: "Aplonis <host_server@"+require('os').hostname()+">",
+			to: par.mail_list,
+			subject: subject,
+			text: message,
+		}, function(){
+			if (callback) callback();
+		});
+	}
 }
 
 function get_store(name) {
-    console.log("requesting "+name+" log store");
-    io.to(boxes[name].socket).emit("send-store");
-    }
+	console.log("requesting "+name+" log store");
+	io.to(boxes[name].socket).emit("send-store");
+}
 
 // handle http requests from clients
 app.get("/", function(req, res) {
-  res.sendfile(__dirname + "/static/interface.html");
+	res.sendfile(__dirname + "/static/directory.html");
+});
+
+app.get("/boxes", function(req, res) {
+	res.send(boxes);
 });
 
 // all other static content resides in /static

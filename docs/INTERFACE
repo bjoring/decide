@@ -1,5 +1,5 @@
-						Starboard Web Interface Prototype
-
+						Starboard Web Interface
+						
 Introduction
 ------------
 
@@ -48,4 +48,4 @@ a single group are on, the rectangle above them will be yellow.
 The large bar at the bottom of the interface represents the apparatus' 
 IR beam-break detector circuit. Whenever the IR beam is broken, such as by a 
 bird's peck, the bar will flash orange. To simulate a peck, click the bar 
-itself. Do note, however, that simulated pecks really do nothing at the moment.
+itself.

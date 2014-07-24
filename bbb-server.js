@@ -60,7 +60,7 @@ function controller(params) {
 	});
 
 	host_pub.on("register-box", function(reply) {
-	   reply(state.host_name, state.ip_address);
+	   reply(state.host_name, state.ip_address, par.port);
 		  winston.info(state.host_name,"registered in host");
 		  send_store();
 	});
