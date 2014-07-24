@@ -42,11 +42,6 @@
     fill: red;
 }
 
-.green.blink {
-    animation: greenblink 300ms steps(0, start) infinite;
-  -webkit-animation: greenblink 300ms steps(0, start) infinite;
-}
-
 .green {
     fill: darkgreen;
     stroke: lime;

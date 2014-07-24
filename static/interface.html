@@ -160,20 +160,6 @@
 							})
 							return "fill: rgb(" + color + ")";
 						})
-						.classed("blink", function(d){
-							var tim = false;
-							var key = d.key.split("_");
-							var list = ["red", "green", "blue"].map(function(k) {
-								var el = [key[0], key[1], k].join("_");
-								return el
-							})
-							for (var i = 0; i < list.length; i++) {
-								if (starboard[list[i]].state.trigger == "timer"){
-								    tim = true;
-								}
-							}
-							return tim;
-						});
 
 						var cues = svg.selectAll(".led")
 						.data(data.filter(function(d) { return d.value.type == "led"},
@@ -198,7 +184,6 @@
 
 						cues
 						.classed("active", function(d) { return d.value.state.brightness})
-						.classed("blink", function(d) {return d.value.state.trigger == "timer"})
 						.select("title")
 						.text(function(d,i){
 							return d.key+": "+JSON.stringify(d.value.state);
