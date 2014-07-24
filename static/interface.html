@@ -152,14 +152,22 @@
 						.text(function(d,i){var k = ["cue_left","cue_center","cue_right"]; return k[i]; });
 
 						omni
-						.attr("fill", function(d) {
+						.attr("style", function(d) {
 							var key = d.key.split("_")
 							var color = ["red", "green", "blue"].map(function(k) {
 								var el = [key[0], key[1], k].join("_");
 								return starboard[el].state.brightness * 244;
 							})
-							return "rgb(" + color + ")";
+							return "fill: rgb(" + color + ")";
 						})
+						.classed("blink", function(){
+							var key = d.key.split("_");
+							var el = [key[0], key[1], k].join("_");
+							for (key in el) {
+								if (starboard[key].state.trigger == "timer") return true;
+							}
+							return false;
+						});
 
 						var cues = svg.selectAll(".led")
 						.data(data.filter(function(d) { return d.value.type == "led"},
@@ -184,6 +192,7 @@
 
 						cues
 						.classed("active", function(d) { return d.value.state.brightness})
+						.classed("blink", function(d) {return d.value.state.trigger == "timer"}
 						.select("title")
 						.text(function(d,i){
 							return d.key+": "+JSON.stringify(d.value.state);

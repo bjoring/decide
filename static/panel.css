@@ -61,13 +61,28 @@
     stroke: blue;
 }
 
+.blue.active {
+    fill: blue;
+}
+
 .omni {
     stroke: black;
     stroke-width: 1px;
 }
 
-.blue.active {
-    fill: blue;
+.blink {
+    -webkit-animation: blink 300ms infinite alternate;
+    animation: blink 300ms infinite alternate;
+}
+
+@-webkit-keyframes blink {
+    0% { fill: black; }
+    100% { fill: inherit; }
+}
+
+@keyframes omniblink {
+    0% { fill: black; }
+    100% { fill: inherit; }
 }
 
 #page1 {
