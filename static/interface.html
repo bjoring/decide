@@ -152,14 +152,48 @@
 						.text(function(d,i){var k = ["cue_left","cue_center","cue_right"]; return k[i]; });
 
 						omni
-						.attr("style", function(d) {
+						.attr("fill", function(d) {
 							var key = d.key.split("_")
 							var color = ["red", "green", "blue"].map(function(k) {
 								var el = [key[0], key[1], k].join("_");
 								return starboard[el].state.brightness * 244;
 							})
-							return "fill: rgb(" + color + ")";
+							return "rgb(" + color + ")";
 						})
+						.classed("blinkomni", function(d) {
+							var key = d.key.split("_");
+							var ret = false;
+							var list = ["red", "green", "blue"].map(function(k) {
+								var el = [key[0], key[1], k].join("_");
+								return el;
+							})
+							for (var i = 0; i < list.length; i++) {
+								if (starboard[list[i]].state.trigger == "timer") {
+									ret = true;
+								}
+							}
+							return ret
+						});
+
+						d3.selectAll(".blinkomni")
+						.each(blinkOmni)
+
+						function blinkOmni() {
+							var selection = d3.select(this);
+							var color = selection.attr("fill");
+							var toggle = color;
+							var blink = setInterval(loop, 300);
+							console.log(color);
+							function loop() {
+								selection
+									.transition()
+									.attr("fill", function(){
+										toggle = toggle == "black" ? color : "black";
+										return toggle;
+								});
+							} 
+						}
+						
 
 						var cues = svg.selectAll(".led")
 						.data(data.filter(function(d) { return d.value.type == "led"},
