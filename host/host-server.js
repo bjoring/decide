@@ -1,3 +1,9 @@
+// TODO:
+//   Separate logger into own component
+//   Config files
+//   Set email parameters externally?
+ 	  
+
 var _ = require("underscore");
 var winston = require("winston");
 var express = require("express");
@@ -28,6 +34,10 @@ var breq = io.of("/BREQ");
 var hpub = io.of("/HPUB");
 var hreq = io.of("/HREQ");
 
+console.log("Starting baby-sitter");
+var babysitter = require('child_process').fork(__dirname + "/baby-sitter.js");
+
+
 bpub.on('connection', function(socket) {
 	// Set up this socket's unique loggers (TODO: FUNCTION-IZE THIS!)
 	var name = "unregistered";
@@ -54,10 +64,10 @@ bpub.on('connection', function(socket) {
 		msg.addr = msg.addr ? name+"."+msg.addr : name;
 
 		// forward BBB pub messages to the host-side clients
-		hpub(msg);
+		hpub.emit("msg", msg);
 
 		// log trial-data
-		// TODO: separate this into own process
+		// TODO: separate this into own component
 		if (msg.event == "trial-data") {
 			var datafile = msg.data.subject+"_"+msg.data.program+"_"+msg.data.box+".json";
 			datalog.transports.file.filename = datalog.transports.file._basename = datafile;

@@ -56,15 +56,15 @@ function initialize(name, subject, callback) {	// routes program <name> to appar
 	}, 1000); //one second delay magically avoids issues with interface updating
 }
 
-function trial_loop(trial) {		// runs trial in a loop	if state.running is true, otherwise checks state.running every 65 seconds
+function loop(trial) {		// runs trial in a loop	if state.running is true, otherwise checks state.running every 65 seconds
 	if (state.running == true) {
 		trial( function() {
-			setTimeout(function() {trial_loop(trial);},2000);
+			setTimeout(function() {loop(trial);},2000);
 		    });
 	}
 	else {
 		setTimeout(function() {
-			trial_loop(trial);
+			loop(trial);
 		}, 65000);
 	}
 }
@@ -402,7 +402,7 @@ reqc.on("disconnect", function(){
 /* Module-izing */
 module.exports = {
 	initialize: initialize,
-	trial_loop: trial_loop,
+	loop: loop,
 	run_by_clock: run_by_clock,
 	cue: cue,
 	lights: lights,

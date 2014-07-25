@@ -30,8 +30,9 @@ shape.js
 		    left key flashes until pecked, then food for 2.5 sec.
 
 		GNG:
+		Block 3:
 			Wait for a peck to non-flashing center key, when you get
- *          it, the hopper comes up for 2.5 sec.
+            it, the hopper comes up for 2.5 sec.
 
 	Adapted from CDM's shape.cc used in Chicago lab
 */
@@ -87,7 +88,7 @@ t.initialize("shape", par.subject, function(){		// create component in apparatus
 	trial_data.block = 1;				            // begin on block 1
 	t.mail_on_disaster(par.mail_list);              // mail someone when disaster strikes
 	//t.run_by_clock( function() {		            // run trials only during daytime
-	t.trial_loop(trial);				            // run trial() in a loop
+	t.loop(trial);				            // run trial() in a loop
 	//});
 });
 

@@ -80,7 +80,7 @@ t.lights().on();
 t.initialize("gng", par.subject, function(){ 			// create gng component in apparatus					// set the subject number
 	t.mail_on_disaster(par.mail_list);					// email someone when something bad happens
 	//	t.run_by_clock( function() {						// run trials only during daytime
-		t.trial_loop(trial); 							// run trial() in a loop
+		t.loop(trial); 							// run trial() in a loop
 	//});
 });
 
