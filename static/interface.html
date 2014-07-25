@@ -95,6 +95,8 @@
 			<script>
 
 				var svg;
+				var omnitimer = {};
+
 				function drawInterface(){
 					var w = window.innerWidth * 0.6;
 					var h = w * 0.5626;
@@ -139,7 +141,11 @@
 						// filtering data before binding now - CDM
 						var omni = svg.selectAll(".omni")
 						.data(data.filter(function(d) { return d.value.type == "led" && d.value.color == "red"}),
-							function(d) { return d.key });
+							function(d, i) {
+							    var pos = ["cue_left", "cue_center", "cue_right"];
+							    if (!omnitimer[d.key]) omnitimer[d.key] = {}
+							    return pos[i];
+							});
 
 						omni.enter()
 						.append("rect")
@@ -160,7 +166,7 @@
 							})
 							return "rgb(" + color + ")";
 						})
-						.classed("blinkomni", function(d) {
+						.classed("blinkomni", function(d,i) {
 							var key = d.key.split("_");
 							var ret = false;
 							var list = ["red", "green", "blue"].map(function(k) {
@@ -169,31 +175,44 @@
 							})
 							for (var i = 0; i < list.length; i++) {
 								if (starboard[list[i]].state.trigger == "timer") {
+									omnitimer[d.key].color_index = i;
 									ret = true;
 								}
+							}
+							if (ret == false) {
+							    clearInterval(omnitimer[d.key].timer);
 							}
 							return ret
 						});
 
 						d3.selectAll(".blinkomni")
-						.each(blinkOmni)
+						.each(blinkOmni);
 
-						function blinkOmni() {
+						function blinkOmni(d,i) {
 							var selection = d3.select(this);
-							var color = selection.attr("fill");
-							var toggle = color;
-							var blink = setInterval(loop, 300);
-							console.log(color);
+
+							var on_color = selection.attr("fill");
+
+							var temp = on_color.split(/,|\(|\)/);
+							temp[omnitimer[d.key].color_index*1+1] = 0;
+							temp = [temp[1],temp[2],temp[3]];
+
+							var off_color = "rgb("+temp+")";
+
+							var toggle = on_color;
+							clearInterval(omnitimer[d.key].timer);
+							omnitimer[d.key].timer = setInterval(loop, 500);
+
 							function loop() {
 								selection
 									.transition()
 									.attr("fill", function(){
-										toggle = toggle == "black" ? color : "black";
+										toggle = toggle == off_color ? on_color : off_color;
 										return toggle;
-								});
-							} 
+								}).ease();
+							}
 						}
-						
+
 
 						var cues = svg.selectAll(".led")
 						.data(data.filter(function(d) { return d.value.type == "led"},

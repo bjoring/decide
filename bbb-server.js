@@ -114,6 +114,9 @@ function controller(params) {
 	})
   });
 
+
+  var exp;
+
   // route req to apparatus
   reqc.on("connection", function(socket) {
 	winston.info("connection on REQ:", socket.handshake.address)
@@ -149,7 +152,6 @@ function controller(params) {
 	  rep("hugz-ok");
 	});
 
-	var exp;
 	socket.on("runexp", function(inexp, args, opt, callback) {
 		var rep;
 		if (!exp) {
@@ -175,7 +177,7 @@ function controller(params) {
 				}
 			}
 			else {
-				rep = "Error: No such experiment"; 
+				rep = "Error: No such experiment";
 			}
 		}
 		else rep = "Error: Experiment already running.";
@@ -186,7 +188,7 @@ function controller(params) {
 		if (exp) {
 			exp.kill('SIGINT');
 			exp = null;
-			callback("Experiment stopped");
+			callback("Experiment stopped. Warning: Some on/blinking cues may need to be manually turned off.");
 		} else {
 			callback("Error: No experiment to stop!");
 		}
