@@ -37,7 +37,7 @@ cases, one component needs to manipulate the state of another component (for
 example, the experiment control program needs to raise a food hopper to provide
 a reward), so there needs to be a system for sending requests (REQ) to specific
 parts of the system. In turn, clients need a method for discovering addresses.
-
+’
 ## System and network architecture
 
 Each embedded computer is connected to an array of physical devices. The current

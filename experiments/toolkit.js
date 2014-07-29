@@ -4,14 +4,6 @@ var pubc = io.connect("http://localhost:8000/PUB");
 var reqc = io.connect("http://localhost:8000/REQ");
 var mailer = require('nodemailer').createTransport();
 
-/* TODO:
- 	Add exit() function for running as child process
-	Add exit, cleanup function
-	More user friendly looping/clock running
-	Initialize allows custom state spaces
-	On connect
-*/
-
 /* Toolkit Variables */
 var active_program;				// name of program using toolkit
 var use_clock;					// flag, lights are set by clock
@@ -22,8 +14,6 @@ var mail_list;					// address(es) to mail when terribleness strikes
 var state = {
 	running: false,				// flag for whether the program is running trials
 	phase: "idle"				// present phase of the program, state-space defined by meta.variables.phase
-
-	// More complex state machine may be implemented later
 }
 
 
@@ -95,7 +85,7 @@ function run_by_clock(callback) {	// sets state.running according to sun's altit
 	}
 }
 
-function mail_on_disaster(list) {
+function mail_on_disaster(list) { // sends emails on unhandled exceptions
     mail_list = list;
     mail_disaster = true;
 }
