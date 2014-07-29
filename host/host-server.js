@@ -91,7 +91,7 @@ bpub.on('connection', function(socket) {
 			}
 		}
 
-		socket.on('graceful_exit', function(){
+		socket.on('graceful-exit', function(){
 			boxes[name].graceful_exit = true;
 		})
 	});

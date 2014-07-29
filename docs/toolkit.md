@@ -6,7 +6,7 @@ Overall, *toolkit* includes two types of functions: those that manipulate the ap
 
 ## Manipulating Apparatus Components
 
-These functions send REQ msgs to `apparatus` to manipulate component states. They all follow the same basic format: 
+These functions send REQ msgs to `apparatus` to manipulate component states. They all follow the same basic format:
 ````javascript
 toolkit.component(which).action(arguments)
 ````
@@ -29,7 +29,7 @@ toolkit.cue(which).on(duration, callback)
 * *duration:* How long cue should stay on in miliseconds, `cue(which).off()` called afterwards.
 * *callback:* Function to run after *duration* has finished.
 
-#### Turning a cue off 
+#### Turning a cue off
 ````javascript
 toolkit.cue(which).off(duration, callback)
 ````
@@ -54,7 +54,7 @@ Setting the *interval* is not required to set *duration* for the blinking cue.
 toolkit.hopper(which).feed(duration, callback)
 ````
 * *duration:* How long in miliseconds to feed with the hopper
-* *callback:* Function to run after *duration* has finished 
+* *callback:* Function to run after *duration* has finished
 
 ### Using House Lights
 Note that `toolkit.lights()` takes no *which* argument, unlinke the other functions. This is because, presumably, there is only one set of house lights per `apparatus`.
@@ -114,9 +114,9 @@ Any key press, correct or incorrect, will end the response window. If the durati
 
 This function returns a JSON object giving information about the subject's response:
 ````javascript
-result = { 
+result = {
     response: "",       // The subject's response (string)
-    correct: "",        // Whether response matched 'which' (boolean) 
+    correct: "",        // Whether response matched 'which' (boolean)
     time: Date.now()    // When response was recorded (Date object)
     }
 ````
@@ -126,7 +126,7 @@ result = {
 toolkit.aplayer(what).play(callback)
 ````
 * *what:* The WAV sound file to play
-* *callback:* Function to run after sound has finished playing 
+* *callback:* Function to run after sound has finished playing
 
 ## Managing the Program and its Trials
 ### Making Apparatus Aware of the Program
@@ -159,7 +159,7 @@ This function runs `trial()` in a loop by making it recursive. If `state.running
 ````javascript
 toolkit.run_by_clock(callback)
 ````
-* *callback:* Function to run after this option is set 
+* *callback:* Function to run after this option is set
 
 This function sets `state.running` according to the sun's altitude. That is, if it is day time, `state.running` will be set to `true`, and, if it is night time, `state.running` will be set to `false`. It checks the sun's altitude every 60 seconds.
 
@@ -180,7 +180,7 @@ toolkit.log_data(data, callback)
 * *data:* The data to log
 * *callback:* Function to run after data has been logged
 
-#### Logging General Trial Information
+#### Logging general trial information
 ````javascript
 toolkit.log_info(data, callback)
 ````

@@ -79,6 +79,9 @@ function controller(params) {
 		}
 		host_forward = true;
 	}
+	function prepare_host_disconnect(){
+	    host_pub.emit("graceful-exit");
+	}
 
 
   // these methods are called by the apparatus module
@@ -200,7 +203,13 @@ function controller(params) {
 	  winston.info("disconnect on REQ:", socket.handshake.address)
 	})
   })
-
+process.on('SIGINT', function() {
+    console.log('SIGINT received.');
+    console.log('Informing host of graceful exit');
+    prepare_host_disconnect();
+    console.log('Exiting gracefully');
+    process.kill();
+});
 }
 
 // TODO be smarter about this if run as script
@@ -267,18 +276,10 @@ function mail(subject, message, callback) {
     });
 }
 
-process.on('SIGINT', function() {
-    console.log('SIGINT received.');
-    console.log('Informing host of graceful exit');
-    host_pub.emit('graceful_exit');
-    console.log('Exiting gracefully');
-    process.exit();
-});
-
-process.on('uncaughtException', function(err) {
+/*process.on('uncaughtException', function(err) {
     var subject = "Caught Exception - " + Date.now();
     var message = err;
     mail(subject, message, process.exit);
     console.log(subject);
-});
+});*/
 

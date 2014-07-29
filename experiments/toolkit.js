@@ -15,7 +15,7 @@ var state = {
 	running: false,				// flag for whether the program is running trials
 	phase: "idle"				// present phase of the program
 
-
+}
 var meta = {
 	type: "experiment",
 	dir: "input",
@@ -327,14 +327,16 @@ function write_feed(which, state, duration) {
 
 function default_state(callback){
 	var def = require(__dirname + "/default_state.json");
+	var keyarr = [];
+	var tim = 1000;
 	for (var key in def) {
-		reqc.emit("msg", {
+	    reqc.emit("msg", {
 		req: "change-state",
 		addr: key,
 		data: def[key]
-	});
+	    });
 	}
-	if (callback) callback();
+	if (callback) setTimeout(callback, 2000); // 2  second delay to allow time for all the req to send
 }
 
 function pub(msg) {
@@ -371,9 +373,10 @@ process.on('uncaughtException', function(err) {
 process.on('SIGINT', function() {
     console.log('SIGINT received.');
     console.log('Returning apparatus to default state');
-    default_state();
+    default_state(function(){
     console.log('Stopping '+ active_program);
     process.exit();
+    });
 });
 
 /* Handling REQ Such */
