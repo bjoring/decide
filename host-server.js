@@ -5,20 +5,26 @@ var mailer = require("nodemailer").createTransport();
 var app = require("express")();
 var server = require("http").Server(app);
 
+var debug = process.env.DEBUG ? true : false;
+
 var par = {
-	port: 8010,
-	mail_list: "robbinsdart@gmail.com",
-	log_path: __dirname +"/logs/",
-	send_emails: true
+  address: null, // set to 'localhost' for deployment
+  port: 8010,
+  mail_list: "dmeliza@gmail.com",
+  log_path: __dirname +"/logs/",
+  send_emails: true
 }
 
 var boxes = {};
 
-server.listen(par.port);
+server.listen(par.port, 'localhost');
 
 var io = require('socket.io')(server);
 
-console.log('Server listening on: http://' + getIPAddress() + ':' + par.port);
+server.on('listening', function() {
+  console.log('Server listening on http://%s', getIPAddress());
+})
+
 
 // channels for communicating with BBBs
 var bpub = io.of("/BPUB");
@@ -28,8 +34,9 @@ var breq = io.of("/BREQ");
 var hpub = io.of("/HPUB");
 var hreq = io.of("/HREQ");
 
-console.log("Starting baby-sitter");
-var babysitter = require('child_process').fork(__dirname + "/baby-sitter.js");
+// temporarily disabled for debugging
+// console.log("Starting baby-sitter");
+// var babysitter = require('child_process').fork(__dirname + "/baby-sitter.js");
 
 
 bpub.on('connection', function(socket) {
@@ -124,11 +131,13 @@ socket.on("disconnect", function() {
 	eventlog.levels['event'] = 3;
 }); // io.sockets.on
 
-process.on('uncaughtException', function(err) {
-	var subject = "Uncaught Exception";
-	var message = 'Caught exception: ' + err;
-	mail(subject, message, process.exit);
-});
+if (!debug) {
+  process.on('uncaughtException', function(err) {
+    var subject = "Uncaught Exception";
+    var message = 'Caught exception: ' + err;
+    mail(subject, message, process.exit);
+  });
+}
 
 function mail(subject, message, callback) {
 	if (par.send_emails) {
