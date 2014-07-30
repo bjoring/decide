@@ -17,7 +17,7 @@ var par = {
 
 var boxes = {};
 
-server.listen(par.port, 'localhost');
+server.listen(par.port, par.address);
 
 var io = require('socket.io')(server);
 
