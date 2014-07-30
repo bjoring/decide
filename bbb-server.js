@@ -191,7 +191,7 @@ function controller(params) {
 		if (exp) {
 			exp.kill('SIGINT');
 			exp = null;
-			callback("Experiment stopped. Warning: Some on/blinking cues may need to be manually turned off.");
+			callback("Experiment stopped.");
 		} else {
 			callback("Error: No experiment to stop!");
 		}

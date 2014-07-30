@@ -257,7 +257,7 @@ function aplayer(what) {			// play sounds using alsa
 				addr: "aplayer",
 	data: {
 					stimulus: what,
-					laying: true
+					playing: true
 				}
 			});
 			pubc.on("msg",function (msg) {

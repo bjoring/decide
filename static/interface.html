@@ -382,8 +382,14 @@ d3.selectAll("#hbartext")
 });
 
 d3.selectAll("#status")
-.html("Subject: " + starboard.experiment.state.subject +
-	"<br/>Program: " + starboard.experiment.state.program);
+.html(function(){
+	var ret =
+	"Subject: " + starboard.experiment.state.subject +
+	"<br/>Program: " + starboard.experiment.state.program;
+
+	if (starboard.aplayer.state.playing) ret = ret + "<br/>Stimulus: " + starboard.aplayer.state.stimulus.split("/").slice(-1).pop();
+	return ret
+});
 }
 
 				/*function appendConsole(data, console) {
