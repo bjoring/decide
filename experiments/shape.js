@@ -37,11 +37,6 @@ shape.js
 	Adapted from CDM's shape.cc used in Chicago lab
 */
 
-/*
-	 TODO:
-		Configuration file support
-*/
-
 // Import required modules
 var t = require("./toolkit");			// bank of apparatus manipulation functions
 var winston = require("winston");		// logger
@@ -88,7 +83,7 @@ t.initialize("shape", par.subject, function(){		// create component in apparatus
 	trial_data.block = 1;				            // begin on block 1
 	t.mail_on_disaster(par.mail_list);              // mail someone when disaster strikes
 	//t.run_by_clock( function() {		            // run trials only during daytime
-	t.loop(trial);				            // run trial() in a loop
+	t.loop(trial);				           			// run trial() in a loop
 	//});
 });
 

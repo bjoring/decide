@@ -48,7 +48,7 @@ function controller(params) {
 
   // host server interaction
   var clientio = require('socket.io-client');
-  var host_pub = clientio.connect('http://mino.local:8027/BPUB');
+  var host_pub = clientio.connect('http://aplonis.local:8010/BPUB');
   host_pub.on("connection", function() {
 	  winston.info("connected to host");
   });
@@ -266,6 +266,14 @@ function mail(subject, message, callback) {
 		if (callback) callback();
     });
 }
+
+process.on('SIGINT', function() {
+    console.log('SIGINT received.');
+    console.log('Informing host of graceful exit');
+    host_pub.emit('graceful_exit');
+    console.log('Exiting gracefully');
+    process.exit();
+});
 
 process.on('uncaughtException', function(err) {
     var subject = "Caught Exception - " + Date.now();

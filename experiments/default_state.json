@@ -1,0 +1,44 @@
+{
+	"cue_left_red": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_left_green": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_left_blue": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_center_red": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_center_green": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_center_blue": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_right_red": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_right_green": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"cue_right_blue": {
+		"brightness" : "0",
+		"trigger": "null"
+	},
+	"feeder_left": {
+		"feeding":"false"
+	},
+	"feeder_right":{
+		"feeding":"false"
+	}
+}

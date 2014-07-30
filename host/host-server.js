@@ -1,9 +1,3 @@
-// TODO:
-//   Separate logger into own component
-//   Config files
-//   Set email parameters externally?
- 	  
-
 var _ = require("underscore");
 var winston = require("winston");
 var express = require("express");
@@ -12,10 +6,10 @@ var app = require("express")();
 var server = require("http").Server(app);
 
 var par = {
-	port: 8027,
+	port: 8010,
 	mail_list: "robbinsdart@gmail.com",
 	log_path: __dirname +"/logs/",
-	send_emails: false
+	send_emails: true
 }
 
 var boxes = {};
@@ -49,6 +43,7 @@ bpub.on('connection', function(socket) {
 		boxes[name].ip = ip;
 		boxes[name].port = port;
 		boxes[name].socket = socket.id;
+		boxes[name].graceful_exit = false;
 		console.log(name,"connected");
 		hpub.emit("msg",{
 			addr:"",
@@ -95,11 +90,15 @@ bpub.on('connection', function(socket) {
 				console.log(name + ": event logged")
 			}
 		}
+
+		socket.on('graceful_exit', function(){
+			boxes[name].graceful_exit = true;
+		})
 	});
 
 socket.on("disconnect", function() {
 	console.log(name,"disconnected");
-	mail("Beaglebone disconnect",name+" disconnected from host - " + Date.now());
+	if (boxes[name].graceful_exit == false) mail("Beaglebone disconnect",name+" disconnected from host - " + Date.now());
 	delete boxes[name];
 })
 

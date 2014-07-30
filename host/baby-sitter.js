@@ -11,7 +11,7 @@ var winston = require("winston");
 //var mailer = require("nodemailer").createTransport();
 
 var par = {
-	port: 8027,
+	port: 8010,
 	log_path: __dirname +"/logs/",
 	//mail_list: "robbinsdart@gmail.com",
 	//send_emails: false

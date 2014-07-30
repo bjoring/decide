@@ -13,8 +13,7 @@ var mail_list;					// address(es) to mail when terribleness strikes
 /* State Machine Setup*/
 var state = {
 	running: false,				// flag for whether the program is running trials
-	phase: "idle"				// present phase of the program, state-space defined by meta.variables.phase
-}
+	phase: "idle"				// present phase of the program
 
 
 var meta = {
@@ -326,6 +325,18 @@ function write_feed(which, state, duration) {
 });
 }
 
+function default_state(callback){
+	var def = require(__dirname + "/default_state.json");
+	for (var key in def) {
+		reqc.emit("msg", {
+		req: "change-state",
+		addr: key,
+		data: def[key]
+	});
+	}
+	if (callback) callback();
+}
+
 function pub(msg) {
 	pubc.emit("msg", msg);
 }
@@ -358,7 +369,10 @@ process.on('uncaughtException', function(err) {
 });
 
 process.on('SIGINT', function() {
-    console.log('SIGINT received. Stopping '+ active_program);
+    console.log('SIGINT received.');
+    console.log('Returning apparatus to default state');
+    default_state();
+    console.log('Stopping '+ active_program);
     process.exit();
 });
 
