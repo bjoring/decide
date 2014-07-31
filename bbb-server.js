@@ -4,7 +4,7 @@ var _ = require("underscore");
 var express = require("express");
 var winston = require("winston"); // logger
 var apparatus = require("./lib/apparatus");
-var util = require("./lib/util");
+var util = require(__dirname + "/lib/util");
 
 // Log pub and req events at info level. TODO disable after debugging?
 winston.levels.pub = 3;
@@ -22,7 +22,8 @@ function controller(params) {
 
 	var par = {
 		port: 8000,
-		exp_dir: __dirname + "/experiments/"
+		exp_dir: __dirname + "/experiments/",
+		mail_list: "robbinsdart@gmail.com"
 	};
 
 	util.update(par, params);
@@ -42,7 +43,7 @@ function controller(params) {
 
 	server.listen(par.port, function() {
 		state.online = true;
-		state.ip_address = getIPAddress();
+		state.ip_address = util.getIPAddress();
 		winston.info("server listening on", state.ip_address);
 	});
 
@@ -164,7 +165,6 @@ function controller(params) {
 
 		socket.on("runexp", function(inexp, args, opt, callback) {
 		  // Spawns an experiment process after error handling
-		  // TODO: Fix the awful mess with error handling 
 		  var rep;
 			// check if experiment is not already running
 			if (!exp) {
@@ -268,38 +268,9 @@ apparatus.init(params);
 // start the broker
 apparatus.register("controller", new controller(params.controller));
 
-// getting the correct ip address
-function getIPAddress() {
-		var interfaces = require('os')
-			.networkInterfaces();
-		for (var devName in interfaces) {
-			var iface = interfaces[devName];
-			for (var i = 0; i < iface.length; i++) {
-				var alias = iface[i];
-				if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) return alias.address;
-			} // for
-		} // for
-		return '0.0.0.0';
-	} // getIPAddress
-
-function mail(subject, message, callback) {
-	console.log("SENDING MAIL");
-	require('nodemailer')
-		.createTransport()
-		.sendMail({
-			from: "controller@" + require('os')
-				.hostname(),
-			to: "robbinsdart@gmail.com",
-			subject: subject,
-			text: message
-		}, function() {
-			if (callback) callback();
-		});
-}
-
 process.on('uncaughtException', function(err) {
 	var subject = "Caught Exception - " + Date.now();
 	var message = err;
-	mail(subject, message, process.exit);
+	util.mail("controller", par.mail_list, subject, message, process.exit);
 	console.log(subject);
 });

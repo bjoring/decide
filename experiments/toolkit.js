@@ -2,7 +2,7 @@
 var io = require('socket.io-client');
 var pubc = io.connect("http://localhost:8000/PUB");
 var reqc = io.connect("http://localhost:8000/REQ");
-var mailer = require('nodemailer').createTransport();
+var util = require(__dirname +"/../lib/util");
 
 /* Toolkit Variables */
 var active_program; 	// name of program using toolkit
@@ -379,18 +379,6 @@ function pub(msg) {
 	pubc.emit("msg", msg);
 }
 
-function mail(subject, message, callback) {
-	console.log("SENDING MAIL");
-	mailer.sendMail({
-		from: active_program + "@" + require('os').hostname(),
-		to: mail_list,
-		subject: subject,
-		text: message
-	}, function() {
-		if (callback) callback();
-	});
-}
-
 process.on('exit', function(code) {
 	reqc.emit("msg", {
 		req: "change-state",
@@ -403,7 +391,7 @@ process.on('exit', function(code) {
 
 process.on('uncaughtException', function(err) {
 	var message = 'Caught exception: ' + err;
-	if (mail_disaster) mail(message, null, process.exit);
+	if (mail_disaster) util.mail(active_program, mail_list, message, null, process.exit);
 });
 
 process.on('SIGINT', function() {
@@ -437,7 +425,7 @@ reqc.on("disconnect", function() {
 	state.running = false;
 	console.log(message);
 
-	if (mail_disaster) mail(message);
+	if (mail_disaster) util.mail(active_program, mail_list,message);
 
 });
 

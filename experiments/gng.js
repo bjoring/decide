@@ -21,10 +21,7 @@ gng.js
 
 	Adapted from CDM's gng.cc used in Chicago lab
 */
-/*
-	TODO:
-		Configuration file support
-*/
+
 // Import required modules
 var t = require("./toolkit");		// bank of apparatus manipulation functions
 var winston = require("winston");	// logger
@@ -75,7 +72,7 @@ var stim_set = create_stim_set(par.stimuli_database);		// Create stimulus set
 t.lights().on();
 //t.lights().clock_set();									// make sure lights are on and set by sun altitude
 
-t.initialize("gng", par.subject, function() {				// create gng component in apparatus					// set the subject number
+t.initialize("gng", par.subject, function() {				// create gng component in apparatus			
 	t.mail_on_disaster(par.mail_list); 						// email someone when something bad happens
 	//	t.run_by_clock( function() {						// run trials only during daytime
 	t.loop(trial); // run trial() in a loop

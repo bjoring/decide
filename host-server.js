@@ -1,9 +1,9 @@
 var _ = require("underscore");
 var winston = require("winston");
 var express = require("express");
-var mailer = require("nodemailer").createTransport();
 var app = require("express")();
 var server = require("http").Server(app);
+var util = require(__dirname+"/lib/util");
 
 var debug = process.env.DEBUG ? true : false;
 
@@ -22,7 +22,7 @@ server.listen(par.port, par.address);
 var io = require('socket.io')(server);
 
 server.on('listening', function() {
-	console.log('Server listening on http://%s', getIPAddress());
+	console.log('Server listening on http://%s', util.getIPAddress());
 });
 
 
@@ -40,7 +40,6 @@ var hreq = io.of("/HREQ");
 
 
 bpub.on('connection', function(socket) {
-	// Set up this socket's unique loggers (TODO: FUNCTION-IZE THIS!)
 	var name = "unregistered";
 
 	socket.emit('register-box', function(hostname, ip, port) {
@@ -105,7 +104,7 @@ bpub.on('connection', function(socket) {
 
 	socket.on("disconnect", function() {
 		console.log(name, "disconnected");
-		if (boxes[name].graceful_exit === false) mail("Beaglebone disconnect", name + " disconnected from host - " + Date.now());
+		if (boxes[name].graceful_exit === false) util.mail("host-server",par.mail_list,"Beaglebone disconnect", name + " disconnected from host - " + Date.now());
 		delete boxes[name];
 	});
 
@@ -141,22 +140,8 @@ if (!debug) {
 	process.on('uncaughtException', function(err) {
 		var subject = "Uncaught Exception";
 		var message = 'Caught exception: ' + err;
-		mail(subject, message, process.exit);
+		util.mail("host-server", par.mail_list, subject, message, process.exit);
 	});
-}
-
-function mail(subject, message, callback) {
-	if (par.send_emails) {
-		console.log("sending email");
-		mailer.sendMail({
-			from: "Aplonis <host_server@" + require('os').hostname() + ">",
-			to: par.mail_list,
-			subject: subject,
-			text: message,
-		}, function() {
-			if (callback) callback();
-		});
-	}
 }
 
 function get_store(name) {
@@ -175,15 +160,3 @@ app.get("/boxes", function(req, res) {
 
 // all other static content resides in /static
 app.use("/static", express.static(__dirname + "/static"));
-
-function getIPAddress() {
-		var interfaces = require('os').networkInterfaces();
-		for (var devName in interfaces) {
-			var iface = interfaces[devName];
-			for (var i = 0; i < iface.length; i++) {
-				var alias = iface[i];
-				if (alias.family === 'IPv4' && alias.address !== '127.0.0.1' && !alias.internal) return alias.address;
-			} // for
-		} // for
-		return '0.0.0.0';
-	} // getIPAddress
