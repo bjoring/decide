@@ -9,7 +9,7 @@
 	<title>Starboard Directory</title>
 	<!-- jQuery and jQuery Mobile -->
 	<link rel="stylesheet" href="/static/css/jquery.mobile-1.3.1.min.css" />
-	<link rel="icon" type="image/ico" href="/static/images/favicon.ico"/>
+	<link rel="icon" type="image/ico" href="/static/images/favicon.ico" />
 	<link rel="stylesheet" href="/static/css/directory.css" />
 	<script src="/static/js/jquery-1.9.1.min.js"></script>
 	<script src="/static/js/jquery.mobile-1.3.1.min.js"></script>
@@ -18,32 +18,36 @@
 	<script src="/static/js/d3.v3.min.js" charset="utf-8"></script>
 	<!-- Code for socket.io and device orientation handling -->
 	<script>
-          // need to force socket.io to use a relative path in case we are proxied
-	  var pub = io.connect("/HPUB", {path: location.pathname + "socket.io"});
-	  var req = io.connect("/HREQ", {path: location.pathname + "socket.io"});
+		// need to force socket.io to use a relative path in case we are proxied
+		var pub = io.connect("/HPUB", {
+			path: location.pathname + "socket.io"
+		});
+		var req = io.connect("/HREQ", {
+			path: location.pathname + "socket.io"
+		});
 
 		var boxes;
 
 		queue()
-		.defer(d3.json, "boxes")
-		.await(function(err, data)  {
-			if (err) console.warn(err);
-			else {
-				boxes = data;
-				console.log(boxes);
-				drawDirectory();
+			.defer(d3.json, "boxes")
+			.await(function(err, data) {
+				if (err) console.warn(err);
+				else {
+					boxes = data;
+					console.log(boxes);
+					drawDirectory();
 
-				pub.on("msg", function(msg) {
-					if (msg.event == "box-registered") {
-						boxes[msg.data.name] = msg.data;
-						drawDirectory();
-					} else if (msg.event == "box-unregistered") {
-						delete boxes[msg.data];
-						drawDirectory();
-					}
-				});
-			}
-		});
+					pub.on("msg", function(msg) {
+						if (msg.event == "box-registered") {
+							boxes[msg.data.name] = msg.data;
+							drawDirectory();
+						} else if (msg.event == "box-unregistered") {
+							delete boxes[msg.data];
+							drawDirectory();
+						}
+					});
+				}
+			});
 	</script>
 </head>
 
@@ -53,29 +57,30 @@
 			<h3 id="hbartext">Starboard Directory</h3>
 		</div>
 		<div id="boxlist">
-		<p class="ahead">Registered Boxes</p>
+			<p class="ahead">Registered Boxes</p>
 		</div>
-	</body>
-	<script>
-		function drawDirectory() {
-			var data = d3.entries(boxes);
+</body>
+<script>
+	function drawDirectory() {
+		var data = d3.entries(boxes);
 
-			var boxlist = d3.select("#boxlist")
+		var boxlist = d3.select("#boxlist");
 
-			boxlist.selectAll("#abox")
+		boxlist.selectAll("#abox")
 			.data(data)
 			.enter()
 			.append("p")
-			.attr("class","abox")
+			.attr("class", "abox")
 			.append("a")
 			.attr("href", function(d) {
 				console.log(d);
-				var link = "/device/"+d.value.name+"/";
-				return link
+				var link = "/device/" + d.value.name + "/";
+				return link;
 			})
-			.text(function(d){
+			.text(function(d) {
 				return d.key;
-			})
-		}
-	</script>
-	</html>
+			});
+	}
+</script>
+
+</html>

@@ -1,20 +1,30 @@
 # Toolkit
 
-*Toolkit* provides a set of basic building blocks with which to build operant training paradigms. It handles all interaction with the `bbb-server` and `apparatus`, allowing the user to create training paradigms with minimal programming.
+*Toolkit* provides a set of basic building blocks with which to build operant 
+training paradigms. It handles all interaction with the `bbb-server` and 
+`apparatus`, allowing the user to create training paradigms with minimal programming.
 
-Overall, *toolkit* includes two types of functions: those that manipulate the apparatus' components and those that manage the program and its trials. This document details those functions. For examples on how to use *toolkit* in a program, look at `template.js`.
+Overall, *toolkit* includes two types of functions: those that manipulate the 
+apparatus' components and those that manage the program and its trials. This 
+document details those functions. For examples on how to use *toolkit* in a program, 
+look at `template.js`.
 
 ## Manipulating Apparatus Components
 
-These functions send REQ msgs to `apparatus` to manipulate component states. They all follow the same basic format:
+These functions send REQ msgs to `apparatus` to manipulate component states. 
+They all follow the same basic format:
 ````javascript
 toolkit.component(which).action(arguments)
 ````
-The *which* argument selects which component of a category to manipulate. For example, to turn on the center blue cue:
+The *which* argument selects which component of a category to manipulate. For example, 
+to turn on the center blue cue:
 ````javascript
 toolkit.cue("center_blue").on()
 ````
-All *arguments* to component actions are optional. In the above example, the cue would stay on until it is manually turned off since it was given no *duration* argument. If the cue needs to be on for exactly 5 seconds, however, this command should be used instead:
+All *arguments* to component actions are optional. In the above example, the cue
+would stay on until it is manually turned off since it was given no *duration* 
+argument. If the cue needs to be on for exactly 5 seconds, however, this command
+should be used instead:
 
 ````javascript
 toolkit.cue("center_blue").on(5000)
@@ -57,7 +67,8 @@ toolkit.hopper(which).feed(duration, callback)
 * *callback:* Function to run after *duration* has finished
 
 ### Using House Lights
-Note that `toolkit.lights()` takes no *which* argument, unlinke the other functions. This is because, presumably, there is only one set of house lights per `apparatus`.
+Note that `toolkit.lights()` takes no *which* argument, unlinke the other functions. 
+This is because, presumably, there is only one set of house lights per `apparatus`.
 #### Turning the lights on
 ````javascript
 toolkit.lights().on(duration, callback)
@@ -65,13 +76,14 @@ toolkit.lights().on(duration, callback)
 * *duration:* How long the lights should stay on in miliseconds, `lights().off` called afterwards.
 * *callback:* Function to run after *duration* has finished.
 
-This function turns the lights on at full brightness. See `lights().man_set` for setting the lights to a specific brightness.
+This function turns the lights on at full brightness. See `lights().man_set` for
+setting the lights to a specific brightness.
 
 #### Turning the lights off
 ````javascript
 toolkit.lights().off(duration, callback)
 ````
-* *duration:* How long the lights should stay off in miliseconds, `lights().on()` or `lights().clock_set()` called afterwards.
+* *duration:* How long the lights should stay off in miliseconds, `lights().on()`or `lights().clock_set()` called afterwards.
 * *callback:* Function to run after *duration* has finished.
 
 #### Setting the lights' brightness manually
@@ -87,7 +99,10 @@ toolkit.lights().clock_set(callback)
 ````
 * *callback:* Function to run after lights have been set to clock
 
-If the lights are set by clock, using `lights().man_set()` and `lights().on()` will produce an error because they conflict with `lights().clock_set()`. (Note that `lights().off()` will still work, however.) In order to use those functions, setting the lights by clock must be turned off with `lights().clock_set_off()`.
+If the lights are set by clock, using `lights().man_set()` and `lights().on()` 
+will produce an error because they conflict with `lights().clock_set()`. (Note that 
+`lights().off()` will still work, however.) In order to use those functions, setting 
+the lights by clock must be turned off with `lights().clock_set_off()`.
 
 #### Turning off brightness set by clock
 ````javascript
@@ -110,7 +125,8 @@ toolkit.keys(which).response_window(duration, callback)
 * *duration:* Length of response window in miliseconds
 * *callback* Function to run **after response has been evaluated**. The function is called as `callback(result)`, with *result* being the result dictonary detailed below.
 
-Any key press, correct or incorrect, will end the response window. If the duration passes without a key press, the subject's response will be labeled "none".
+Any key press, correct or incorrect, will end the response window. If the duration 
+passes without a key press, the subject's response will be labeled "none".
 
 This function returns a JSON object giving information about the subject's response:
 ````javascript
@@ -120,8 +136,8 @@ result = {
     time: Date.now()    // When response was recorded (Date object)
     }
 ````
-### Using Aplayer
-#### Playing sounds
+
+### Playing Sound Files with Aplayer
 ````javascript
 toolkit.aplayer(what).play(callback)
 ````
@@ -137,7 +153,9 @@ toolkit.initialize(name, subject, callback)
 * *subject:* Subject number for current set of trials
 * *callback:* Function to run after registering the program in `apparatus`
 
-This function essentially makes the program a component of `apparatus` and updates the state of `experiment` to let clients know which program is running and with which subject.
+This function essentially makes the program a component of `apparatus` and updates 
+the state of `experiment` to let clients know which program is running and with 
+which subject.
 
 As a component in `apparatus`, the program will have the following state dictionary:
 ````javascript
@@ -153,7 +171,9 @@ toolkit.loop(trial)
 ````
 * *trial:* The `trial()` function of the program
 
-This function runs `trial()` in a loop by making it recursive. If `state.running` is true, `loop()` will run the trial. Otherwise, it will do nothing and check the status of `state.running` every 65 seconds.
+This function runs `trial()` in a loop by making it recursive. If `state.running` 
+is true, `loop()` will run the trial. Otherwise, it will do nothing and check the 
+status of `state.running` every 65 seconds.
 
 ### Running Trials Only During Daytime
 ````javascript
@@ -161,7 +181,9 @@ toolkit.run_by_clock(callback)
 ````
 * *callback:* Function to run after this option is set
 
-This function sets `state.running` according to the sun's altitude. That is, if it is day time, `state.running` will be set to `true`, and, if it is night time, `state.running` will be set to `false`. It checks the sun's altitude every 60 seconds.
+This function sets `state.running` according to the sun's altitude. That is, if 
+it is day time, `state.running` will be set to `true`, and, if it is night time, 
+`state.running` will be set to `false`. It checks the sun's altitude every 60 seconds.
 
 ### Sending Emails When Something Goes Wrong
 ````javascript
@@ -169,10 +191,17 @@ toolkit.mail_on_disaster(list)
 ````
 * *list:* Address(es) to mail when Bad Things happen. (Takes string or array of strings.)
 
-This function tells *toolkit* to send emails upon unhandled exceptions. Emails will have a sender address of "*program name*@*host name*" and the subject line will be the error message.
+This function tells *toolkit* to send emails upon unhandled exceptions. Emails 
+will have a sender address of "*program name*@*host name*" and the subject line 
+will be the error message.
 
 ### Logging from the Program
-All logging by the following functions is ultimately handled by `host-server`, which logs the information to file using [winston](https://github.com/flatiron/winston). Rather than actually write the information to file themselves, these functions send it through the appropiate channels. Any logging by the program not meant to go into a logging file should not be logged inside the program itself and not with these functions.
+All logging by the following functions is ultimately handled by `host-server`, 
+which logs the information to file using [winston](https://github.com/flatiron/winston). 
+Rather than actually write the information to file themselves, these functions send 
+it through the appropiate channels. Any logging by the program not meant to go into 
+a logging file should not be logged inside the program itself and not with these 
+functions.
 #### Logging data
 ````javascript
 toolkit.log_data(data, callback)
