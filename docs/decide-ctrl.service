@@ -1,0 +1,16 @@
+[Unit]
+Description=Decide Operant Host Controller
+ConditionPathExists=|/srv/decide
+
+[Service]
+ExecStart=/usr/bin/node /srv/decide/host-server.js
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=decide-ctrl
+User=nobody
+Group=operant
+Environment=PATH=/usr/bin:/usr/local/bin:
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
