@@ -1,22 +1,27 @@
 
 # Networking
 
-You can manage multiple Beaglebone Black devices running `decide` directly, or by connecting them to a private Ethernet subnet with a host computer acting as a gateway. The host computer can log trial data, monitor behavior, and provide an overview of all the running experiments on a single page. These instructions assume the following configuration:
+You can interact with a Beaglebone Black running `decide` in several ways:
 
-1. The host computer has two Ethernet interfaces: `eth0` is connected to the outside world, and `eth1` is connected to the private network, which is on the subnet `192.168.10/24`. All the BBBs are also connected to this network.
-2. Each BBB has been configured with a unique hostname.
+1. locally, by connecting a monitor to the HDMI port and a mouse and keyboard via USB
+2. directly over a network connection, either through the USB port, Ethernet, or wireless
+3. indirectly through a host computer that acts as a gateway to a private network
 
-## Host
+The advantage of the last system is that it scales up to any number of independently running apparatuses. The `decide` software running on each device communicates with a process running on the host computer, which provides some additional services, including trial and event logging, collating statistics, monitoring connected devices for errors, and providing an overview interface for all the connected devices. If you are concerned about security (which you should be, if you want to access your experiments over a public network), the indirect configuration provides a single access point that can be more efficiently secured than a host of individual Beaglebones. This document describes how to set up this configuration.
 
-### Firewall
+We assume that you've correctly connected all your devices on a private network, and that your host computer has two Ethernet interfaces. For the purposes of this document, `eth0` on the host is connected to the outside world, and `eth1` is connected to the private network, which is on the subnet `192.168.10/24`. All the BBBs are also connected to this network through their Ethernet cables (wireless networks are not recommended due to their insecurity and unreliability). No additional configuration of the BBBs is needed for this configuration, beyond ensuring that each device has a unique hostname.
 
-Add an entry to iptables for the interface of the private network:
+These instructions assume that the host computer is running a modern Linux distribution (they were tested on Debian 8), and that `decide` has either been installed as an npm module or that the source has been installed somewhere publically accessible.  Although there are some general security observations in this document, you should consult other sources on securing the host computer, and be sure to keep your software updated.
+
+## Firewall
+
+Use iptables to restrict access to the host computer on `eth0` (the public interface) to trusted subnets. Add an entry to iptables for the interface of the private network:
 
 ```bash
 /sbin/iptables -A INPUT -i eth1 -j ACCEPT
 ```
 
-If you want devices on the private network to be able to access the Internet, you also need to add these entries:
+In order for devices on the private network to access the Internet, you also need to add these entries:
 
 ```bash
 -t nat -A POSTROUTING -o eth0 -j MASQUERADE
@@ -24,9 +29,15 @@ If you want devices on the private network to be able to access the Internet, yo
 -A FORWARD -i eth1 -o eth0 -j ACCEPT
 ```
 
-### DHCP
+## DHCP
 
-`dnsmasq` is a simple DHCP and DNS server that will assign IP addresses to devices and allow the host computer to look up the IP addresses by name. This latter feature is necessary for the host web server to proxy connections to the BBBs.  After installing `dnsmasq`, copy `dnsmasq.conf` in this directory to `/etc/dnsmasq.conf` and restart `dnsmasq`. The BBBs should now be able to obtain IP addresses in the range `192.168.10.101` to `192.168.10.220`. The leases should be listed on the host computer in `/var/lib/misc/dnsmasq.leases`, and you should be able to retrieve the IP address of any connected BBB as follows: `dig <bbb-name> @localhost`
+Devices connecting to the private network need to be assigned IP addresses and hostnames. `dnsmasq` is a simple DHCP and DNS server that can accomplish both these tasks for small subnets.  After installing `dnsmasq`, copy `dnsmasq.conf` in this directory to `/etc/dnsmasq.conf` and restart `dnsmasq`. The BBBs should now be able to obtain IP addresses in the range `192.168.10.101` to `192.168.10.220`. Confirm that leases are listed on the host computer in `/var/lib/misc/dnsmasq.leases`, and that you can retrieve the IP address of any connected BBB as follows: `dig <bbb-name> @localhost`.
+
+## Controller daemon
+
+The program that handles communication with devices on the network is called `host-server.js` and runs in node. For debugging and testing purposes the script can be run directly, but for deployment it should be run as a daemon so that it's always available.  These instructions assume `systemd` is being used for service management.
+
+First, make sure `node.js` and `npm` are installed. If running from source, run `npm install` in the source directory to install dependencies.  Copy `docs/decide-ctrl.service` to `/etc/systemd/system/`
 
 ### Web proxy
 
@@ -47,6 +58,6 @@ You will also need to create the password file `/etc/nginx/passwords`, which is
 used for authentication. Add users and passwords as needed, or use a more
 sophisticated authentication system.
 
-Copy the `static` directory to `/srv/www` on the host computer. These files will be served by the web server.
+Copy the `static` directory to `/srv/www` on the host computer. These files will be served by the web server, which will slightly reduce the load on the devices.
 
 Start the host node.js process. In final deployment, it should run as a daemon and only accept connections from localhost. You will be able to access the host interface at https://hostname/controller. Similarly, the BBB node.js processes should run as daemons, but they will need to accept connections from external programs. Each BBB can be accessed at https://hostname/device/device-name, where `device-name` is the hostname of the BBB.

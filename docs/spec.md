@@ -37,7 +37,7 @@ cases, one component needs to manipulate the state of another component (for
 example, the experiment control program needs to raise a food hopper to provide
 a reward), so there needs to be a system for sending requests (REQ) to specific
 parts of the system. In turn, clients need a method for discovering addresses.
-’
+
 ## System and network architecture
 
 Each embedded computer is connected to an array of physical devices. The current
@@ -60,11 +60,12 @@ connect to the local broker to send or receive messages.
 ## Messages
 
 The protocols described here are intended to be as independent of the wire
-protocol as possible. The current implementation uses websockets, but it should
-be possible to send the messages on other wire protocols. Some wire protocols
-(e.g., zeromq) may take care of addressing, and may implement PUB and REQ using
-separate sockets of different types. Under websockets, the PUB and REQ channels
-are separated using namespaces.
+protocol as possible. The current implementation uses
+[socket.io](http://socket.io), but it should be possible to send the messages on
+other wire protocols. Some wire protocols (e.g., zeromq) may take care of
+addressing, and may implement PUB and REQ using separate sockets of different
+types. Under socket.io, the PUB and REQ channels share a single bi-directional
+connection and are separated using namespaces.
 
 All messages must be sent as serialized JSON.
 
@@ -125,12 +126,42 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
    The message must contain a field `return-addr`, which is the previously
    requested address for the client in the broker's routing table. The broker
    must respond with `unroute-ok` for success and `unroute-err` for failure.
-5. `hugz`: a heartbeat message, sent by the controller to the server or vice
+
+### Controller-Host Communication
+
+The protocol is not only intended to support independent operation of controller computers, but also to allow multiple controllers to be managed by a single host computer.  Use of a host computer allows trial and event data to be aggregated, stored, and monitored centrally, and allows the establishment of a secure gateway to a private network where the controllers operate.
+
+In this scheme, `controller` refers to the embedded computer(s) directly managing the apparatus, and `host` refers to the computer that acts as a gateway and aggregator. The communication protocol between host and controller is essentially the same as between the controller and its other clients, with the following restrictions:
+
+1. The controller initiates communication with the host by opening PUB and REQ
+   channels to a well-known endpoint on the host. (For security reasons, this
+   endpoint should be only available on the private subnet shared by the host
+   and controllers).
+2. The controller may send an REQ `route` message in order to register in the
+   host's routing table. The address used by the controller in this message must
+   be the controller's unqualified hostname.
+3. For all routed controllers, the host must forward any REQ messages addressed
+   to the controller, first removing the prefix for the controller. Replies from
+   the controller must be returned to the sender of the REQ message.
+4. For all routed controllers, the host must monitor the status of the
+   connection (using a mechanism that depends on the wire protocol). Controllers
+   must only be removed from the routing table upon receipt of an `unroute`
+   message or after the connection is lost and cannot be reestablished within a
+   predefined interval.
+5. The address of any PUB messages originating from the controller must be
+   prefixed by the controller with its (unqualified) hostname. Controllers are
+   not required to send a `route` message prior to emitting PUB messages.
+
+The REQ channel between host and controller is bidirectional. The controller may
+emit REQs addressed to other routable clients connected to the host, and the
+host may emit REQs, typically forwarded from other clients.  The PUB channel is unidirectional; the host must not forward PUB messages from one client to another.
+
+Depending on the wire protocol, keepalive messages may be used to monitor connection status. If so, these must be sent on the REQ channel using the following message type:
+
+1. `hugz`: a heartbeat message, sent by the controller to the host or vice
    versa. The recepient must respond with `hugz-ok`. (Additional message types
    may be needed for connection management if the wire protocol doesn't support
    automatic reconnection).
-
-TODO: address in reply?
 
 ### Addressing
 
@@ -156,7 +187,11 @@ to `box_1`, which might return a nested structure like this:
 If the client is directly connected to the controller computer, the addresses
 don't have the `box_1` prefix, because `box_1` is the host computer's name for
 that controller. Instead, it directly addresses `left_hopper` and
-`right_hopper`. The host computer adds `box_1` to PUB messages it receives from
+`right_hopper`.
+
+The address prefix must *removed* by the host from REQ messages sent to controllers, because the host sends those messages over
+
+The host computer adds `box_1` to PUB messages it receives from
 the controller, and strips `box_1` from REQ messages addressed to the
 controller.
 
@@ -276,4 +311,3 @@ human. If host dies, controller needs to start saving log messages.
 ### websockets
 
 Under websockets, messages consist of a string followed by some data. All PUB messages use "msg" as their identifying string, as do all REQ messages except for the following: `route`, `unroute`, and `hugz`. These messages are sent on the REQ channel, but are not routed to specific components.
-
