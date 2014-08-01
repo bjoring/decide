@@ -36,6 +36,15 @@
 					boxes = data;
 					drawDirectory();
 
+					
+					pub.on("disconnect", function(){
+						alert("Error: Disconnected from PUB channel.")
+					})
+
+					req.on("disconnect", function(){
+						alert("Error: Disconnected from REQ channel.")
+					})
+
 					pub.on("msg", function(msg) {
 						if (msg.event == "box-registered") {
 							boxes[msg.data.name] = msg.data;

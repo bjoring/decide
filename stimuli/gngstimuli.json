@@ -1,10 +1,10 @@
 {
- "s1":{
+ "stim1":{
     "sound":"/root/decide/stimuli/musicbox.wav",
     "type":"1",
     "freq":"3"
  },
- "s2":{
+ "stim2":{
     "sound":"/root/decide/stimuli/musicbox_broken.wav",
     "type":"2",
     "freq":"3"

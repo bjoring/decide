@@ -30,8 +30,9 @@ function controller(params) {
 
 	util.update(par, params);
 
-	var io = require("socket.io")
-		.listen(server);
+	var exp; // will hold the experiment child process
+
+	var io = require("socket.io").listen(server);
 
 	var state = {
 		host_name: null,
@@ -40,8 +41,7 @@ function controller(params) {
 		protocol: null
 	};
 
-	state.host_name = require('os')
-		.hostname();
+	state.host_name = require('os').hostname();
 
 	server.listen(par.port, function() {
 		state.online = true;
@@ -75,8 +75,8 @@ function controller(params) {
 		send_store();
 	});
 
-	var msg_store = [];
-	var host_forward = false;
+	var msg_store = [];			// holds msg received while disconnected from host-server
+	var host_forward = false;	// whether msgs should be directly forwarded to host-server
 
 	function send_store() {
 		winston.info("sending log store");
@@ -84,10 +84,13 @@ function controller(params) {
 			var msg = msg_store.shift();
 			host_pub.emit("msg", msg);
 		}
+
+		// directly forward messages only after mst_store is empty
 		host_forward = true;
 	}
 
 	function prepare_host_disconnect() {
+		// tell host-server not to send an email upon this disconnect
 		host_pub.emit("graceful-exit");
 	}
 
@@ -124,9 +127,6 @@ function controller(params) {
 			winston.info("disconnect on PUB:", socket.handshake.address);
 		});
 	});
-
-
-	var exp;
 
 	// route req to apparatus
 	reqc.on("connection", function(socket) {

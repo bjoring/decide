@@ -1,0 +1,57 @@
+{"addr":"mino","time":1406856897935,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406856897958}
+{"addr":"mino.cape","time":1406856897937,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406856897960}
+{"addr":"mino.keys","time":1406856897937,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406856897960}
+{"addr":"mino","time":1406856941840,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406856941861}
+{"addr":"mino.cape","time":1406856941842,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406856941862}
+{"addr":"mino.keys","time":1406856941842,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406856941863}
+{"addr":"mino","time":1406856946441,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406856946457}
+{"addr":"mino.cape","time":1406856946443,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406856946458}
+{"addr":"mino.keys","time":1406856946443,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406856946459}
+{"addr":"mino","time":1406857003735,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857003753}
+{"addr":"mino.cape","time":1406857003736,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857003754}
+{"addr":"mino.keys","time":1406857003737,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857003755}
+{"addr":"mino","time":1406857061536,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857061551}
+{"addr":"mino.cape","time":1406857061538,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857061552}
+{"addr":"mino.keys","time":1406857061538,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857061552}
+{"addr":"mino","time":1406857115933,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857115954}
+{"addr":"mino.cape","time":1406857115935,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857115955}
+{"addr":"mino.keys","time":1406857115935,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857115956}
+{"addr":"mino","time":1406857125946,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857125963}
+{"addr":"mino.cape","time":1406857125948,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857125964}
+{"addr":"mino.keys","time":1406857125948,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857125964}
+{"addr":"mino","time":1406857310601,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857310624}
+{"addr":"mino.cape","time":1406857310603,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857310626}
+{"addr":"mino.keys","time":1406857310603,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857310626}
+{"addr":"mino","time":1406857391751,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857391771}
+{"addr":"mino.cape","time":1406857391752,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857391772}
+{"addr":"mino.keys","time":1406857391752,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857391772}
+{"addr":"mino","time":1406857438907,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857438924}
+{"addr":"mino.cape","time":1406857438909,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857438925}
+{"addr":"mino.keys","time":1406857438909,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857438925}
+{"addr":"mino","time":1406857724416,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857724432}
+{"addr":"mino.cape","time":1406857724417,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857724432}
+{"addr":"mino.keys","time":1406857724417,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857724433}
+{"addr":"mino","time":1406857734245,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857734262}
+{"addr":"mino.cape","time":1406857734247,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857734262}
+{"addr":"mino.keys","time":1406857734247,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857734262}
+{"addr":"mino","time":1406857775404,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857775421}
+{"addr":"mino.cape","time":1406857775406,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857775421}
+{"addr":"mino.keys","time":1406857775406,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857775422}
+{"addr":"mino","time":1406857827386,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857827401}
+{"addr":"mino.cape","time":1406857827388,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857827402}
+{"addr":"mino.keys","time":1406857827388,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857827402}
+{"addr":"mino","time":1406857899248,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857899266}
+{"addr":"mino.cape","time":1406857899250,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857899266}
+{"addr":"mino.keys","time":1406857899250,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857899266}
+{"addr":"mino","time":1406857912813,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857912829}
+{"addr":"mino.cape","time":1406857912815,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857912829}
+{"addr":"mino.keys","time":1406857912815,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857912829}
+{"addr":"mino","time":1406857936279,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857936297}
+{"addr":"mino.cape","time":1406857936281,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857936297}
+{"addr":"mino.keys","time":1406857936281,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857936297}
+{"addr":"mino","time":1406857942724,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406857942740}
+{"addr":"mino.cape","time":1406857942726,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406857942740}
+{"addr":"mino.keys","time":1406857942726,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406857942740}
+{"addr":"mino","time":1406858185001,"event":"log","level":"info","reason":"component registered: controller","message":"info-logged","timestamp":1406858185020}
+{"addr":"mino.cape","time":1406858185002,"event":"log","level":"error","reason":{"errno":34,"code":"ENOENT","path":"/sys/bus/i2c/devices/1-0054/eeprom"},"message":"error-logged","timestamp":1406858185021}
+{"addr":"mino.keys","time":1406858185003,"event":"log","level":"error","reason":{"errno":3,"code":"EACCES","path":"/dev/input/event1"},"message":"error-logged","timestamp":1406858185022}

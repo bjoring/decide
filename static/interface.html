@@ -41,6 +41,14 @@
 						starboard[key].state = state[key];
 					drawInterface();
 
+					pub.on("disconnect", function(){
+						alert("Error: Disconnected from PUB channel. Interface is non-functional.");
+					})
+
+					req.on("disconnect", function(){
+						alert("Error: Disconnected from REQ channel. Interface is non-functional");
+					})
+
 					pub.on("msg", function(msg) {
 						if (msg.event == "state-changed") {
 							d3.entries(msg.data).forEach(function(x) {
@@ -57,8 +65,7 @@
 			});
 
 		pub.on("msg", function(msg) {
-			if (msg.level == "info" && msg.reason.indexOf("component unregistered:") !==
-				-1) {
+			if (msg.level == "info" && msg.reason.indexOf("component unregistered:") !== -1) {
 				var arr = msg.reason.split(' ');
 				console.log("removing " + arr[2] + " from component list");
 				delete starboard[arr[2]];
@@ -113,8 +120,7 @@
 			return x.value.type == 'feeder';
 		}));
 		var numPecks = d3.sum(data.map(function(x) {
-			return (x.value.type == "key") ? Object.keys(x.value.variables).length -
-				1 : 0;
+			return (x.value.type == "key") ? Object.keys(x.value.variables).length - 1 : 0;
 		}));
 
 		var xLedScale = d3.scale.ordinal()
@@ -442,8 +448,8 @@
 					"Subject: " + starboard.experiment.state.subject +
 					"<br/>Program: " + starboard.experiment.state.program;
 
-				if (starboard.aplayer.state.playing) ret = ret + "<br/>Stimulus: " +
-					starboard.aplayer.state.stimulus.split("/").slice(-1).pop();
+				if (starboard.aplayer.state.playing) 
+					ret = ret + "<br/>Stimulus: " + starboard.aplayer.state.stimulus.split("/").slice(-1).pop();
 				return ret;
 			});
 	}
