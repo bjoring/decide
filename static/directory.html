@@ -34,7 +34,6 @@
 				if (err) console.warn(err);
 				else {
 					boxes = data;
-					console.log(boxes);
 					drawDirectory();
 
 					pub.on("msg", function(msg) {
@@ -42,7 +41,7 @@
 							boxes[msg.data.name] = msg.data;
 							drawDirectory();
 						} else if (msg.event == "box-unregistered") {
-							delete boxes[msg.data];
+							delete boxes[msg.data.name];
 							drawDirectory();
 						}
 					});
@@ -65,8 +64,8 @@
 		var data = d3.entries(boxes);
 
 		var boxlist = d3.select("#boxlist");
-
-		boxlist.selectAll("#abox")
+		boxlist.selectAll(".abox").remove();
+		boxlist.selectAll(".abox")
 			.data(data)
 			.enter()
 			.append("p")

@@ -10,7 +10,7 @@ var debug = process.env.DEBUG ? true : false;
 var par = {
 	address: null, // set to 'localhost' for deployment
 	port: 8010,
-	mail_list: "dmeliza@gmail.com",
+	mail_list: "robbinsdart@gmail.com",
 	log_path: __dirname + "/logs/",
 	send_emails: true
 };
@@ -105,7 +105,14 @@ bpub.on('connection', function(socket) {
 	socket.on("disconnect", function() {
 		console.log(name, "disconnected");
 		if (boxes[name].graceful_exit === false) util.mail("host-server",par.mail_list,"Beaglebone disconnect", name + " disconnected from host - " + Date.now());
+		hpub.emit("msg", {
+			addr: "",
+			time: Date.now(),
+			event: "box-unregistered",
+			data: boxes[name]
+		});
 		delete boxes[name];
+
 	});
 
 	// set up unique loggers for each box

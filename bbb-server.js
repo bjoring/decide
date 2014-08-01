@@ -23,7 +23,9 @@ function controller(params) {
 	var par = {
 		port: 8000,
 		exp_dir: __dirname + "/experiments/",
-		mail_list: "robbinsdart@gmail.com"
+		mail_list: "robbinsdart@gmail.com",
+		host: "mino",
+		host_port: 8010
 	};
 
 	util.update(par, params);
@@ -52,7 +54,7 @@ function controller(params) {
 
 	// host server interaction
 	var clientio = require('socket.io-client');
-	var host_pub = clientio.connect('http://aplonis.local:8010/BPUB');
+	var host_pub = clientio.connect('http://'+par.host+'.local:'+par.host_port+'/BPUB');
 	host_pub.on("connection", function() {
 		winston.info("connected to host");
 	});
