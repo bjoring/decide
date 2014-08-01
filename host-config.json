@@ -1,0 +1,9 @@
+{
+  "addr_int": "192.168.10.1",
+  "port_int": 8020,
+  "addr_ext": "localhost",
+  "port_ext": 8010,
+  "mail_list": "dmeliza@gmail.com",
+  "log_path": "/logs",
+  "send_emails": false
+}
