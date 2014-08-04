@@ -273,12 +273,15 @@ process.on("SIGINT", function() {
     console.log("Exiting gracefully");
     process.kill();
 });
-process.on("uncaughtException", function(err) {
-    var subject = "Caught Exception - " + Date.now();
-    var message = err;
-    util.mail("controller", par.mail_list, subject, message, process.exit);
-    console.log(subject);
-});
+
+if (host_par.send_emails) {
+    process.on("uncaughtException", function(err) {
+        var subject = "Caught Exception - " + Date.now();
+        var message = err;
+        util.mail("controller", host_par.mail_list, subject, message, process.exit);
+        console.log(subject);
+    });
+}
 
 // TODO be smarter about this if run as script
 var params = {};
