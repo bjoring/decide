@@ -3,7 +3,6 @@
 var _ = require("underscore");
 var fs = require("fs");
 var os = require("os");
-var proc = require("child_process");
 var winston = require("winston");
 var express = require("express");
 var http = require("http");
@@ -12,19 +11,27 @@ var sock_cli = require("socket.io-client");
 var apparatus = require("./lib/apparatus");
 var util = require("./lib/util");
 
-// Log pub and req events at info level. TODO disable after debugging?
+// Log pub and req events at info level
 winston.levels.pub = 3;
 winston.levels.req = 3;
+if (process.env.NODE_ENV == 'debug') {
+    winston.level = 'debug';
+}
+else if (process.env.NODE_ENV == 'production') {
+    winston.level = 'warn';
+}
 
-var host_par = JSON.parse(fs.readFileSync(__dirname + "/host-config.json"));
+var host_params = JSON.parse(fs.readFileSync(__dirname + "/host-config.json"));
+var bbb_params = JSON.parse(fs.readFileSync(__dirname + "/bbb-config.json"));
 
-// NB: communication code is at module level b/c controller really is a singleton
+// NB: communication code is at module level b/c broker really is a singleton
 
 // *********************************
 // HTTP server
 var app = express();
+app.enable('trust proxy');
 var server = http.Server(app);
-server.listen(host_par.port_int);
+server.listen(host_params.port_int);
 server.on("listening", function() {
     var addr = server.address();
     winston.info("server listening on %s port %s", addr.address, addr.port);
@@ -34,25 +41,14 @@ app.get("/", function(req, res) {
     res.sendfile(__dirname + "/static/interface.html");
 });
 
-app.get("/state", function(req, res) {
-    apparatus.req({
-        req: "get-state",
-        addr: ""
-    }, function(err, rep) {
+app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
+    var data = {
+        req: "get-" + ((req.params[0] == "components") ? "meta" : req.params[0] ),
+        addr: req.params[1]
+    };
+    apparatus.req(data, function(err, rep) {
         if (err)
-            res.send(500, err);
-        else
-            res.send(rep);
-    });
-});
-
-app.get("/components", function(req, res) {
-    apparatus.req({
-        req: "get-meta",
-        addr: ""
-    }, function(err, rep) {
-        if (err)
-            res.send(500, err);
+            res.send(500, {error: err});
         else
             res.send(rep);
     });
@@ -87,7 +83,7 @@ pubc.on("connection", function(socket) {
 reqc.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.handshake.address.address);
-    // holds key used to route client
+    // key used to route to client - needed for unrouting due to disconnect
     var client_key = null;
     winston.info("connection on REQ:", client_addr);
 
@@ -103,6 +99,7 @@ reqc.on("connection", function(socket) {
 
     socket.on("route", function(key, rep) {
         // register a client in the apparatus
+        // TODO handle name collisions
         apparatus.register(key, {
             // client gets pubs through socket already
             pub: function() {},
@@ -110,7 +107,6 @@ reqc.on("connection", function(socket) {
                 socket.emit("msg", msg, _.partial(rep, null));
             }
         });
-        // TODO clients asking for same name?
         client_key = key;
         rep("route-ok");
     });
@@ -121,22 +117,9 @@ reqc.on("connection", function(socket) {
         rep("unroute-ok");
     });
 
-    socket.on("hugz", function(data, rep) {
-        rep("hugz-ok");
-    });
-
-    socket.on("killexp", function(callback) {
-        if (exp) {
-            exp.kill("SIGINT");
-            exp = null;
-            callback("Experiment stopped.");
-        } else {
-            callback("Error: No procedure to stop!");
-        }
-    });
-
     socket.on("disconnect", function() {
         if (client_key) {
+            error("client %s disconnected - removing entry from route table", client_key)
             apparatus.unregister(client_key);
             client_key = null;
         }
@@ -146,7 +129,7 @@ reqc.on("connection", function(socket) {
 
 // *********************************
 // socket.io connection to host
-var host_addr = "http://" + host_par.addr_int + ":" + host_par.port_int;
+var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
 var pubh = sock_cli.connect(host_addr + "/PUB");
 var reqh = sock_cli.connect(host_addr + "/REQ")
 
@@ -166,72 +149,22 @@ pubh.on("disconnect", function() {
     winston.info("lost connection to host (now queuing messages)");
 });
 
-function controller(params, callback) {
+// the broker's job is to route messages to and from sockets
+function broker(params, callback) {
 
-    var meta = {
-        type: "controller"
+    var par = {
+        standalone: false
     };
-
-    var par = {};
     util.update(par, params);
 
+    var meta = {
+        type: "broker"
+    };
+
     var state = {
-        procedure: null,
-        params: null
+        host: null,
+        connected: false,
     }
-
-    function set_state(data, rep) {
-        if (state.procedure === null) {
-            if (data.procedure === null) {
-                state.params = null;
-                rep(null, state);
-            }
-        }
-        else {
-            if (data.procedure === null) {
-                // attempt to terminate running procedure
-            }
-            else {
-                rep("procedure is running; terminate first to change");
-            }
-        }
-
-    }
-
-socket.on("runexp", function(inexp, args, opt, callback) {
-        // Spawns an procedure process after error handling
-        var rep;
-        // check if procedure is not already running
-        if (!exp) {
-            var path = par.exp_dir + inexp;
-            // check if procedure file exists
-            if (fs.existsSync(path) || fs.existsSync(path + ".js")) {
-                if (args[0]) {
-                    for (var i = 0; i < args.length; i++) {
-                        if (args[i] == "-c") {
-                            var argpath = par.exp_dir + args[i + 1];
-                            // if given, check for config file's existence
-                            if (fs.existsSync(argpath) || fs.existsSync(argpath + ".js") || fs.existsSync(argpath + ".json")) {
-                                exp = require("child_process")
-                                    .fork(path, args, opt);
-                                rep = "Running " + inexp;
-                            } else {
-                                rep = "Error: No such config file";
-                            }
-                            i = args.length;
-                        }
-                    }
-                } else {
-                    exp = require("child_process")
-                        .fork(path, args, opt);
-                    rep = "Running " + inexp;
-                }
-            } else {
-                rep = "Error: No such procedure";
-            }
-        } else rep = "Error: Experiment already running.";
-        if (callback) callback(rep);
-    })
 
     // pubh.on("register-box", function(reply) {
     //     reply(state.host_name, state.ip_address, par.port);
@@ -254,44 +187,49 @@ socket.on("runexp", function(inexp, args, opt, callback) {
 
     // REQ messages from the apparatus
     this.req = function(msg, rep) {
-        if (msg.req == "get-state") {
-            rep(null, state);
-        }
-        else if (msg.req == "change-state") {
+        winston.debug("req to broker: ", msg);
+        if (msg.req == "change-state")
             set_state(msg.data, rep);
-        }
-        rep(null, {});
+        else if (msg.req == "get-state")
+            rep(null, state);
+        else if (msg.req == "get-meta")
+            rep(null, meta);
+        else if (msg.req == "get-params")
+            rep(null, par);
+        else
+            rep("invalid REQ type");
     };
 }
 
 // *********************************
 // Error handling
-process.on("SIGINT", function() {
-    console.log("SIGINT received.");
-    console.log("Informing host of graceful exit");
-    prepare_host_disconnect();
-    console.log("Exiting gracefully");
-    process.kill();
-});
+function error() {
+    winston.error(arguments);
+    if (host.params.send_emails) {
+        util.mail("bbb-server", host_params.mail_list, msg.substr(0,30), msg);
+    }
+}
 
-if (host_par.send_emails) {
+if (host_params.send_emails) {
     process.on("uncaughtException", function(err) {
-        var subject = "Caught Exception - " + Date.now();
+        var subject = "fatal exception";
         var message = err;
-        util.mail("controller", host_par.mail_list, subject, message, process.exit);
-        console.log(subject);
+        winston.error("fatal error: ", err);
+        util.mail("bbb-server", host_params.mail_list, subject, message, process.exit);
     });
 }
 
-// TODO be smarter about this if run as script
-var params = {};
-if (process.argv.length > 3) {
-    var buf = fs.readFileSync(process.argv[2]);
-    params = JSON.parse(buf);
-}
+// process.on("SIGINT", function() {
+//     console.log("SIGINT received.");
+//     console.log("Informing host of graceful exit");
+//     prepare_host_disconnect();
+//     console.log("Exiting gracefully");
+//     process.kill();
+// });
+
 
 // initialize the apparatus
-apparatus.init(params);
+apparatus.init(bbb_params);
 
 // start the broker
-apparatus.register("controller", new controller(params.controller));
+apparatus.register("broker", new broker(bbb_params.broker));

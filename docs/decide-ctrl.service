@@ -1,5 +1,6 @@
 [Unit]
-Description=Decide Operant Host Controller
+Description=decide operant host service
+After=network-online.target
 ConditionPathExists=|/srv/decide
 
 [Service]
