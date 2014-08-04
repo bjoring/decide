@@ -7,9 +7,6 @@ winston.levels.req = 3;
 
 var cue = new cues({device: "starboard:left:red"}, _.partial(winston.log, "pub"));
 
-cue.req({req: "change-state", addr:"", data: { brightness: 255}},
-        _.partial(winston.log, "req"));
-
 cue.req({req: "change-state", addr:"",
          data: { trigger: "timer", period: 500}},
         _.partial(winston.log, "req"));
@@ -17,4 +14,4 @@ cue.req({req: "change-state", addr:"",
 setTimeout(function() {
     cue.req({req: "change-state", addr:"", data: { brightness: 0}},
         _.partial(winston.log, "req"));
-}, 15000)
+}, 5000)
