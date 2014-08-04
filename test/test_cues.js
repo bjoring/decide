@@ -1,11 +1,19 @@
+var winston = require("winston");
+var cues = require("../lib/cues");
 
-var cues = new (require("../lib/cues"))();
+winston.levels.pub = 3;
+winston.levels.req = 3;
 
-cues.subscribe("state-changed", console.log);
-cues.subscribe("error", console.log);
+var cue = cues({device: "starboard:left:red"}, winston.pub);
 
-cues.event({id: "modify-state", time: Date.now(), trigger: "timer", period: 500});
+cue.req({req: "change-state", addr:"", data: { brightness: 255}}, winston.req);
 
-setTimeout(function() {
-  cues.event({id: "modify-state", time: Date.now(), brightness: 0});
-}, 15000);
+
+// cues.subscribe("state-changed", console.log);
+// cues.subscribe("error", console.log);
+
+// cues.event({id: "modify-state", time: Date.now(), trigger: "timer", period: 500});
+
+// setTimeout(function() {
+//   cues.event({id: "modify-state", time: Date.now(), brightness: 0});
+// }, 15000);
