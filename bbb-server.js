@@ -21,8 +21,8 @@ else if (process.env.NODE_ENV == 'production') {
     winston.level = 'warn';
 }
 
-var host_params = JSON.parse(fs.readFileSync(__dirname + "/host-config.json"));
-var bbb_params = JSON.parse(fs.readFileSync(__dirname + "/bbb-config.json"));
+var host_params = JSON.parse(fs.readFileSync(__dirname + "/config/host-config.json"));
+var bbb_params = JSON.parse(fs.readFileSync(__dirname + "/config/bbb-config.json"));
 
 // NB: communication code is at module level b/c broker really is a singleton
 
@@ -153,7 +153,7 @@ pubh.on("disconnect", function() {
 function broker(params, callback) {
 
     var par = {
-        standalone: false
+        host: null
     };
     util.update(par, params);
 
@@ -162,8 +162,7 @@ function broker(params, callback) {
     };
 
     var state = {
-        host: null,
-        connected: false,
+        host: null
     }
 
     // pubh.on("register-box", function(reply) {
