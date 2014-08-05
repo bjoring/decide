@@ -65,8 +65,9 @@ var pubc = io.of("/PUB");
 var reqc = io.of("/REQ");
 
 pubc.on("connection", function(socket) {
+    console.log(socket.handshake);
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
-                       socket.handshake.address.address);
+                       socket.handshake.address);
     winston.info("connection on PUB:", client_addr);
 
     // forward pub to connected clients and apparatus components
@@ -82,7 +83,7 @@ pubc.on("connection", function(socket) {
 
 reqc.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
-                       socket.handshake.address.address);
+                       socket.handshake.address);
     // key used to route to client - needed for unrouting due to disconnect
     var client_key = null;
     winston.info("connection on REQ:", client_addr);
@@ -93,7 +94,7 @@ reqc.on("connection", function(socket) {
             if (err)
                 rep("req-err", err);
             else
-                rep("req-ok");
+                rep("req-ok", data);
         });
     });
 
