@@ -1,34 +1,38 @@
 {
-  "name": "decide",
-  "preferGlobal": false,
-  "version": "0.1.0",
-  "author": "Meliza Lab (http://meliza.org/starboard)",
-  "description": "operant control system",
-  "contributors": [
-    "Tyler Robbins <tdr5wc -at- virginia.edu",
-    "Dan Meliza <cdm8j -at- virginia.edu>"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git://meliza-server.virginia.edu/SourceNinja/simple-node-sample.git"
-  },
-  "license": "BSD",
-  "dependencies": {
-    "npm": ">= 1.1.2",
-    "express": "4.4.5",
-    "winston": "0.7.3",
-    "glob": "4.0.3",
-    "queue-async": "1.0.7",
-    "suncalc": "1.5.2",
-    "socket.io": "1.0.5",
-    "socket.io-client": "1.0.5",
-    "underscore": "1.6.0",
-    "nodemailer":"1.0.3"
-  },
-  "devDependencies": {},
-  "optionalDependencies": {},
-  "engines": {
-    "node": "0.10"
-  },
-  "homepage": "http://meliza.org/starboard"
+    "name": "decide",
+    "preferGlobal": false,
+    "version": "0.1.0",
+    "author": "Meliza Lab (http://meliza.org/starboard)",
+    "description": "operant control system",
+    "contributors": [
+        "Tyler Robbins <tdr5wc -at- virginia.edu",
+        "Dan Meliza <cdm8j -at- virginia.edu>"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/melizalab/decide.git"
+    },
+    "license": "BSD",
+    "dependencies": {
+        "npm": ">= 1.1.2",
+        "express": "4.4.5",
+        "winston": "0.7.3",
+        "glob": "4.0.3",
+        "queue-async": "1.0.7",
+        "suncalc": "1.5.2",
+        "socket.io": "1.0.5",
+        "socket.io-client": "1.0.5",
+        "underscore": "1.6.0",
+        "nodemailer":"1.0.3"
+    },
+    "devDependencies": {},
+    "optionalDependencies": {},
+    "engines": {
+        "node": "0.10"
+    },
+    "bin" : {
+        "shape": "experiments/shape.js",
+        "gng": "experiments/gng.js"
+    },
+    "homepage": "http://meliza.org/starboard"
 }
