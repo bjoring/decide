@@ -12,6 +12,6 @@ cue.req({req: "change-state", addr:"",
         _.partial(winston.log, "req"));
 
 setTimeout(function() {
-    cue.req({req: "change-state", addr:"", data: { brightness: 0}},
+    cue.req({req: "reset-state", addr:""},
         _.partial(winston.log, "req"));
 }, 5000)

@@ -109,20 +109,25 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
    problem with the request, and `req-ok` if not. Changes to the state that
    result from the request, however, must be sent via a `state-changed` PUB
    message.
-2. `get-state`: requests the current value of the state. The response is
+2. `reset-state`: requests the component specified by `addr` to return to its
+   default state if possible. Any data field in the message is ignored. The
+   recipient will respond with `req-err` if there was a problem with the
+   request, and `req-ok` if not. Changes to the state that result from the
+   request, however, must be sent via a `state-changed` PUB message.
+3. `get-state`: requests the current value of the state. The response is
    `req-ok` followed by a nested dictionary giving the state vector(s) of all
    requested components. See below for addressing scheme. This message can be
    used to discover connected components. Reply is `req-err` for bad requests.
-3. `get-meta`: requests the addressed component to return its metadata as a
+4. `get-meta`: requests the addressed component to return its metadata as a
    reply. Metadata may include information about the underlying hardware, which
    is used by some clients to generate an interface. Replies are as for `get-state`.
-4. `get-params`: requests the addressed component to return its parameters.
+5. `get-params`: requests the addressed component to return its parameters.
    Replies are as for `get-state`.
-5. `route`: requests the broker to route REQ messages to the client's socket.
+6. `route`: requests the broker to route REQ messages to the client's socket.
    The message must contain a field `return-addr`, which is the requested
    address for the client in the broker's routing table. The broker must respond
    with `route-ok` to indicate success, or `route-err` to indicate an error.
-6. `unroute`: requests the broker to remove the client from the routing table.
+7. `unroute`: requests the broker to remove the client from the routing table.
    The message must contain a field `return-addr`, which is the previously
    requested address for the client in the broker's routing table. The broker
    must respond with `unroute-ok` for success and `unroute-err` for failure.
