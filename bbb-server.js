@@ -188,8 +188,8 @@ function broker(params, callback) {
     // REQ messages from the apparatus
     this.req = function(msg, rep) {
         winston.debug("req to broker: ", msg);
-        if (msg.req == "change-state")
-            set_state(msg.data, rep);
+        if (msg.req == "reset-state")
+            rep();
         else if (msg.req == "get-state")
             rep(null, state);
         else if (msg.req == "get-meta")
@@ -197,7 +197,7 @@ function broker(params, callback) {
         else if (msg.req == "get-params")
             rep(null, par);
         else
-            rep("invalid REQ type");
+            rep("invalid or unsupported REQ type");
     };
 }
 
