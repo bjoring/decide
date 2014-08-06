@@ -1,7 +1,6 @@
 // this is the broker process for the device - it's intended to be integrated as
 // a component of the apparatus, but it relays messages to and from other clients
 var _ = require("underscore");
-var fs = require("fs");
 var os = require("os");
 var winston = require("winston");
 var express = require("express");
@@ -21,8 +20,8 @@ else if (process.env.NODE_ENV == 'production') {
     winston.level = 'warn';
 }
 
-var host_params = JSON.parse(fs.readFileSync(__dirname + "/config/host-config.json"));
-var bbb_params = JSON.parse(fs.readFileSync(__dirname + "/config/bbb-config.json"));
+var host_params = util.load_config("host-config.json");
+var bbb_params = util.load_config("bbb-config.json");
 
 // NB: communication code is at module level b/c broker really is a singleton
 
@@ -120,7 +119,7 @@ reqc.on("connection", function(socket) {
 
     socket.on("disconnect", function() {
         if (client_key) {
-            error("client %s disconnected - removing entry from route table", client_key)
+            error("client %s disconnected unexpectedly", client_key)
             apparatus.unregister(client_key);
             client_key = null;
         }
