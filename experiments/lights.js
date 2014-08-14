@@ -6,8 +6,8 @@ var t = require("./toolkit");
 var util = require("../lib/util");
 
 
-t.connect("lights", null, function() {
-    req("msg", {req: "change-state", addr: "house_lights", data: {clock_on: true}});
+t.connect("lights", function() {
+    t.req("msg", {req: "change-state", addr: "house_lights", data: {clock_on: true}});
 });
 
 process.on("SIGINT", t.disconnect);

@@ -70,9 +70,9 @@ function connect(name, callback) {
         winston.info("connected to bbb-server at %s", reqc.io.uri);
         req("msg", {req: "reset-state", addr: ""});
         req("msg", {req: "change-state", addr: "experiment",
-                    { procedure: name, pid: process.pid}});
+                    data: { procedure: name, pid: process.pid}});
         req("route", name);
-        callback();
+        if (callback) callback();
     });
 
     reqc.on("msg", function(msg, rep) {
