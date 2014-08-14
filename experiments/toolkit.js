@@ -97,12 +97,12 @@ function disconnect() {
     winston.info("disconnecting from bbb-server at %s", pubc.io.uri);
     req("unroute", state.name, function() {
         req("msg", {req: "reset-state", addr: ""});
-        reqc.removeListener(disconnect_error);
+        reqc.removeListener("disconnect", disconnect_error);
         pubc.disconnect();
         reqc.disconnect();
         pubc = null;
         reqc = null;
-        winston.info("unregistered and disconnected", pubc.io.uri);
+        winston.debug("unregistered and disconnected");
     })
 
 }
@@ -439,7 +439,7 @@ function reset_apparatus(callback) {
 /* Error handling */
 function error(msg) {
     // log fatal error and exit
-    winston.error(msg, arguments);
+    winston.error(arguments);
     process.exit(-1);
 }
 
@@ -447,17 +447,18 @@ function disconnect_error() {
     error("unexpected disconnection from bbb-server");
 }
 
-process.on("uncaughtException", function(err) {
-    error("fatal exception:", err);
-});
+//process.on("uncaughtException", function(err) {
+//    error("fatal exception:", err);
+//});
 
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
+//process.on("SIGINT", disconnect);
+//process.on("SIGTERM", disconnect);
 
 
 /* Module-izing */
 module.exports = {
-    initialize: initialize,
+    connect: connect,
+    disconnect: disconnect,
     loop: loop,
     run_by_clock: run_by_clock,
     cue: cue,
