@@ -94,24 +94,35 @@ reqc.on("connection", function(socket) {
         });
     });
 
-    socket.on("route", function(key, rep) {
-        // register a client in the apparatus
-        // TODO handle name collisions
-        apparatus.register(key, {
-            // client gets pubs through socket already
-            pub: function() {},
-            req: function(msg, rep) {
-                socket.emit("msg", msg, _.partial(rep, null));
-            }
-        });
-        client_key = key;
-        rep("route-ok");
+    socket.on("route", function(msg, rep) {
+        // register the client in the apparatus
+        if (client_key) {
+            rep("route-err", "socket is already registered as " + client_key);
+        }
+        else if (apparatus.is_registered(msg.addr)) {
+            rep("route-err", "address " + msg.addr + " already taken");
+        }
+        else {
+            apparatus.register(key, {
+                // client gets pubs through socket already
+                pub: function() {},
+                req: function(msg, rep) {
+                    socket.emit("msg", msg, _.partial(rep, null));
+                }
+            });
+            client_key = msg.addr;
+            rep("route-ok");
+        }
     });
 
-    socket.on("unroute", function(key, rep) {
-        apparatus.unregister(key);
-        client_key = null;
-        rep("unroute-ok");
+    socket.on("unroute", function(msg, rep) {
+        if (client_key) {
+            apparatus.unregister(client_key);
+            client_key = null;
+            rep("unroute-ok");
+        }
+        else
+            rep("unroute-err", "no address associated with this connection");
     });
 
     socket.on("disconnect", function() {

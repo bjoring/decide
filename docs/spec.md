@@ -124,13 +124,14 @@ Messages may have additional fields depending on the `req` field. Defined REQ ty
 5. `get-params`: requests the addressed component to return its parameters.
    Replies are as for `get-state`.
 6. `route`: requests the broker to route REQ messages to the client's socket.
-   The message must contain a field `return-addr`, which is the requested
-   address for the client in the broker's routing table. The broker must respond
-   with `route-ok` to indicate success, or `route-err` to indicate an error.
+   The message must contain a field `addr`, which is the requested address for
+   the client in the broker's routing table. Only one address may be registered
+   for any socket. The broker must respond with `route-ok` to indicate success,
+   or `route-err` to indicate an error.
 7. `unroute`: requests the broker to remove the client from the routing table.
-   The message must contain a field `return-addr`, which is the previously
-   requested address for the client in the broker's routing table. The broker
-   must respond with `unroute-ok` for success and `unroute-err` for failure.
+   The broker must map the client's request to the previously requested address.
+   The broker must respond with `unroute-ok` for success and `unroute-err` for
+   failure.
 
 ### Controller-Host Communication
 

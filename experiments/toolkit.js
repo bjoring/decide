@@ -60,7 +60,6 @@ function req(req, data, callback) {
 function connect(name, callback) {
     pubc = io.connect("http://localhost:" + host_params.port_int + "/PUB");
     reqc = io.connect("http://localhost:" + host_params.port_int + "/REQ");
-    state =
 
     pubc.once("connect", function() {
         winston.info("connected to bbb-server at %s", pubc.io.uri);
@@ -71,7 +70,7 @@ function connect(name, callback) {
         req("msg", {req: "reset-state", addr: ""});
         req("msg", {req: "change-state", addr: "experiment",
                     data: { procedure: name, pid: process.pid}});
-        req("route", name);
+        req("route", {addr: name});
         if (callback) callback();
     });
 
@@ -92,16 +91,15 @@ function connect(name, callback) {
     reqc.once("disconnect", disconnect_error);
 }
 
-function disconnect() {
-    winston.info("disconnecting from bbb-server at %s", pubc.io.uri);
-    req("unroute", state.name, function() {
+function disconnect(name) {
+    winston.info("disconnecting from bbb-server");
+    req("unroute", null, function() {
         req("msg", {req: "reset-state", addr: ""});
         reqc.removeListener("disconnect", disconnect_error);
         pubc.disconnect();
         reqc.disconnect();
         pubc = null;
         reqc = null;
-        winston.debug("unregistered and disconnected");
     });
 }
 
