@@ -23,8 +23,6 @@ else if (process.env.NODE_ENV == 'production') {
 var host_params = util.load_config("host-config.json");
 var bbb_params = util.load_config("bbb-config.json");
 
-// NB: communication code is at module level b/c broker really is a singleton
-
 // *********************************
 // HTTP server
 var app = express();
@@ -64,7 +62,6 @@ var pubc = io.of("/PUB");
 var reqc = io.of("/REQ");
 
 pubc.on("connection", function(socket) {
-    console.log(socket.handshake);
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.handshake.address);
     winston.info("connection on PUB:", client_addr);
@@ -131,7 +128,7 @@ reqc.on("connection", function(socket) {
 // socket.io connection to host
 var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
 var pubh = sock_cli.connect(host_addr + "/PUB");
-var reqh = sock_cli.connect(host_addr + "/REQ")
+var reqh = sock_cli.connect(host_addr + "/REQ");
 
 // holds msg received while disconnected from host-server
 var msg_store = [];
@@ -146,10 +143,10 @@ pubh.on("connection", function() {
 });
 
 pubh.on("disconnect", function() {
-    winston.info("lost connection to host (now queuing messages)");
+    winston.info("lost connection to host (queuing messages)");
 });
 
-// the broker's job is to route messages to and from sockets
+// the broker's job is to route messages to and from the host socket
 function broker(params, callback) {
 
     var par = {
