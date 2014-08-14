@@ -55,13 +55,12 @@ function req(req, data, callback) {
 }
 
 
-
 /* Trial Management Functions */
 // routes program "name" to apparatus and registers it in experiment
-function connect(name, subject, callback) {
+function connect(name, callback) {
     pubc = io.connect("http://localhost:" + host_params.port_int + "/PUB");
     reqc = io.connect("http://localhost:" + host_params.port_int + "/REQ");
-    state = { subject: subject, procedure: name, pid: process.pid};
+    state =
 
     pubc.once("connect", function() {
         winston.info("connected to bbb-server at %s", pubc.io.uri);
@@ -70,6 +69,8 @@ function connect(name, subject, callback) {
     reqc.once("connect", function() {
         winston.info("connected to bbb-server at %s", reqc.io.uri);
         req("msg", {req: "reset-state", addr: ""});
+        req("msg", {req: "change-state", addr: "experiment",
+                    { procedure: name, pid: process.pid}});
         req("route", name);
         callback();
     });
@@ -88,12 +89,10 @@ function connect(name, subject, callback) {
             rep("invalid or unsupported REQ type");
     });
 
-    // disconnection is a fatal error because it means messages were lost or delayed
     reqc.once("disconnect", disconnect_error);
 }
 
 function disconnect() {
-
     winston.info("disconnecting from bbb-server at %s", pubc.io.uri);
     req("unroute", state.name, function() {
         req("msg", {req: "reset-state", addr: ""});
@@ -103,8 +102,7 @@ function disconnect() {
         pubc = null;
         reqc = null;
         winston.debug("unregistered and disconnected");
-    })
-
+    });
 }
 
 // runs trial in a loop if state.running is true, otherwise checks state.running every 65 seconds
@@ -161,12 +159,6 @@ function run_by_clock(callback) {
             }
         }
     }
-}
-
-// sends emails on unhandled exceptions
-function mail_on_disaster(list) {
-    mail_list = list;
-    mail_disaster = true;
 }
 
 /* Apparatus Manipulation Functions */
@@ -423,19 +415,6 @@ function write_feed(which, state, duration) {
     });
 }
 
-function reset_apparatus(callback) {
-    winston.info("resetting apparatus state");
-    var def = require(__dirname + "/default_state.json");
-    for (var key in def) {
-        reqc.emit("msg", {
-            req: "change-state",
-            addr: key,
-            data: def[key]
-        });
-    }
-    if (callback) setTimeout(callback, 2000); // 2  second delay to allow time for all the req to send
-}
-
 /* Error handling */
 function error(msg) {
     // log fatal error and exit
@@ -447,18 +426,15 @@ function disconnect_error() {
     error("unexpected disconnection from bbb-server");
 }
 
-//process.on("uncaughtException", function(err) {
-//    error("fatal exception:", err);
-//});
-
-//process.on("SIGINT", disconnect);
-//process.on("SIGTERM", disconnect);
 
 
 /* Module-izing */
 module.exports = {
     connect: connect,
     disconnect: disconnect,
+    error: error,
+    pub: pub,
+    req: req,
     loop: loop,
     run_by_clock: run_by_clock,
     cue: cue,
@@ -469,5 +445,4 @@ module.exports = {
     state_update: state_update,
     log_data: log_data,
     log_info: log_info,
-    mail_on_disaster: mail_on_disaster
 };

@@ -116,7 +116,7 @@ reqc.on("connection", function(socket) {
 
     socket.on("disconnect", function() {
         if (client_key) {
-            error("client %s disconnected unexpectedly", client_key)
+            error("client " + client_key + " disconnected unexpectedly")
             apparatus.unregister(client_key);
             client_key = null;
         }
@@ -199,8 +199,8 @@ function broker(params, callback) {
 
 // *********************************
 // Error handling
-function error() {
-    winston.error(arguments);
+function error(msg) {
+    winston.error(msg);
     if (host.params.send_emails) {
         util.mail("bbb-server", host_params.mail_list, msg.substr(0,30), msg);
     }
