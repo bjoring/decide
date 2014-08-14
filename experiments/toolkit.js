@@ -63,12 +63,12 @@ function connect(name, subject, callback) {
     reqc = io.connect("http://localhost:" + host_params.port_int + "/REQ");
     state = { subject: subject, procedure: name, pid: process.pid};
 
-    pubc.on("connect", function() {
-        winston.info("connected to broker at %s", pubc.io.uri);
+    pubc.once("connect", function() {
+        winston.info("connected to bbb-server at %s", pubc.io.uri);
     })
 
-    reqc.on("connect", function() {
-        winston.info("connected to broker at %s", reqc.io.uri);
+    reqc.once("connect", function() {
+        winston.info("connected to bbb-server at %s", reqc.io.uri);
         req("msg", {req: "reset-state", addr: ""});
         req("route", name);
         callback();
@@ -87,13 +87,17 @@ function connect(name, subject, callback) {
         else
             rep("invalid or unsupported REQ type");
     });
+
+    // disconnection is a fatal error because it means messages were lost or delayed
+    reqc.once("disconnect", disconnect_error);
 }
 
 function disconnect() {
 
-    winston.info("disconnecting from broker at %s", pubc.io.uri);
+    winston.info("disconnecting from bbb-server at %s", pubc.io.uri);
     req("unroute", state.name, function() {
         req("msg", {req: "reset-state", addr: ""});
+        reqc.removeListener(disconnect_error);
         pubc.disconnect();
         reqc.disconnect();
         pubc = null;
@@ -436,19 +440,12 @@ function reset_apparatus(callback) {
 function error(msg) {
     // log fatal error and exit
     winston.error(msg, arguments);
-    state.running = false;
     process.exit(-1);
 }
 
-// disconnection is a fatal error because it means messages were lost or delayed
-reqc.on("disconnect", function() {
-    if (state.running) {
-        error("unexpected disconnection from bbb-server");
-    }
-    else {
-        winston.info("disconnected from bbb-server");
-    }
-});
+function disconnect_error() {
+    error("unexpected disconnection from bbb-server");
+}
 
 process.on("uncaughtException", function(err) {
     error("fatal exception:", err);
