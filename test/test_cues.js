@@ -11,7 +11,7 @@ pub.on("state-changed", _.partial(winston.log, "pub"))
 
 var rep = _.partial(winston.log, "rep");
 
-var cue = new cues({device: "starboard:left:red"}, pub);
+var cue = new cues({device: "starboard:left:red"}, "cue_left_red", pub);
 
 cue.req("change-state", { trigger: "timer", period: 500}, rep);
 

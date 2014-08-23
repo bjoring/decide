@@ -142,7 +142,7 @@ var pubh = sock_cli.connect(host_addr + "/PUB");
 var reqh = sock_cli.connect(host_addr + "/REQ");
 
 // the controller's job is to route messages to and from the host socket
-function controller(params, callback) {
+function controller(params, addr, pub) {
 
     var par = {
         host: null
@@ -176,17 +176,22 @@ function controller(params, callback) {
     //     send_store();
     // });
 
-    // PUB messages from the apparatus - forward to connected clients and to host
-    this.pub = function(msg) {
-        winston.debug("pub to controller: ", msg);
-        pubc.emit("msg", msg);
+    // PUB messages from the apparatus
+    pub.on("state-changed", function(addr, data) {
+        var msg = {
+            addr: addr,
+            time: Date.now(),
+            data: data
+        };
+        winston.log("pub", msg);
+        pubc.emit("state-changed", msg);
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
         if (pubh) {
             pubh.emit("msg", msg);
         }
-    };
+    });
 
     // REQ messages from the apparatus
     this.req = function(msg, rep) {
@@ -202,6 +207,8 @@ function controller(params, callback) {
         else
             rep("invalid or unsupported REQ type");
     };
+
+    pub.emit("state-changed", addr, state);
 }
 
 // *********************************
@@ -230,9 +237,8 @@ if (host_params.send_emails) {
 //     process.kill();
 // });
 
+// start the controller
+apparatus.register("controller", controller, bbb_params.controller);
 
 // initialize the apparatus
 apparatus.init(bbb_params);
-
-// start the controller
-apparatus.register("controller", new controller(bbb_params.controller));
