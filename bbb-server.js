@@ -1,4 +1,4 @@
-// this is the broker process for the device - it's intended to be integrated as
+// this is the controller process for the device - it's intended to be integrated as
 // a component of the apparatus, but it relays messages to and from other clients
 var _ = require("underscore");
 var os = require("os");
@@ -141,24 +141,8 @@ var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
 var pubh = sock_cli.connect(host_addr + "/PUB");
 var reqh = sock_cli.connect(host_addr + "/REQ");
 
-// holds msg received while disconnected from host-server
-var msg_store = [];
-
-pubh.on("connection", function() {
-    winston.info("connected to host socket %s", host_addr);
-    winston.debug("sending log store (messages=%d)", msg_store.length);
-    while (msg_store.length !== 0) {
-        var msg = msg_store.shift();
-        pubh.emit("msg", msg);
-    }
-});
-
-pubh.on("disconnect", function() {
-    winston.info("lost connection to host (queuing messages)");
-});
-
-// the broker's job is to route messages to and from the host socket
-function broker(params, callback) {
+// the controller's job is to route messages to and from the host socket
+function controller(params, callback) {
 
     var par = {
         host: null
@@ -166,12 +150,24 @@ function broker(params, callback) {
     util.update(par, params);
 
     var meta = {
-        type: "broker"
+        type: "controller"
     };
 
     var state = {
-        host: null
+        hostname: os.hostname()
     }
+
+    pubh.on("connection", function() {
+        winston.info("connected to host socket %s", host_addr);
+        state.server = host_addr;
+        callback(null, state);
+    });
+
+    pubh.on("disconnect", function() {
+        winston.info("lost connection to host (queuing messages)");
+        delete state["server"];
+        callback(null, state);
+    });
 
     // pubh.on("register-box", function(reply) {
     //     reply(state.host_name, state.ip_address, par.port);
@@ -181,20 +177,19 @@ function broker(params, callback) {
 
     // PUB messages from the apparatus - forward to connected clients and to host
     this.pub = function(msg) {
+        winston.debug("pub to controller: ", msg);
         pubc.emit("msg", msg);
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
-        if (pubh.connected) {
+        // NB: messages are queued during disconnects
+        if (pubh) {
             pubh.emit("msg", msg);
-        }
-        else {
-            msg_store.push(msg);
         }
     };
 
     // REQ messages from the apparatus
     this.req = function(msg, rep) {
-        winston.debug("req to broker: ", msg);
+        winston.debug("req to controller: ", msg);
         if (msg.req == "reset-state")
             rep();
         else if (msg.req == "get-state")
@@ -238,5 +233,5 @@ if (host_params.send_emails) {
 // initialize the apparatus
 apparatus.init(bbb_params);
 
-// start the broker
-apparatus.register("broker", new broker(bbb_params.broker));
+// start the controller
+apparatus.register("controller", new controller(bbb_params.controller));
