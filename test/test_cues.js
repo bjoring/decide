@@ -1,17 +1,20 @@
 var _ = require("underscore");
 var winston = require("winston");
 var cues = require("../lib/cues");
+var events = require("events");
 
 winston.levels.pub = 3;
 winston.levels.req = 3;
 
-var cue = new cues({device: "starboard:left:red"}, _.partial(winston.log, "pub"));
+var pub = new events.EventEmitter();
+pub.on("state-changed", _.partial(winston.log, "pub"))
 
-cue.req({req: "change-state", addr:"",
-         data: { trigger: "timer", period: 500}},
-        _.partial(winston.log, "req"));
+var rep = _.partial(winston.log, "rep");
+
+var cue = new cues({device: "starboard:left:red"}, pub);
+
+cue.req("change-state", { trigger: "timer", period: 500}, rep);
 
 setTimeout(function() {
-    cue.req({req: "reset-state", addr:""},
-        _.partial(winston.log, "req"));
-}, 5000)
+    cue.req("reset-state", null, rep);
+}, 5000);
