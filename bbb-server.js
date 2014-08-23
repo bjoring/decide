@@ -177,10 +177,10 @@ function controller(params, addr, pub) {
     // });
 
     // PUB messages from the apparatus
-    pub.on("state-changed", function(addr, data) {
+    pub.on("state-changed", function(addr, data, time) {
         var msg = {
             addr: addr,
-            time: Date.now(),
+            time: time || Date.now(),
             data: data
         };
         winston.log("pub", msg);
