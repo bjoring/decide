@@ -154,7 +154,8 @@ function controller(params, callback) {
     };
 
     var state = {
-        hostname: os.hostname()
+        hostname: os.hostname(),
+        server: null
     }
 
     pubh.on("connection", function() {
@@ -165,7 +166,7 @@ function controller(params, callback) {
 
     pubh.on("disconnect", function() {
         winston.info("lost connection to host (queuing messages)");
-        delete state["server"];
+        state.server = null;
         callback(null, state);
     });
 
