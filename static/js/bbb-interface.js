@@ -1,40 +1,45 @@
+
+var starboard;
+var svg;
+var omnitimer = {};
+
 // need to force socket.io to use a relative path in case we are proxied
 var sock = io.connect("/", {
     path: location.pathname + "socket.io"
 });
 
-var starboard;
-
-queue()
-    .defer(d3.json, "/components/")
-    .defer(d3.json, "/state/")
-    .await(function(err, components, state) {
-        if (err) console.warn(err);
-        else {
-            // merge the camponents and state object
-            starboard = components;
-            for (var key in starboard)
-                starboard[key].state = state[key];
-            drawInterface();
-
-            sock.on("disconnect", function() {
-                alert("Error: unexpected disconnect from controller.");
-            });
-
-            sock.on("state-changed", function(msg) {
-                d3.entries(msg.data).forEach(function(x) {
-                    starboard[msg.addr].state[x.key] = x.value;
-                });
+sock.on("connect", function() {
+    queue()
+        .defer(d3.json, "/components/")
+        .defer(d3.json, "/state/")
+        .await(function(err, components, state) {
+            if (err) console.warn(err);
+            else {
+                // merge the camponents and state object
+                starboard = components;
+                for (var key in starboard)
+                    starboard[key].state = state[key];
                 drawInterface();
-            });
-
-            //sock.on("log", appendConsole);
-            //sock.on("trial-data", trialUpdate);
         }
     });
 
-var svg;
-var omnitimer = {};
+})
+
+sock.on("disconnect", function() {
+    d3.select("#state-hostname")
+        .attr("class", "error")
+        .text("disconnected");
+});
+
+sock.on("state-changed", function(msg) {
+    d3.entries(msg.data).forEach(function(x) {
+        starboard[msg.addr].state[x.key] = x.value;
+    });
+    drawInterface();
+});
+
+//sock.on("log", appendConsole);
+//sock.on("trial-data", trialUpdate);
 
 function drawInterface() {
     var w = window.innerWidth * 0.6;
@@ -368,10 +373,13 @@ function drawInterface() {
         .data(text_data, function(d) { return d.key });
 
     components.enter()
-        .append("li")
+        .append("li");
+    components
         .text(function(d) { return d.value.name || d.key })
         .append("ul")
-      .selectAll("li")
+    components.exit().remove();
+
+    components.selectAll("ul").selectAll("li")
         .data(function(d) { return d3.entries(d.value.state) }, function(d) { return d.key })
         .enter()
         .append("li")
@@ -380,8 +388,6 @@ function drawInterface() {
         .attr("id", function(d) { return "state-" + d.key })
         .attr("class", "success")
         .text(function(d) { return d.value });
-
-    components.exit().remove();
 
 }
 
@@ -394,21 +400,6 @@ function drawInterface() {
 
   }*/
 
-function trialStatusUpdate(console, data) {
-    if (starboard.experiment.state.program !== "none") {
-
-        d3.selectAll("#trial").html(function() {
-            var txt = "Trial: " + data.trial +
-                (data.block ? "<br/>Block: " + data.block : "") +
-                "<br/>Begin: " + data.begin +
-                "<br/>End: " + data.end;
-            return txt;
-        });
-    } else {
-        d3.selectAll("#trial").html("");
-    }
-
     /*d3.selectAll("#message").text(function(){
       return (JSON.stringify(data) +" -  "+Date.now());
       });*/
-}
