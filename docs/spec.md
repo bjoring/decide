@@ -60,25 +60,21 @@ connect to the local broker to send or receive messages.
 ## Messages
 
 The protocols described here are intended to be as independent of the wire
-protocol as possible. The current implementation uses
-[socket.io](http://socket.io), but it should be possible to send the messages on
-other wire protocols. Some wire protocols (e.g., zeromq) may take care of
-addressing, and may implement PUB and REQ using separate sockets of different
-types. Under socket.io, the PUB and REQ channels share a single bi-directional
-connection and are separated using namespaces.
+protocol as possible.
 
-All messages must be sent as serialized JSON.
+The current implementation uses [socket.io](http://socket.io), with a single
+bi-directional channel in which messages consist of a string identifying the
+message type (whether PUB or REQ) followed by a javascript object `payload`.
 
 ### PUB messages
 
-Messages sent over the PUB channel must have the following fields:
+PUB messages payloads much include the following fields:
 
-- `event`: a string identifying the event type
 - `addr`: the address of the *source* of the message
 - `time`: a timestamp indicating when the event was created. Value is the number
   of milliseconds since the epoch
 
-Messages may have additional fields depending on the `event` value. Defined PUB types:
+Messages may have additional fields depending on the message type. Defined PUB types:
 
 1. `state-changed`: indicates that the internal state of a component has
    changed. The message must contain a `data` field whose value is a dictionary
@@ -94,44 +90,36 @@ Messages may have additional fields depending on the `event` value. Defined PUB 
 
 ### REQ messages
 
-Messages sent over the REQ channel are directed to specific recipients.
-Communication is asynchronous, and recipients may send responses. REQ messages
-must have the following fields:
-
-- `req`: string indicating the type of request
-- `addr`: the address of the *target* of the message
-
-Messages may have additional fields depending on the `req` field. Defined REQ types:
+REQ messages use an asynchronous asynchronous request-reply pattern. The controller may route some kinds of messages to specfic recipients based on an `addr` field. See next section for more information on addressing.
 
 1. `change-state`: requests a modification to the state of the component
    specified by `addr`. Message must contain a data field with updates to the
-   state vector. The recipient will respond with `req-err` if there was a
-   problem with the request, and `req-ok` if not. Changes to the state that
-   result from the request, however, must be sent via a `state-changed` PUB
-   message.
+   state vector. Changes to the state that result from the request must be sent
+   via a `state-changed` PUB message.
 2. `reset-state`: requests the component specified by `addr` to return to its
-   default state if possible. Any data field in the message is ignored. The
-   recipient will respond with `req-err` if there was a problem with the
-   request, and `req-ok` if not. Changes to the state that result from the
-   request, however, must be sent via a `state-changed` PUB message.
+   default state if possible. Any data field in the message is ignored. Changes
+   to the state that result from the request, however, must be sent via a
+   `state-changed` PUB message.
 3. `get-state`: requests the current value of the state. The response is
-   `req-ok` followed by a nested dictionary giving the state vector(s) of all
+   `ok` followed by a nested dictionary giving the state vector(s) of all
    requested components. See below for addressing scheme. This message can be
-   used to discover connected components. Reply is `req-err` for bad requests.
+   used to discover connected components.
 4. `get-meta`: requests the addressed component to return its metadata as a
    reply. Metadata may include information about the underlying hardware, which
    is used by some clients to generate an interface. Replies are as for `get-state`.
 5. `get-params`: requests the addressed component to return its parameters.
    Replies are as for `get-state`.
-6. `route`: requests the broker to route REQ messages to the client's socket.
-   The message must contain a field `addr`, which is the requested address for
-   the client in the broker's routing table. Only one address may be registered
-   for any socket. The broker must respond with `route-ok` to indicate success,
-   or `route-err` to indicate an error.
-7. `unroute`: requests the broker to remove the client from the routing table.
+6. `route`: requests the controller to start routing REQ messages to the
+   client's socket. For this message type, the `addr` field is ignored. The
+   message must contain a `ret_addr` field specifying the requested address for
+   the client in the controller's routing table. Only one address may be
+   registered for any socket.
+7. `unroute`: requests the controller to stop routing REQ messages to the client.
    The broker must map the client's request to the previously requested address.
-   The broker must respond with `unroute-ok` for success and `unroute-err` for
+   The broker must respond with `ok` for success and `err` for
    failure.
+
+For all REQ message types, the recipient must respond with `ok` if the request was received and was properly addressed. Additional data may follow `ok` depending on the message type. If the request was badly formed or referred to an invalid address, the recipient must reply with `err`, followed by a string describing the nature of the problem.
 
 ### Controller-Host Communication
 

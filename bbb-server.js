@@ -39,11 +39,8 @@ app.get("/", function(req, res) {
 });
 
 app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
-    var data = {
-        req: "get-" + ((req.params[0] == "components") ? "meta" : req.params[0] ),
-        addr: req.params[1]
-    };
-    apparatus.req(data, function(err, rep) {
+    var cmd = "get-" + ((req.params[0] == "components") ? "meta" : req.params[0] );
+    apparatus.req(cmd, req.params[1] || "", null, function(err, rep) {
         if (err)
             res.send(500, {error: err});
         else
@@ -58,71 +55,75 @@ app.use("/static", express.static(__dirname + "/static"));
 // *********************************
 // socket.io server
 var io = sockets(server);
-var pubc = io.of("/PUB");
-var reqc = io.of("/REQ");
 
-pubc.on("connection", function(socket) {
+// message types
+var pub_msg = ["state-changed", "trial-data", "log"];
+var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
+
+io.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.handshake.address);
-    winston.info("connection on PUB:", client_addr);
+    winston.info("connection from:", client_addr);
 
-    // forward pub to connected clients and apparatus components
-    socket.on("msg", function(msg) {
-        apparatus.pub(msg);
-        socket.broadcast.emit("msg", msg);
-    });
-
-    socket.on("disconnect", function() {
-        winston.info("disconnect on PUB:", client_addr);
-    });
-});
-
-reqc.on("connection", function(socket) {
-    var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
-                       socket.handshake.address);
     // key used to route to client - needed for unrouting due to disconnect
     var client_key = null;
-    winston.info("connection on REQ:", client_addr);
 
-    socket.on("msg", function(msg, rep) {
-        rep = rep || function() {};
-        apparatus.req(msg, function(err, data) {
-            if (err)
-                rep("req-err", err);
-            else
-                rep("req-ok", data);
+    // forward pub from clients to other clients and apparatus components
+    pub_msg.forEach( function(pub) {
+        socket.on(pub, function(msg) {
+            winston.debug("PUB from", client_addr, msg);
+            apparatus.pub.emit(pub, msg.addr, msg.data);
+            socket.broadcast.emit(pub, msg);
         });
     });
 
+    req_msg.forEach( function(req) {
+        socket.on(req, function(msg, rep) {
+            rep = rep || function() {};
+            winston.debug("REQ from", client_addr, msg);
+            apparatus.req(req, msg.addr, msg.data, function(err, data) {
+                if (err)
+                    rep("err", err);
+                else
+                    rep("ok", data);
+            });
+        });
+    });
+
+    // routing requests are always handled by the controller/broker
     socket.on("route", function(msg, rep) {
-        // register the client in the apparatus
         if (client_key) {
-            rep("route-err", "socket is already registered as " + client_key);
+            rep("err", "socket is already registered as " + client_key);
         }
-        else if (apparatus.is_registered(msg.addr)) {
-            rep("route-err", "address " + msg.addr + " already taken");
+        else if (apparatus.is_registered(msg.ret_addr)) {
+            rep("err", "address " + msg.ret_addr + " already taken");
         }
         else {
-            apparatus.register(key, {
-                // client gets pubs through socket already
-                pub: function() {},
-                req: function(msg, rep) {
-                    socket.emit("msg", msg, _.partial(rep, null));
-                }
-            });
-            client_key = msg.addr;
-            rep("route-ok");
+            client_key = msg.ret_addr;
+            function proxy() {
+                this.req = function(req, data, rep) {
+                    // internal reqs get packaged into messages
+                    socket.emit(req, _.extend(data, {addr: msg.ret_addr}), function(reply, data) {
+                        if (reply == "err")
+                            rep(data);
+                        else
+                            rep(null, data);
+                    });
+                };
+            }
+            apparatus.register(key, proxy);
+            rep("ok");
         }
     });
 
-    socket.on("unroute", function(msg, rep) {
+    socket.on("unroute", function(msg, data, rep) {
         if (client_key) {
             apparatus.unregister(client_key);
             client_key = null;
-            rep("unroute-ok");
+            rep("ok");
         }
         else
-            rep("unroute-err", "no address associated with this connection");
+            rep("err", "no address associated with this connection");
     });
 
     socket.on("disconnect", function() {
@@ -131,7 +132,7 @@ reqc.on("connection", function(socket) {
             apparatus.unregister(client_key);
             client_key = null;
         }
-        winston.info("disconnect on REQ:", client_addr);
+        winston.info("disconnect from:", client_addr);
     });
 });
 
@@ -176,15 +177,15 @@ function controller(params, addr, pub) {
     //     send_store();
     // });
 
-    // PUB messages from the apparatus
+    // brokers PUB messages from the apparatus
     pub.on("state-changed", function(addr, data, time) {
         var msg = {
             addr: addr,
             time: time || Date.now(),
             data: data
         };
-        winston.log("pub", msg);
-        pubc.emit("state-changed", msg);
+        winston.log("pub", "state-changed", msg);
+        io.emit("state-changed", msg);
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
@@ -194,15 +195,15 @@ function controller(params, addr, pub) {
     });
 
     // REQ messages from the apparatus
-    this.req = function(msg, rep) {
-        winston.debug("req to controller: ", msg);
-        if (msg.req == "reset-state")
+    this.req = function(msg, data, rep) {
+        winston.debug("req to controller: ", msg, data);
+        if (msg == "reset-state")
             rep();
-        else if (msg.req == "get-state")
+        else if (msg == "get-state")
             rep(null, state);
-        else if (msg.req == "get-meta")
+        else if (msg == "get-meta")
             rep(null, meta);
-        else if (msg.req == "get-params")
+        else if (msg == "get-params")
             rep(null, par);
         else
             rep("invalid or unsupported REQ type");

@@ -19,13 +19,9 @@
         <!-- Code for socket.io and device orientation handling -->
         <script>
                 // need to force socket.io to use a relative path in case we are proxied
-                var pub = io.connect("/PUB", {
+                var sock = io.connect("/", {
                         path: location.pathname + "socket.io"
                 });
-                var req = io.connect("/REQ", {
-                        path: location.pathname + "socket.io"
-                });
-                // Send data through socket
 
                 var starboard;
 
@@ -41,26 +37,19 @@
                                                 starboard[key].state = state[key];
                                         drawInterface();
 
-                                        pub.on("disconnect", function(){
-                                                alert("Error: Disconnected from PUB channel. Interface is non-functional.");
-                                        })
-
-                                        req.on("disconnect", function(){
-                                                alert("Error: Disconnected from REQ channel. Interface is non-functional");
-                                        })
-
-                                        pub.on("msg", function(msg) {
-                                                if (msg.event == "state-changed") {
-                                                        d3.entries(msg.data).forEach(function(x) {
-                                                                starboard[msg.addr].state[x.key] = x.value;
-                                                        });
-                                                        drawInterface();
-                                                } else if (msg.event == "log") {
-                                                        //appendConsole(msg.reason, "applog");
-                                                } else if (msg.event == "trial-data") {
-                                                        trialStatusUpdate("shapelog", msg.data);
-                                                }
+                                        sock.on("disconnect", function(){
+                                            alert("Error: unexpected disconnect from controller.");
                                         });
+
+                                        sock.on("state-changed", function(msg) {
+                                            d3.entries(msg.data).forEach(function(x) {
+                                                starboard[msg.addr].state[x.key] = x.value;
+                                            });
+                                            drawInterface();
+                                        });
+
+                                        //sock.on("log", appendConsole);
+                                        //sock.on("trial-data", trialUpdate);
                                 }
                         });
 
@@ -246,13 +235,12 @@
                         .attr("width", xLedScale.rangeBand())
                         .attr("height", yScale.rangeBand() * (2 / 3))
                         .on("click", function(d) {
-                                req.emit("msg", {
-                                        req: "change-state",
-                                        addr: d.key,
-                                        data: {
-                                                brightness: !(d.value.state.brightness)
-                                        }
-                                });
+                            sock.emit("change-state", {
+                                addr: d.key,
+                                data: {
+                                    brightness: !(d.value.state.brightness)
+                                }
+                            });
                         })
                         .append("title");
 
@@ -307,19 +295,17 @@
                                 // could get "keys" from d3.select(this.parentNode).datum().key;
                                 var data = {};
                                 data[d.key] = true;
-                                req.emit("msg", {
-                                        req: "change-state",
-                                        addr: "keys",
-                                        data: data
+                                sock.emit("change-state", {
+                                    addr: "keys",
+                                    data: data
                                 });
                         })
                         .on("mouseup", function(d) {
                                 var data = {};
                                 data[d.key] = false;
-                                req.emit("msg", {
-                                        req: "change-state",
-                                        addr: "keys",
-                                        data: data
+                                sock.emit("change-state", {
+                                    addr: "keys",
+                                    data: data
                                 });
                         })
                         .append("title");
@@ -355,12 +341,11 @@
                         .attr("height", yScale.rangeBand() / 2)
                         .on("click", function(d) {
                                 // TODO: support changing the brightness to other values?
-                                req.emit("msg", {
-                                        req: "change-state",
-                                        addr: d.key,
-                                        data: {
-                                                brightness: !d.value.state.brightness * 255
-                                        }
+                                sock.emit("change-state", {
+                                    addr: d.key,
+                                    data: {
+                                        brightness: !d.value.state.brightness * 255
+                                    }
                                 });
                         })
                         .append("title");
@@ -405,12 +390,11 @@
                         .attr("width", xFeedScale.rangeBand())
                         .attr("height", yScale.rangeBand() / 2)
                         .on("click", function(d) {
-                                req.emit("msg", {
-                                        req: "change-state",
-                                        addr: d.key,
-                                        data: {
-                                                feeding: true
-                                        },
+                                sock.emit("change-state", {
+                                    addr: d.key,
+                                    data: {
+                                        feeding: true
+                                    },
                                 });
                         })
                         .append("title");
@@ -480,7 +464,7 @@
                 var file = command.shift();
 
                 if (command !== null) {
-                        req.emit("runexp", file, command, null, function(x) {
+                        sock.emit("runexp", file, command, null, function(x) {
                                 alert(x);
                         });
                 }
@@ -490,7 +474,7 @@
                 var command = confirm("Completely stop running experiment?");
 
                 if (command === true) {
-                        req.emit("killexp", function(x) {
+                        sock.emit("killexp", function(x) {
                                 alert(x);
                         });
                 }
