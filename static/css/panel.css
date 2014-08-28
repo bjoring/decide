@@ -89,15 +89,19 @@
     background: black;
 }
 
-.ahead {
+#component-list {
+    padding-left: 0px;
     margin: 5px;
+    list-style-type: none;
     font-size: small;
     font-weight: bold;
 }
 
-.ainfo {
+#component-list ul {
+    padding-left: 0px;
     margin: 2px 5px 2px 15px;
-    font-size: smaller;
+    list-style-type: none;
+    font-weight: normal;
 }
 
 .command {
@@ -116,7 +120,7 @@
     font-size:small;
 }
 
-#consolecontain {
+#console {
     display:inline-block;
     height:210px;
     width: 20%;
@@ -146,4 +150,12 @@
     width: 100%;
     margin: 0 auto;
     overflow-y:auto;
+}
+
+.success {
+    color: #3c763d;
+}
+
+.error {
+    color: #a94442
 }

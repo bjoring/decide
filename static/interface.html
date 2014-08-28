@@ -14,24 +14,13 @@
   <body>
 
     <div data-role="page" id="page1">
-    <div data-role="header" class="hbar">
-      <h3><span id="controller-name">Starboard</span> Control Panel</h3>
-    </div>
-    <svg id="interface" />
-    <div id="consolecontain">
-      <div id="shapeconsole">
-        <p class="ahead">Status</p>
-        <p class="ainfo" id="status" />
-        <p class="ahead" id="lt">Last Trial</p>
-        <p class="ainfo" id="trial"></p>
-        <!--<div id="message"/>-->
-        <!--<div id="appconsole">
-            <h4>Apparatus Log</h4>
-            <div id="applog">
-            </div>
-        </div> -->
+      <div data-role="header" class="hbar">
+        <h3>Starboard Control Panel</h3>
       </div>
-    </div>
+      <svg id="interface" />
+      <div id="console">
+        <ul id="component-list"/>
+      </div>
     </div>
 
     <script src="/static/js/jquery-1.9.1.min.js"></script>

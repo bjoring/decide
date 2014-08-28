@@ -17,7 +17,7 @@ queue()
                 starboard[key].state = state[key];
             drawInterface();
 
-            sock.on("disconnect", function(){
+            sock.on("disconnect", function() {
                 alert("Error: unexpected disconnect from controller.");
             });
 
@@ -83,7 +83,6 @@ function drawInterface() {
         .attr("height", h)
         .attr("display", "block");
 
-    // filtering data before binding now - CDM
     var omni = svg.selectAll(".omni")
         .data(data.filter(function(d) {
             return d.value.type == "led" && d.value.color == "red";
@@ -360,25 +359,30 @@ function drawInterface() {
 
     feeders.exit().remove();
 
+    // TEXT
+    var text_data = ["controller", "experiment", "aplayer"].map(function(k) {
+        return {key: k, value: starboard[k]};
+    });
 
-    d3.selectAll("#hbartext")
-        .html(function() {
-            var host = starboard.controller.state.hostname;
-            host = host.charAt(0).toUpperCase() + host.slice(1);
-            var title = host + " Control Panel";
-            return title;
-        });
+    var components = d3.select("#component-list").selectAll("li")
+        .data(text_data, function(d) { return d.key });
 
-    d3.selectAll("#status")
-        .html(function() {
-            var ret =
-                "Subject: " + starboard.experiment.state.subject +
-                "<br/>Program: " + starboard.experiment.state.program;
+    components.enter()
+        .append("li")
+        .text(function(d) { return d.value.name || d.key })
+        .append("ul")
+      .selectAll("li")
+        .data(function(d) { return d3.entries(d.value.state) }, function(d) { return d.key })
+        .enter()
+        .append("li")
+        .text(function(d) { return d.key + ": "})
+        .append("span")
+        .attr("id", function(d) { return "state-" + d.key })
+        .attr("class", "success")
+        .text(function(d) { return d.value });
 
-            if (starboard.aplayer.state.playing)
-                ret = ret + "<br/>Stimulus: " + starboard.aplayer.state.stimulus.split("/").slice(-1).pop();
-            return ret;
-        });
+    components.exit().remove();
+
 }
 
 /*function appendConsole(data, console) {
