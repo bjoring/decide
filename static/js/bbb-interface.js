@@ -20,6 +20,7 @@ sock.on("connect", function() {
                 for (var key in starboard)
                     starboard[key].state = state[key];
                 drawInterface();
+                d3.select("#last-update").text(function() { return new Date().toLocaleTimeString();});
         }
     });
 
@@ -45,6 +46,7 @@ sock.on("state-changed", function(msg) {
     }
 
     drawInterface();
+    d3.select("#last-update").text(function() { return new Date(msg.time).toLocaleTimeString();});
 });
 
 //sock.on("log", appendConsole);

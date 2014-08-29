@@ -219,8 +219,8 @@ function controller(params, addr, pub) {
 // Error handling
 function error(msg) {
     winston.error(msg);
-    if (host_params.send_emails) {
-        util.mail("bbb-server", host_params.mail_list, msg.substr(0,30), msg);
+    if (host_params.send_emails && apparatus.experiment && apparatus.experiment.user) {
+        util.mail("bbb-server", apparatus.experiment.user, msg.substr(0,30), msg);
     }
 }
 

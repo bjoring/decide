@@ -77,7 +77,8 @@ function connect(name, callback) {
             .defer(req, "reset-state", {addr: ""})
             .defer(req, "route", {ret_addr: name})
             .await(function(err, results) {
-                req("change-state", {addr: "experiment", data: {procedure: name, pid: process.pid} });
+                req("change-state",
+                    {addr: "experiment", data: {procedure: name, pid: process.pid} });
             });
         if (callback) callback(sock);
     });
@@ -418,7 +419,6 @@ function error(msg) {
 function disconnect_error() {
     error("unexpected disconnection from bbb-server");
 }
-
 
 
 /* Module-izing */

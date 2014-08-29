@@ -55,6 +55,9 @@ t.connect(name, function(sock) {
         }
     });
 
+    // update user and subject information:
+    sock.emit("change-state", {addr: "experiment", data: { subject: "dummy", user: "cdm8j@virginia.edu"}});
+    // turn on house lights
     sock.emit("change-state", {addr: "house_lights", data: { clock_on: true }});
 });
 
