@@ -32,9 +32,18 @@ sock.on("disconnect", function() {
 });
 
 sock.on("state-changed", function(msg) {
-    d3.entries(msg.data).forEach(function(x) {
-        starboard[msg.addr].state[x.key] = x.value;
-    });
+    if (msg.data) {
+        d3.entries(msg.data).forEach(function(x) {
+            if (!starboard.hasOwnProperty(msg.addr)) {
+                starboard[msg.addr] = {state: {}};
+            }
+            starboard[msg.addr].state[x.key] = x.value;
+        });
+    }
+    else {
+        delete starboard[msg.addr];
+    }
+
     drawInterface();
 });
 
@@ -89,9 +98,7 @@ function drawInterface() {
         .attr("display", "block");
 
     var omni = svg.selectAll(".omni")
-        .data(data.filter(function(d) {
-            return d.value.type == "led" && d.value.color == "red";
-        }),
+        .data(data.filter(function(d) { return d.value.type == "led" && d.value.color == "red";}),
               function(d, i) {
                   var pos = ["cue_left", "cue_center", "cue_right"];
                   if (!omnitimer[d.key]) omnitimer[d.key] = {};
@@ -171,12 +178,8 @@ function drawInterface() {
 
 
     var cues = svg.selectAll(".led")
-        .data(data.filter(function(d) {
-            return d.value.type == "led";
-        },
-                          function(d) {
-                              return d.key;
-                          }));
+        .data(data.filter(function(d) { return d.value.type == "led";}),
+              function(d) { return d.key;});
     cues.enter()
         .append("rect")
         .attr("class", function(d) {
@@ -211,12 +214,8 @@ function drawInterface() {
     cues.exit().remove();
 
     var keygrp = svg.selectAll(".peckgroup")
-        .data(data.filter(function(d) {
-            return d.value.type == "key";
-        },
-                          function(d) {
-                              return d.key;
-                          }));
+        .data(data.filter(function(d) { return d.value.type == "key";}),
+              function(d) { return d.key; });
     keygrp.enter()
         .append("g")
         .attr("class", "peckgroup");
@@ -232,9 +231,7 @@ function drawInterface() {
             }
             return select;
         },
-              function(d) {
-                  return d.key;
-              });
+              function(d) { return d.key; });
 
     keys.enter()
         .append("rect")
@@ -276,12 +273,8 @@ function drawInterface() {
     keys.exit().remove();
 
     var lights = svg.selectAll(".houselights")
-        .data(data.filter(function(x) {
-            return x.value.type == "lights";
-        },
-                          function(x) {
-                              return x.key;
-                          }));
+        .data(data.filter(function(x) { return x.value.type == "lights"; }),
+              function(x) { return x.key;});
 
     // TODO show sun position?
     lights.enter()
@@ -327,12 +320,8 @@ function drawInterface() {
     lights.exit().remove();
 
     var feeders = svg.selectAll(".feeder")
-        .data(data.filter(function(x) {
-            return x.value.type == "feeder";
-        },
-                          function(x) {
-                              return x.key;
-                          }));
+        .data(data.filter(function(x) { return x.value.type == "feeder"; }),
+              function(x) { return x.key; });
 
     feeders.enter()
         .append("rect")
@@ -389,6 +378,27 @@ function drawInterface() {
         .attr("class", "success")
         .text(function(d) { return d.value });
 
+
+    var expt = d3.select("#experiment-status").selectAll("li")
+        .data(data.filter(function(d) { return d.key == starboard.experiment.state.procedure; }),
+              function(d) { return d.key;});
+
+    expt.enter()
+        .append("li");
+    expt
+        .text(function(d) { return d.key })
+        .append("ul")
+    expt.exit().remove();
+
+    expt.selectAll("ul").selectAll("li")
+        .data(function(d) { return d3.entries(d.value.state) }, function(d) { return d.key })
+        .enter()
+        .append("li")
+        .text(function(d) { return d.key + ": "})
+        .append("span")
+        .attr("id", function(d) { return "state-" + d.key })
+        .attr("class", "success")
+        .text(function(d) { return d.value });
 }
 
 /*function appendConsole(data, console) {

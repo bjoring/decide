@@ -89,20 +89,6 @@
     background: black;
 }
 
-#component-list {
-    padding-left: 0px;
-    margin: 5px;
-    list-style-type: none;
-    font-size: small;
-    font-weight: bold;
-}
-
-#component-list ul {
-    padding-left: 0px;
-    margin: 2px 5px 2px 15px;
-    list-style-type: none;
-    font-weight: normal;
-}
 
 .command {
     cursor: pointer;
@@ -127,6 +113,22 @@
     margin-top: 5%;
     position: absolute;
     top:0;
+}
+
+#console ul {
+    padding-left: 0px;
+    margin-top: 15px;
+    margin-left: 5px;
+    list-style-type: none;
+    font-size: small;
+    font-weight: bold;
+}
+
+#console ul ul {
+    padding-left: 0px;
+    margin: 2px 5px 2px 15px;
+    list-style-type: none;
+    font-weight: normal;
 }
 
 #appconsole {
