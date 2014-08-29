@@ -93,7 +93,7 @@ Messages may have additional fields depending on the message type. Defined PUB t
 REQ messages use an asynchronous asynchronous request-reply pattern. The controller may route some kinds of messages to specfic recipients based on an `addr` field. See next section for more information on addressing.
 
 1. `change-state`: requests a modification to the state of the component
-   specified by `addr`. Message must contain a data field with updates to the
+   specified by `addr`. Message must contain a `data` field with updates to the
    state vector. Changes to the state that result from the request must be sent
    via a `state-changed` PUB message.
 2. `reset-state`: requests the component specified by `addr` to return to its

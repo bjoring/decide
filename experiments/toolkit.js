@@ -1,9 +1,14 @@
 // toolkit.js
 var _ = require("underscore");
+var http = require("http");
 var io = require("socket.io-client");
 var winston = require("winston");
 var queue = require("queue-async");
 var util = require("../lib/util");
+
+if (process.env.NODE_ENV == 'debug') {
+    winston.level = 'debug';
+}
 
 var host_params = util.load_config("host-config.json")
 
@@ -34,23 +39,21 @@ var meta = {
 };
 
 /* Basic communications */
-var pubc, reqc;
-
-function pub(msg) {
-    pubc.emit("msg", msg);
-}
+var sock;
 
 // This is a wrapper for sending REQ messages. If the response returned is an
-// error, the error is logged and the program terminates. If callback is set,
-// it"s called with the returned data (using the node convention of sending
-// errors in the first argument). To sent an REQ without checking for a
-// response, just use reqc.emit directly.
+// error, the error is logged and the program terminates (because this implies a
+// programming error on the client's part. If callback is set, it"s called with
+// the returned data (using the node convention of sending errors in the first
+// argument, but the error is always null).
 function req(req, data, callback) {
-    reqc.emit(req, data, function(msg, repdata) {
-        if (/err$/.test(msg))
-            error(msg, repdata);
+    winston.debug("sent req:", req, data)
+    sock.emit(req, data, function(msg, results) {
+        winston.debug("received response:", msg, results);
+        if (msg == "err")
+            error(results);
         else if (callback)
-            callback(null, msg, repdata);
+            callback(null, results);
     });
 }
 
@@ -58,49 +61,41 @@ function req(req, data, callback) {
 /* Trial Management Functions */
 // routes program "name" to apparatus and registers it in experiment
 function connect(name, callback) {
-    pubc = io.connect("http://localhost:" + host_params.port_int + "/PUB");
-    reqc = io.connect("http://localhost:" + host_params.port_int + "/REQ");
 
-    pubc.once("connect", function() {
-        winston.info("connected to bbb-server at %s", pubc.io.uri);
-    })
+    sock = io.connect("http://localhost:" + host_params.port_int);
 
-    reqc.once("connect", function() {
-        winston.info("connected to bbb-server at %s", reqc.io.uri);
-        req("msg", {req: "reset-state", addr: ""});
-        req("msg", {req: "change-state", addr: "experiment",
-                    data: { procedure: name, pid: process.pid}});
-        req("route", {addr: name});
-        if (callback) callback();
+    sock.once("connect", function() {
+        winston.info("connected to bbb controller at %s", sock.io.uri);
+        // check that an experiment is not already running
+        sock.emit("get-state", {addr: "experiment"}, function(msg, result) {
+            if (msg == "err")
+                error(results);
+            else if (result.procedure)
+                error("controller is already running an experiment");
+        })
+        queue()
+            .defer(req, "reset-state", {addr: ""})
+            .defer(req, "route", {ret_addr: name})
+            .await(function(err, results) {
+                req("change-state", {addr: "experiment", data: {procedure: name, pid: process.pid} });
+            });
+        if (callback) callback(sock);
     });
 
-    reqc.on("msg", function(msg, rep) {
-        // changing state is not supported yet
-        if (msg.req == "get-state")
-            rep(null, state);
-        else if (msg.req == "reset-state")
-            rep();
-        else if (msg.req == "get-meta")
-            rep(null, meta);
-        else if (msg.req == "get-params")
-            rep(null, par);
-        else
-            rep("invalid or unsupported REQ type");
-    });
-
-    reqc.once("disconnect", disconnect_error);
+    sock.once("disconnect", disconnect_error);
 }
 
-function disconnect(name) {
+// disconnect without throwing an error
+function disconnect() {
     winston.info("disconnecting from bbb-server");
-    req("unroute", null, function() {
-        req("msg", {req: "reset-state", addr: ""});
-        reqc.removeListener("disconnect", disconnect_error);
-        pubc.disconnect();
-        reqc.disconnect();
-        pubc = null;
-        reqc = null;
-    });
+    queue()
+        .defer(req, "unroute")
+        .defer(req, "reset-state", { addr: ""})
+        .await(function(err, results) {
+            sock.removeListener("disconnect", disconnect_error);
+            sock.disconnect();
+            sock = null;
+        });
 }
 
 // runs trial in a loop if state.running is true, otherwise checks state.running every 65 seconds
@@ -416,7 +411,7 @@ function write_feed(which, state, duration) {
 /* Error handling */
 function error(msg) {
     // log fatal error and exit
-    winston.error(arguments);
+    winston.error(msg);
     process.exit(-1);
 }
 
@@ -431,8 +426,6 @@ module.exports = {
     connect: connect,
     disconnect: disconnect,
     error: error,
-    pub: pub,
-    req: req,
     loop: loop,
     run_by_clock: run_by_clock,
     cue: cue,

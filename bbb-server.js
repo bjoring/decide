@@ -80,7 +80,7 @@ io.on("connection", function(socket) {
     req_msg.forEach( function(req) {
         socket.on(req, function(msg, rep) {
             rep = rep || function() {};
-            winston.debug("REQ from", client_addr, msg);
+            winston.debug("REQ from", client_addr, req, msg);
             apparatus.req(req, msg.addr, msg.data, function(err, data) {
                 if (err)
                     rep("err", err);
@@ -92,6 +92,7 @@ io.on("connection", function(socket) {
 
     // routing requests are always handled by the controller/broker
     socket.on("route", function(msg, rep) {
+        rep = rep || function() {};
         if (client_key) {
             rep("err", "socket is already registered as " + client_key);
         }
@@ -103,20 +104,22 @@ io.on("connection", function(socket) {
             function proxy() {
                 this.req = function(req, data, rep) {
                     // internal reqs get packaged into messages
-                    socket.emit(req, _.extend(data, {addr: msg.ret_addr}), function(reply, data) {
+                    winston.debug("req to socket:", req, data);
+                    socket.emit(req, _.extend({addr: msg.ret_addr}, data), function(reply, result) {
                         if (reply == "err")
-                            rep(data);
+                            rep(result);
                         else
-                            rep(null, data);
+                            rep(null, result);
                     });
                 };
             }
-            apparatus.register(key, proxy);
+            apparatus.register(client_key, proxy);
             rep("ok");
         }
     });
 
-    socket.on("unroute", function(msg, data, rep) {
+    socket.on("unroute", function(msg, rep) {
+        rep = rep || function() {};
         if (client_key) {
             apparatus.unregister(client_key);
             client_key = null;
@@ -216,7 +219,7 @@ function controller(params, addr, pub) {
 // Error handling
 function error(msg) {
     winston.error(msg);
-    if (host.params.send_emails) {
+    if (host_params.send_emails) {
         util.mail("bbb-server", host_params.mail_list, msg.substr(0,30), msg);
     }
 }
