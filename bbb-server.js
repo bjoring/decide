@@ -134,6 +134,7 @@ io.on("connection", function(socket) {
             error("client " + client_key + " disconnected unexpectedly")
             apparatus.unregister(client_key);
             client_key = null;
+            // TODO: check if experiment needs to be reset
         }
         winston.info("disconnect from:", client_addr);
     });

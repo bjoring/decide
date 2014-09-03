@@ -14,23 +14,24 @@
     },
     "license": "BSD",
     "dependencies": {
-        "npm": ">= 1.1.2",
         "express": "4.4.5",
-        "winston": "0.7.3",
         "glob": "4.0.3",
+        "nodemailer": "1.0.3",
+        "npm": ">= 1.1.2",
         "queue-async": "1.0.7",
-        "suncalc": "1.5.2",
         "socket.io": "1.0.5",
         "socket.io-client": "1.0.5",
+        "suncalc": "1.5.2",
         "underscore": "1.6.0",
-        "nodemailer":"1.0.3"
+        "winston": "0.7.3",
+        "yargs": "^1.3.1"
     },
     "devDependencies": {},
     "optionalDependencies": {},
     "engines": {
         "node": "0.10"
     },
-    "bin" : {
+    "bin": {
         "shape": "experiments/shape.js",
         "gng": "experiments/gng.js"
     },

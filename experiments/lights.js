@@ -1,5 +1,4 @@
-// lights is the simplest protocol. When running, it sets the lights to follow
-// the clock.
+#!/usr/bin/env node
 var os = require("os");
 var winston = require("winston");
 var t = require("./toolkit");
@@ -12,7 +11,15 @@ var util = require("../lib/util");
 
 var name = "lights";
 
-var par = {};
+var argv = require("yargs")
+    .usage("Set light level according to sun position.\nUsage: $0 subject_id user@host.com")
+    .demand(2)
+    .argv;
+
+var par = {
+    subject: argv._[0],
+    user: argv._[1]
+};
 
 var state = {
     day: null
@@ -24,6 +31,16 @@ var meta = {
         day: [true, false]
     }
 };
+
+function statefun(msg) {
+    if (msg.addr == "house_lights") {
+        var day = (msg.data.brightness > 0);
+        if (state.day != day) {
+            state.day = day;
+            t.state_changed(name, state);
+        }
+    }
+}
 
 // connect to the controller and register callbacks
 t.connect(name, function(sock) {
@@ -44,22 +61,15 @@ t.connect(name, function(sock) {
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
 
-    // update day variable using light brightness
-    sock.on("state-changed", function(msg) {
-        if (msg.addr == "house_lights") {
-            var day = (msg.data.brightness > 0);
-            if (state.day != day) {
-                state.day = day;
-                sock.emit("state-changed", {addr: name, data: state});
-            }
-        }
-    });
+    // modify this program's shape based on state changes elsewhere
+    sock.on("state-changed", statefun);
 
     // update user and subject information:
-    sock.emit("change-state", {addr: "experiment", data: { subject: "dummy", user: "cdm8j@virginia.edu"}});
+    t.req("change-state", {addr: "experiment", data: par});
     // turn on house lights
-    sock.emit("change-state", {addr: "house_lights", data: { clock_on: true }});
+    t.req("change-state", {addr: "house_lights", data: { clock_on: true }});
 });
 
+// disconnect will reset apparatus to base statet
 process.on("SIGINT", t.disconnect);
 process.on("SIGTERM", t.disconnect);

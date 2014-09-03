@@ -5,9 +5,7 @@
     "cape": {
         "bus_addr": "1-0054"
     },
-    "controller": {
-        "standalone": false
-    },
+    "controller": {},
     "cue_center_blue": {
         "device": "starboard:center:blue"
     },
@@ -37,10 +35,12 @@
     },
     "experiment": {},
     "feeder_left": {
-        "device": "starboard:hopper:left"
+        "device": "starboard:hopper:left",
+        "max_duty": 0.25
     },
     "feeder_right": {
-        "device": "starboard:hopper:right"
+        "device": "starboard:hopper:right",
+        "max_duty": 0.25
     },
     "house_lights": {
         "clock_interval": 60000,

@@ -370,15 +370,18 @@ function drawInterface() {
         .append("ul")
     components.exit().remove();
 
-    components.selectAll("ul").selectAll("li")
-        .data(function(d) { return d3.entries(d.value.state) }, function(d) { return d.key })
-        .enter()
-        .append("li")
-        .text(function(d) { return d.key + ": "})
+    var lines = components.selectAll("ul").selectAll("li")
+        .data(function(d) { return d3.entries(d.value.state) }, function(d) { return d.key });
+
+    lines.enter()
+        .append("li");
+
+    lines.text(function(d) { return d.key + ": "})
         .append("span")
         .attr("id", function(d) { return "state-" + d.key })
         .attr("class", "success")
         .text(function(d) { return d.value });
+    lines.exit().remove();
 
 
     var expt = d3.select("#experiment-status").selectAll("li")

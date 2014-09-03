@@ -12,41 +12,17 @@ if (process.env.NODE_ENV == 'debug') {
 
 var host_params = util.load_config("host-config.json")
 
-/* Toolkit Variables */
-var par = {
-    name: null,                 // name of program using toolkit
-    use_clock: false            // flag, lights are set by clock
-}
-
-/* State Machine Setup*/
-var state = {
-    running: false,     // flag for whether the program is running trials
-    phase: "idle"       // present phase of the program
-};
-
-var meta = {
-    type: "experiment",
-    dir: "input",
-    variables: {
-        running: [true, false],
-        phase: ["rewarding",
-                "punishing",
-                "wating-for-response",
-                "evaluating-response",
-                "presenting-stimulus",
-                "inter-trial"]
-    }
-};
-
 /* Basic communications */
 var sock;
 
-// This is a wrapper for sending REQ messages. If the response returned is an
-// error, the error is logged and the program terminates (because this implies a
-// programming error on the client's part. If callback is set, it"s called with
-// the returned data (using the node convention of sending errors in the first
-// argument, but the error is always null).
+// This is a wrapper for sending REQ messages, which are always associated with
+// a response. If the response returned is an error, the error is logged and the
+// program terminates (because this implies a programming error on the client's
+// part. If callback is set, it"s called with the returned data (using the node
+// convention of sending errors in the first argument, but the error is always
+// null).
 function req(req, data, callback) {
+    if (!sock) return;
     winston.debug("sent req:", req, data)
     sock.emit(req, data, function(msg, results) {
         winston.debug("received response:", msg, results);
@@ -59,7 +35,9 @@ function req(req, data, callback) {
 
 
 /* Trial Management Functions */
-// routes program "name" to apparatus and registers it in experiment
+// routes program "name" to apparatus and registers it in experiment. Once the
+// connection is established, callback is called with the socket as an argument.
+// If the connection is lost before disconnect is called, an error will occur.
 function connect(name, callback) {
 
     sock = io.connect("http://localhost:" + host_params.port_int);
@@ -87,16 +65,38 @@ function connect(name, callback) {
 }
 
 // disconnect without throwing an error
-function disconnect() {
+function disconnect(callback) {
     winston.info("disconnecting from bbb-server");
     queue()
         .defer(req, "unroute")
         .defer(req, "reset-state", { addr: ""})
         .await(function(err, results) {
-            sock.removeListener("disconnect", disconnect_error);
+            sock.removeAllListeners();
             sock.disconnect();
             sock = null;
+            if (callback) callback();
         });
+}
+
+// await a state-changed message from addr. If test is defined, it's passed the
+// message and must return true or false. If test is undefined or returns true,
+// callback is executed
+function await(addr, test, callback) {
+    function _listen(msg) {
+        if (msg.addr != addr) return;
+        if (test ? test(msg) : true) {
+            sock.removeListener("state-changed", _listen);
+            callback();
+        }
+    }
+    sock.on("state-changed", _listen);
+}
+
+// sends a state-changed message
+function state_changed(addr, data, time) {
+    sock.emit("state-changed", {addr: addr,
+                                time: time || Date.now(),
+                                data: data});
 }
 
 // runs trial in a loop if state.running is true, otherwise checks state.running every 65 seconds
@@ -121,7 +121,7 @@ function run_by_clock(callback) {
     setInterval(request_lights_state, 61000);
 
     function request_lights_state() {
-        reqc.emit("msg", {
+        sock.emit("msg", {
             req: "get-state",
             addr: "house_lights"
         }, check_state);
@@ -219,7 +219,7 @@ function lights() {
             if (callback) callback();
         },
         clock_set: function(callback) {
-            reqc.emit("msg", {
+            sock.emit("msg", {
                 req: "change-state",
                 addr: "house_lights",
                 data: {
@@ -230,7 +230,7 @@ function lights() {
             if (callback) callback();
         },
         clock_set_off: function(callback) {
-            reqc.emit("msg", {
+            sock.emit("msg", {
                 req: "change-state",
                 addr: "house_lights",
                 data: {
@@ -332,39 +332,24 @@ function keys(target) {
 
 // play sounds using alsa
 function aplayer(what) {
+    var addr = "aplayer";
+
     return {
         play: function(callback) {
-            reqc.emit("msg", {
-                req: "change-state",
-                addr: "aplayer",
+
+            sock.emit("change-state", {
+                addr: addr,
                 data: {
                     stimulus: what,
                     playing: true
                 }
             });
-            pubc.on("msg", function(msg) {
-                if (msg.event == "state-changed" && msg.data.playing === false) {
-                    pubc.removeListener("msg");
-                    if (callback) callback();
-                }
-            });
+            await(addr, function(msg) { return !msg.data.playing }, callback)
         }
         // TODO: more functions?
     };
 }
 
-// updates states of "active_program"
-function state_update(key, new_state) {
-    state[key] = new_state;
-    var msg = {
-        event: "state-changed",
-        addr: par.name,
-        time: Date.now(),
-        data: {}
-    };
-    msg.data[key] = new_state;
-    pub(msg);
-}
 
 function log_data(indata, callback) {
     pubc.emit("msg", {
@@ -387,8 +372,7 @@ function log_info(indata, callback) {
 
 /* Not-Exported Functions */
 function write_led(which, state, trigger, period) {
-    reqc.emit("msg", {
-        req: "change-state",
+    sock.emit("change-state", {
         addr: which == "house_lights" ? which : "cue_" + which,
         data: {
             brightness: state,
@@ -399,8 +383,7 @@ function write_led(which, state, trigger, period) {
 }
 
 function write_feed(which, state, duration) {
-    reqc.emit("msg", {
-        req: "change-state",
+    sock.emit("change-state", {
         addr: "feeder_" + which,
         data: {
             feeding: state,
@@ -425,6 +408,9 @@ function disconnect_error() {
 module.exports = {
     connect: connect,
     disconnect: disconnect,
+    req: req,
+    state_changed: state_changed,
+    await: await,
     error: error,
     loop: loop,
     run_by_clock: run_by_clock,
@@ -433,7 +419,6 @@ module.exports = {
     hopper: hopper,
     keys: keys,
     aplayer: aplayer,
-    state_update: state_update,
     log_data: log_data,
     log_info: log_info,
 };
