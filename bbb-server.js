@@ -57,7 +57,6 @@ app.use("/static", express.static(__dirname + "/static"));
 var io = sockets(server);
 
 // message types
-var pub_msg = ["state-changed", "trial-data", "log"];
 var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
 
 io.on("connection", function(socket) {
@@ -69,12 +68,15 @@ io.on("connection", function(socket) {
     var client_key = null;
 
     // forward pub from clients to other clients and apparatus components
-    pub_msg.forEach( function(pub) {
-        socket.on(pub, function(msg) {
-            winston.debug("PUB from", client_addr, msg);
-            apparatus.pub.emit(pub, msg.addr, msg.data);
-            socket.broadcast.emit(pub, msg);
-        });
+    socket.on("state-changed", function(msg) {
+        winston.debug("PUB from", client_addr, msg);
+        apparatus.pub.emit("state-changed", msg.addr, msg.data);
+        socket.broadcast.emit("state-changed", msg);
+    });
+
+    // trial data is logged to disk locally
+    socket.on("trial-data", function(msg) {
+        winston.log("pub", "trial-data", msg);
     });
 
     req_msg.forEach( function(req) {
@@ -143,8 +145,7 @@ io.on("connection", function(socket) {
 // *********************************
 // socket.io connection to host
 var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
-var pubh = sock_cli.connect(host_addr + "/PUB");
-var reqh = sock_cli.connect(host_addr + "/REQ");
+var host = sock_cli.connect(host_addr);
 
 // the controller's job is to route messages to and from the host socket
 function controller(params, addr, pub) {
@@ -163,13 +164,13 @@ function controller(params, addr, pub) {
         server: null
     }
 
-    pubh.on("connection", function() {
+    host.on("connection", function() {
         winston.info("connected to host socket %s", host_addr);
         state.server = host_addr;
         callback(null, state);
     });
 
-    pubh.on("disconnect", function() {
+    host.on("disconnect", function() {
         winston.info("lost connection to host (queuing messages)");
         state.server = null;
         callback(null, state);
@@ -193,9 +194,7 @@ function controller(params, addr, pub) {
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
-        if (pubh) {
-            pubh.emit("msg", msg);
-        }
+        host.emit("msg", msg);
     });
 
     // REQ messages from the apparatus

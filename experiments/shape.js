@@ -74,7 +74,6 @@ var trial_data = {
 var priv = {
     hoppers: ["feeder_left", "feeder_right"],
     max_hopper_duty: 1,
-    block_limit: 2,                     // number of times to run each block
     default_cue: "center_green",        // cue used when not specified
     alt_cue_color: "green",             // color of cues used on non default sides
     default_hopper: "left",             // hopper used when not specified
@@ -82,8 +81,9 @@ var priv = {
 };
 
 var par = {
-    subject: argv._[0],           // sets the subject number
+    subject: argv._[0],         // sets the subject number
     user: argv._[1],
+    block_trials: 3,          // number of trials in blocks 2+
 };
 
 var state = {
@@ -171,11 +171,10 @@ function block1_await() {
     var feed_duration = 5000;
     var blink_duration = 5000;
     var iti_var = 30000;
-    var iti_min = 10000 / priv.max_hopper_duty;
+    var iti_min = feed_duration * (1/priv.max_hopper_duty - 1);
     var pecked = false;
 
     // state setup
-    var cue = t.cue("center_green");
     t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: 300}});
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
 
@@ -187,7 +186,8 @@ function block1_await() {
             return pecked = true;
     }
 
-    function _exit(next_state) {
+    function _exit() {
+        var next_state;
         var hopper = random_hopper();
         t.req("change-state", {addr: "cue_center_green", data: { trigger: null, brightness: 0}});
         if (pecked) {
@@ -201,13 +201,34 @@ function block1_await() {
             winston.debug("trial iti:", iti);
             next_state = _.partial(intertrial, iti, block1_await);
         }
-        trial_data(name, {block: state.block, trial: state.trial, subject: par.subject})
+        t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject})
         feed(hopper, feed_duration, next_state);
     }
 }
 
 function block2_await() {
-    winston.info("got to block 2, exiting");
+    var feed_duration = 4000;
+    var iti = feed_duration * (1 / priv.max_hopper_duty - 1);
+
+    t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: 300}});
+    update_state({ block: 2,
+                   trial: (state.block == 1) ? 1 : state.trial + 1,
+                   phase: "awaiting-response"});
+
+    t.await("keys", null, function(msg) { return msg.data.peck_center }, _exit);
+
+    function _exit() {
+        var hopper = random_hopper();
+        t.req("change-state", {addr: "cue_center_green", data: { trigger: null, brightness: 0}});
+        var next = (state.trial < par.block_trials) ? block2_await : block3_await;
+        next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
+        t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject});
+        feed(hopper, feed_duration, next);
+    }
+}
+
+function block3_await() {
+    winston.info("got to block 3")
     t.disconnect(process.exit);
 }
 
