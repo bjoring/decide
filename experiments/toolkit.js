@@ -33,6 +33,20 @@ function req(req, data, callback) {
     });
 }
 
+// sends a state-changed message
+function state_changed(addr, data, time) {
+    sock.emit("state-changed", {addr: addr,
+                                time: time || Date.now(),
+                                data: data});
+}
+
+// bind a state object in a closure for updates
+function state_changer(name, state) {
+    return function (kwargs) {
+        _.extend(state, kwargs);
+        state_changed(name, state);
+    }
+}
 
 /* Trial Management Functions */
 // routes program "name" to apparatus and registers it in experiment. Once the
@@ -78,26 +92,58 @@ function disconnect(callback) {
         });
 }
 
-// await a state-changed message from addr. If test is defined, it's passed the
-// message and must return true or false. If test is undefined or returns true,
-// callback is executed
-function await(addr, test, callback) {
+// This is a minature state machine that awaits a state-changed message from
+// addr or optionally times out. If a message is recieved, it's passed to test.
+// If test returns true, or if a timeout occurs, callback is invoked and the
+// state machine stops.
+function await(addr, timeout, test, callback) {
+    var timer;
+    var running = true;
+
     function _listen(msg) {
-        if (msg.addr != addr) return;
-        if (test ? test(msg) : true) {
-            sock.removeListener("state-changed", _listen);
-            callback();
-        }
+        if (!running) return;
+        if (msg && msg.addr != addr) return;
+        if (test && !test(msg)) return;
+        _exit();
     }
-    sock.on("state-changed", _listen);
+
+    function _exit() {
+        running = false;
+        callback();
+        sock.removeListener("state-changed", _listen);
+        clearTimeout(timer);
+
+    }
+
+    if (addr)
+        sock.on("state-changed", _listen);
+    if (timeout)
+        timer = setTimeout(_listen, timeout);
+
+    return timer;
 }
 
-// sends a state-changed message
-function state_changed(addr, data, time) {
-    sock.emit("state-changed", {addr: addr,
-                                time: time || Date.now(),
-                                data: data});
+// state machine for adjusting lighting with the sun position. The update_state
+// argument is a function that used to notify changes to the state
+function ephemera(update_state) {
+    var addr = "house_lights";
+
+    // turn on house lights
+    req("change-state", {addr: addr, data: { clock_on: true }});
+
+    daytime = function() {
+        update_state({daytime: true});
+        await(addr, null, function(msg) { return !msg.data.daytime }, nighttime);
+    }
+
+    nighttime = function() {
+        update_state({daytime: false})
+        await(addr, null, function(msg) { return msg.data.daytime }, daytime);
+    }
+
+    daytime();
 }
+
 
 // runs trial in a loop if state.running is true, otherwise checks state.running every 65 seconds
 function loop(trial) {
@@ -410,8 +456,10 @@ module.exports = {
     disconnect: disconnect,
     req: req,
     state_changed: state_changed,
+    state_changer: state_changer,
     await: await,
     error: error,
+    ephemera: ephemera,
     loop: loop,
     run_by_clock: run_by_clock,
     cue: cue,

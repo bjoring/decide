@@ -21,9 +21,7 @@ var par = {
     user: argv._[1]
 };
 
-var state = {
-    day: null
-};
+var state = {};
 
 var meta = {
     type: "experiment",
@@ -31,6 +29,8 @@ var meta = {
         day: [true, false]
     }
 };
+
+var sock;
 
 function statefun(msg) {
     if (msg.addr == "house_lights") {
@@ -43,7 +43,8 @@ function statefun(msg) {
 }
 
 // connect to the controller and register callbacks
-t.connect(name, function(sock) {
+t.connect(name, function(socket) {
+    sock = socket;
 
     // these REQ messages require a response!
     sock.on("get-state", function(data, rep) {
@@ -60,15 +61,16 @@ t.connect(name, function(sock) {
     });
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
+    sock.on("state-changed", function(data) { winston.debug("pub to lights: state-changed", data)})
 
     // modify this program's shape based on state changes elsewhere
-    sock.on("state-changed", statefun);
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
-    // turn on house lights
-    t.req("change-state", {addr: "house_lights", data: { clock_on: true }});
+    // start first state
+    var state_machine = t.ephemera(t.state_changer(name, state));
 });
+
 
 // disconnect will reset apparatus to base statet
 process.on("SIGINT", t.disconnect);
