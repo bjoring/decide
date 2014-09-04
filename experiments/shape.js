@@ -71,12 +71,9 @@ var trial_data = {
 };
 
 /* Parameters */
-var hoppers = ["feeder_left", "feeder_right"];
-var max_hopper_duty = 1;
-var par = {
-    subject: argv._[0],           // sets the subject number
-    user: argv._[1],
-    paradigm: argv.P,                    // ["2ac","gng"]: target operant paradigm
+var priv = {
+    hoppers: ["feeder_left", "feeder_right"],
+    max_hopper_duty: 1,
     block_limit: 2,                     // number of times to run each block
     default_cue: "center_green",        // cue used when not specified
     alt_cue_color: "green",             // color of cues used on non default sides
@@ -84,8 +81,13 @@ var par = {
     feed_duration: 5000,                // how long to feed the bird (NOTE: overridden by each block)
 };
 
+var par = {
+    subject: argv._[0],           // sets the subject number
+    user: argv._[1],
+};
+
 var state = {
-    day: null,                  // whether it's daylight
+    paradigm: argv.P,           // ["2ac","gng"]: target operant paradigm
     trial: 0,                   // trial number
     block: 0,                   // shape paradigm block
     phase: null                 // trial phase
@@ -94,7 +96,6 @@ var state = {
 var meta = {
     type: "experiment",
     variables: {
-        day: [true, false],
         trial: "integer",
         block: [1, 2, 3, 4],
         phase: "string"
@@ -102,7 +103,7 @@ var meta = {
 }
 
 var sock;
-var timer;                      // global scope timer can be cleared during shutdown
+var update_state = t.state_changer(name, state);
 
 t.connect(name, function(socket) {
 
@@ -123,21 +124,22 @@ t.connect(name, function(socket) {
     });
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
+    sock.on("state-changed", function(data) { winston.debug("pub to lights: state-changed", data)})
 
     // query hopper duty cycle - assume both hoppers the same
     t.req("get-params", {addr: "feeder_left"}, function(err, results) {
-        max_hopper_duty = results.max_duty;
+        priv.max_hopper_duty = results.duty;
     })
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
-    t.req("change-state", {addr: "house_lights", data: { clock_on: true }});
 
+    // start state machine for monitoring daytime
+    t.ephemera(t.state_changer(name, state));
     block1_await();
 });
 
 function shutdown() {
-    clearTimeout(timer);
     t.disconnect(process.exit);
 }
 
@@ -148,16 +150,19 @@ process.on("SIGTERM", shutdown);
 // state definitions
 
 function intertrial(duration, next_state) {
-    state.phase = "intertrial";
-    t.state_changed(name, state);
+    update_state({phase: "intertrial"});
     _.delay(next_state, duration);
 }
 
 function feed(hopper, duration, next_state) {
-    state.phase = "feeding";
-    t.state_changed(name, state);
+    update_state({phase: "feeding"})
     t.req("change-state", {addr: hopper, data: { feeding: true, interval: duration}});
-    t.await(hopper, function(msg) { return msg.data.feeding == false }, next_state)
+    t.await(hopper, null, function(msg) { return msg.data.feeding == false }, next_state)
+}
+
+function sleeping(next_state) {
+    update_state({phase: "sleeping"});
+    t.await("house_lights", null, function(msg) { return msg.data.daytime }, next_state);
 }
 
 function block1_await() {
@@ -166,49 +171,49 @@ function block1_await() {
     var feed_duration = 5000;
     var blink_duration = 5000;
     var iti_var = 30000;
-    var iti_min = 10000;
+    var iti_min = 10000 / priv.max_hopper_duty;
+    var pecked = false;
 
     // state setup
     var cue = t.cue("center_green");
-    state.block = 1;
-    state.trial += 1;
-    state.phase = "awaiting-response";
     t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: 300}});
-    t.state_changed(name, state);
+    update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
 
-    function _event(msg) {
-        if (msg === undefined) {
-            var iti = Math.random() * iti_var + iti_min;
-            _exit(_.partial(intertrial, iti, block1_await));
-        }
-        else if (msg.addr == "keys" && msg.data.peck_center == 1) {
-            _exit(block2_await);
-        }
+    t.await("keys", blink_duration, _test, _exit);
+
+    function _test(msg) {
+        if (!msg) return true;
+        else if (msg && msg.data.peck_center)
+            return pecked = true;
     }
 
-    function _exit(fn) {
-        clearTimeout(timer);
-        sock.removeListener("state-changed", _event);
+    function _exit(next_state) {
         var hopper = random_hopper();
         t.req("change-state", {addr: "cue_center_green", data: { trigger: null, brightness: 0}});
-        feed(hopper, feed_duration, fn);
-        // TODO log
+        if (pecked) {
+            next_state = block2_await;
+        }
+        else if (!state.daytime) {
+            next_state = _.partial(sleeping, block2_await);
+        }
+        else {
+            var iti = Math.random() * iti_var + iti_min;
+            winston.debug("trial iti:", iti);
+            next_state = _.partial(intertrial, iti, block1_await);
+        }
+        trial_data(name, {block: state.block, trial: state.trial, subject: par.subject})
+        feed(hopper, feed_duration, next_state);
     }
-
-    // listen for events
-    sock.on("state-changed", _event);
-    timer = setTimeout(_event, blink_duration);
-
 }
 
 function block2_await() {
-    winston.info("exiting");
+    winston.info("got to block 2, exiting");
     t.disconnect(process.exit);
 }
 
 function random_hopper() {
-    var i = Math.floor(Math.random() * hoppers.length);
-    return hoppers[i];
+    var i = Math.floor(Math.random() * priv.hoppers.length);
+    return priv.hoppers[i];
 }
 
 // /* Setup */

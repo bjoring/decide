@@ -35,9 +35,7 @@ function req(req, data, callback) {
 
 // sends a state-changed message
 function state_changed(addr, data, time) {
-    sock.emit("state-changed", {addr: addr,
-                                time: time || Date.now(),
-                                data: data});
+    sock.emit("state-changed", {addr: addr, time: time || Date.now(), data: data});
 }
 
 // bind a state object in a closure for updates
@@ -46,6 +44,11 @@ function state_changer(name, state) {
         _.extend(state, kwargs);
         state_changed(name, state);
     }
+}
+
+// sends a trial log message
+function trial_data(addr, data, time) {
+    sock.emit("trial-data", {addr: addr, time: time || Date.now(), data: data});
 }
 
 /* Trial Management Functions */
@@ -397,15 +400,6 @@ function aplayer(what) {
 }
 
 
-function log_data(indata, callback) {
-    pubc.emit("msg", {
-        addr: par.name,
-        event: "trial-data",
-        data: indata
-    });
-    if (callback) callback();
-}
-
 function log_info(indata, callback) {
     pubc.emit("msg", {
         addr: par.name,
@@ -457,6 +451,7 @@ module.exports = {
     req: req,
     state_changed: state_changed,
     state_changer: state_changer,
+    trial_data: trial_data,
     await: await,
     error: error,
     ephemera: ephemera,
@@ -467,6 +462,5 @@ module.exports = {
     hopper: hopper,
     keys: keys,
     aplayer: aplayer,
-    log_data: log_data,
     log_info: log_info,
 };

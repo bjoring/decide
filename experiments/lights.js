@@ -68,7 +68,7 @@ t.connect(name, function(socket) {
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
     // start first state
-    var state_machine = t.ephemera(t.state_changer(name, state));
+    t.ephemera(t.state_changer(name, state));
 });
 
 
