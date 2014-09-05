@@ -49,7 +49,6 @@ var name = "shape";
 var argv = require("yargs")
     .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")
     .describe("F", "skip immediately to final block")
-    .describe("P", "specify terminal procedure: gng (default) or 2ac")
     // .describe("trial-key", "specify trial initiation key (default
 // center_green)")
     .default({P: "gng"})
@@ -74,6 +73,7 @@ var trial_data = {
 var priv = {
     hoppers: ["feeder_left", "feeder_right"],
     max_hopper_duty: 1,
+    blink_period: 300,
     default_cue: "center_green",        // cue used when not specified
     alt_cue_color: "green",             // color of cues used on non default sides
     default_hopper: "left",             // hopper used when not specified
@@ -87,7 +87,6 @@ var par = {
 };
 
 var state = {
-    paradigm: argv.P,           // ["2ac","gng"]: target operant paradigm
     trial: 0,                   // trial number
     block: 0,                   // shape paradigm block
     phase: null                 // trial phase
@@ -175,7 +174,7 @@ function block1_await() {
     var pecked = false;
 
     // state setup
-    t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: 300}});
+    t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: priv.blink_period}});
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
 
     t.await("keys", blink_duration, _test, _exit);
@@ -210,27 +209,72 @@ function block2_await() {
     var feed_duration = 4000;
     var iti = feed_duration * (1 / priv.max_hopper_duty - 1);
 
-    t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: 300}});
-    update_state({ block: 2,
-                   trial: (state.block == 1) ? 1 : state.trial + 1,
-                   phase: "awaiting-response"});
+    if (state.block == 1) state.trial = 0;
+    t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: priv.blink_period}});
+    update_state({ block: 2, trial: state.trial + 1, phase: "awaiting-response"});
+
+    // TODO: need to detect end of day; otherwise we stay stuck in this state
+    // until the bird pecks
 
     t.await("keys", null, function(msg) { return msg.data.peck_center }, _exit);
 
     function _exit() {
         var hopper = random_hopper();
         t.req("change-state", {addr: "cue_center_green", data: { trigger: null, brightness: 0}});
-        var next = (state.trial < par.block_trials) ? block2_await : block3_await;
+        var next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
         t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject});
         feed(hopper, feed_duration, next);
     }
 }
 
-function block3_await() {
-    winston.info("got to block 3")
-    t.disconnect(process.exit);
+function block3_peck1() {
+    var side = ["left", "right"][Math.floor(Math.random() * 2)];
+
+    if (state.block < 3) state.trial = 0;
+    t.req("change-state", {addr: "cue_center_green", data: { trigger: "timer", period: priv.blink_period}});
+    update_state({ block: 3, trial: state.trial + 1, phase: "awaiting-response-1"});
+
+    t.await("keys", null, function(msg) { return msg.data.peck_center}, function() {
+        t.req("change-state", {addr: "cue_center_green", data: { trigger: null, brightness: 0}});
+        block34_peck2(side);
+    })
 }
+
+function block4_peck1() {
+    var side = ["left", "right"][Math.floor(Math.random() * 2)];
+
+    if (state.block < 4) state.trial = 0;
+    update_state({ block: 4, trial: state.trial + 1, phase: "awaiting-response-1"});
+
+    t.await("keys", null, function(msg) { return msg.data.peck_center}, _.partial(block34_peck2, side));
+}
+
+function block34_peck2(side) {
+    var feed_duration = (state.block == 3) ? 3000 : 2500;
+    var iti = feed_duration * (1 / priv.max_hopper_duty - 1);
+    var cue = "cue_" + side + "_green";
+    var key = "peck_" + side;
+
+    t.req("change-state", {addr: cue, data: { trigger: "timer", period: priv.blink_period}});
+    update_state({ phase: "awaiting-response-2"});
+    t.await("keys", null, function(msg) { return msg.data[key]}, _exit);
+
+    function _exit() {
+        var next;
+        var hopper = "feeder_" + side;
+        t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
+        if (state.block == 3 && state.trial < par.block_trials)
+            next = block3_peck1;
+        else
+            next = block4_peck1;
+
+        next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
+        t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject, peck: side});
+        feed(hopper, feed_duration, next);
+    }
+}
+
 
 function random_hopper() {
     var i = Math.floor(Math.random() * priv.hoppers.length);
