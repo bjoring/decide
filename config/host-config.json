@@ -3,7 +3,7 @@
     "port_int": 8020,
     "addr_ext": "localhost",
     "port_ext": 8010,
-    "mail_list": "dmeliza@gmail.com",
-    "log_path": "/logs",
+    "admin_emails": ["dmeliza@gmail.com"],
+    "log_local": true,
     "send_emails": false
 }

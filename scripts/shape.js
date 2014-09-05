@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 var os = require("os");
 var _ = require("underscore");
-var t = require("./toolkit");           // bank of apparatus manipulation functions
+var t = require("../lib/client");           // bank of apparatus manipulation functions
 var logger = require("../lib/log");
 var util = require("../lib/util");
 

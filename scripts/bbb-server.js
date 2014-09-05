@@ -10,6 +10,7 @@ var sockets = require("socket.io");
 var sock_cli = require("socket.io-client");
 var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
+var jsonl = require("../lib/jsonl");
 
 var version = require('../package.json').version;
 var host_params = util.load_config("host-config.json");
@@ -17,6 +18,11 @@ var bbb_params = util.load_config("bbb-config.json");
 
 logger.info("this is bbb-server, version", version);
 
+var triallogger;
+if (host_params.log_local)
+    triallogger = util.defaultdict(jsonl);
+else
+    triallogger = util.defaultdict(function() {});
 
 // *********************************
 // HTTP server
@@ -69,6 +75,9 @@ io.on("connection", function(socket) {
     // trial data is logged to disk locally
     socket.on("trial-data", function(msg) {
         logger.info("trial-data", msg);
+        // flatten the record
+        var data = _.extend(_.omit(msg, "data"), msg.data);
+        triallogger(msg.data.subject + "_" + msg.addr + ".jsonl")(data);
     });
 
     // req message types
