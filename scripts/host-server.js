@@ -9,7 +9,8 @@ var par = JSON.parse(fs.readFileSync(__dirname + "/host-config.json"));
 
 var boxes = {};
 
-// server listens on two ports - one facing devices, one facing clients
+// *********************************
+// HTTP servers: one facing devices, one facing clients
 var app_dev = express();
 var serv_dev = http.Server(app_dev);
 serv_dev.listen(par.port_int, par.addr_int);
@@ -17,30 +18,36 @@ serv_dev.on("listening", function() {
     var addr = serv_dev.address();
     winston.info("endpoint for devices: http://%s:%s", addr.address, addr.port);
 });
-var io_dev = sockets(serv_dev);
 
 var app_cli = express();
+app_cli.enable('trust proxy');
 var serv_cli = http.Server(app_cli);
 serv_cli.listen(par.port_ext, par.addr_ext);
 serv_cli.on("listening", function() {
     var addr = serv_cli.address();
     winston.info("endpoint for clients: http://%s:%s", addr.address, addr.port);
 });
+
+// handle http requests from clients
+app_cli.get("/", function(req, res) {
+    res.sendfile(__dirname + "/static/directory.html");
+});
+
+app_cli.get("/boxes", function(req, res) {
+    res.send(boxes);
+});
+
+// all other static content resides in /static
+app_cli.use("/static", express.static(__dirname + "/static"));
+
+
+// *********************************
+// socket.io servers
+var io_dev = sockets(serv_dev);
 var io_cli = sockets(serv_cli);
 
-// channels for communicating with BBBs
+// PUB messages from devices
 var bpub = io_dev.of("/PUB");
-var breq = io_dev.of("/REQ");
-
-// channels for communicating with host-side clients
-var hpub = io_cli.of("/PUB");
-var hreq = io_cli.of("/REQ");
-
-// temporarily disabled for debugging
-// winston.info("Starting baby-sitter");
-// var babysitter = require("child_process").fork(__dirname + "/baby-sitter.js");
-
-// handling PUB messages from devices
 bpub.on("connection", function(socket) {
     var name = "unregistered";
 
@@ -143,8 +150,18 @@ bpub.on("connection", function(socket) {
         ]
     });
     eventlog.levels.event = 3;
-}); // io.sockets.on
+});
 
+var breq = io_dev.of("/REQ");
+var hpub = io_cli.of("/PUB");
+var hreq = io_cli.of("/REQ");
+
+// temporarily disabled for debugging
+// winston.info("Starting baby-sitter");
+// var babysitter = require("child_process").fork(__dirname + "/baby-sitter.js");
+
+// *********************************
+// Error handling
 if (par.send_emails) {
     process.on("uncaughtException", function(err) {
         var subject = "Uncaught Exception";
@@ -157,15 +174,3 @@ function get_store(name) {
     console.log("requesting " + name + " log store");
     io.to(boxes[name].socket).emit("send-store");
 }
-
-// handle http requests from clients
-app_cli.get("/", function(req, res) {
-    res.sendfile(__dirname + "/static/directory.html");
-});
-
-app_cli.get("/boxes", function(req, res) {
-    res.send(boxes);
-});
-
-// all other static content resides in /static
-app_cli.use("/static", express.static(__dirname + "/static"));

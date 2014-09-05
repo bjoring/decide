@@ -10,3 +10,4 @@ wiring together states and events and is intended to require minimal programming
 skills. The software will support other hardware configurations, allowing you to
 design custom interfaces for your experimental needs.
 
+See `docs/` directory for more information.

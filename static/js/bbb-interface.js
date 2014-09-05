@@ -34,10 +34,11 @@ sock.on("disconnect", function() {
 
 sock.on("state-changed", function(msg) {
     if (msg.data) {
+        if (!starboard.hasOwnProperty(msg.addr)) {
+            starboard[msg.addr] = {state: {}};
+        }
+        if (msg.addr == "experiment") console.log(msg.data)
         d3.entries(msg.data).forEach(function(x) {
-            if (!starboard.hasOwnProperty(msg.addr)) {
-                starboard[msg.addr] = {state: {}};
-            }
             starboard[msg.addr].state[x.key] = x.value;
         });
     }
@@ -293,7 +294,9 @@ function drawInterface() {
             sock.emit("change-state", {
                 addr: d.key,
                 data: {
-                    brightness: !d.value.state.brightness * 255
+                    brightness: !d.value.state.brightness * 255,
+                    clock_on: !d.value.state.clock_on,
+                    daytime: false
                 }
             });
         })

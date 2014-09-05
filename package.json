@@ -32,8 +32,10 @@
         "node": "0.10"
     },
     "bin": {
-        "shape": "experiments/shape.js",
-        "gng": "experiments/gng.js"
+        "bbb-server": "scripts/bbb-server.js",
+        "lights": "scripts/lights.js",
+        "shape": "scripts/shape.js",
+        "gng": "scripts/gng.js"
     },
     "homepage": "http://meliza.org/starboard"
 }

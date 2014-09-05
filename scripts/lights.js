@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 var os = require("os");
 var winston = require("winston");
-var t = require("./toolkit");
+var t = require("../client");
 var util = require("../lib/util");
 
 // Experiments need to manage their own state. They manipulate the state of the
@@ -32,16 +32,6 @@ var meta = {
 
 var sock;
 
-function statefun(msg) {
-    if (msg.addr == "house_lights") {
-        var day = (msg.data.brightness > 0);
-        if (state.day != day) {
-            state.day = day;
-            t.state_changed(name, state);
-        }
-    }
-}
-
 // connect to the controller and register callbacks
 t.connect(name, function(socket) {
     sock = socket;
@@ -62,8 +52,6 @@ t.connect(name, function(socket) {
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
     sock.on("state-changed", function(data) { winston.debug("pub to lights: state-changed", data)})
-
-    // modify this program's shape based on state changes elsewhere
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});

@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // this is the controller process for the device - it's intended to be integrated as
 // a component of the apparatus, but it relays messages to and from other clients
 var _ = require("underscore");
@@ -7,18 +8,18 @@ var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
 var sock_cli = require("socket.io-client");
-var apparatus = require("./lib/apparatus");
-var util = require("./lib/util");
+var apparatus = require("../lib/apparatus");
+var util = require("../lib/util");
 
-// Log pub and req events at info level
-winston.levels.pub = 3;
-winston.levels.req = 3;
+var version = require('../package.json').version;
+
 if (process.env.NODE_ENV == 'debug') {
     winston.level = 'debug';
 }
 else if (process.env.NODE_ENV == 'production') {
     winston.level = 'warn';
 }
+winston.info("this is bbb-server, version", version);
 
 var host_params = util.load_config("host-config.json");
 var bbb_params = util.load_config("bbb-config.json");
@@ -56,9 +57,6 @@ app.use("/static", express.static(__dirname + "/static"));
 // socket.io server
 var io = sockets(server);
 
-// message types
-var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
-
 io.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.handshake.address);
@@ -76,9 +74,11 @@ io.on("connection", function(socket) {
 
     // trial data is logged to disk locally
     socket.on("trial-data", function(msg) {
-        winston.log("pub", "trial-data", msg);
+        winston.info("trial-data", msg);
     });
 
+    // req message types
+    var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
     req_msg.forEach( function(req) {
         socket.on(req, function(msg, rep) {
             rep = rep || function() {};
