@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 var os = require("os");
 var _ = require("underscore");
-var winston = require("winston");
 var t = require("./toolkit");           // bank of apparatus manipulation functions
+var logger = require("../lib/log");
 var util = require("../lib/util");
 
 var name = "shape";
@@ -51,20 +51,20 @@ t.connect(name, function(socket) {
 
     // these REQ messages require a response!
     sock.on("get-state", function(data, rep) {
-        winston.debug("req to lights: get-state");
+        logger.debug("req to lights: get-state");
         if (rep) rep("ok", state);
     });
     sock.on("get-params", function(data, rep) {
-        winston.debug("req to lights: get-params");
+        logger.debug("req to lights: get-params");
         if (rep) rep("ok", par);
     });
     sock.on("get-meta", function(data, rep) {
-        winston.debug("req to lights: get-meta");
+        logger.debug("req to lights: get-meta");
         if (rep) rep("ok", meta);
     });
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
-    sock.on("state-changed", function(data) { winston.debug("pub to lights: state-changed", data)})
+    sock.on("state-changed", function(data) { logger.debug("pub to lights: state-changed", data)})
 
     // query hopper duty cycle - assume both hoppers the same
     t.req("get-params", {addr: "feeder_left"}, function(err, results) {
@@ -120,7 +120,7 @@ function block1_await() {
 
     // state setup
     if (state.block < 1) {
-        winston.info("entering block 1")
+        logger.info("entering block 1")
     }
     t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
@@ -145,7 +145,7 @@ function block1_await() {
         }
         else {
             var iti = Math.random() * iti_var + iti_min;
-            winston.debug("trial iti:", iti);
+            logger.debug("trial iti:", iti);
             next_state = _.partial(intertrial, iti, block1_await);
         }
         t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject})
@@ -159,7 +159,7 @@ function block2_await() {
     var cue = "cue_center_" + par.cue_color;
 
     if (state.block < 2) {
-        winston.info("entering block 2")
+        logger.info("entering block 2")
         state.trial = 0;
     }
     t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
@@ -184,7 +184,7 @@ function block3_peck1() {
     var cue = "cue_center_" + par.cue_color;
 
     if (state.block < 3) {
-        winston.info("entering block 3")
+        logger.info("entering block 3")
         state.trial = 0;
     }
     t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
@@ -200,7 +200,7 @@ function block4_peck1() {
     var side = ["left", "right"][Math.floor(Math.random() * 2)];
 
     if (state.block < 4) {
-        winston.info("entering block 4")
+        logger.info("entering block 4")
         state.trial = 0;
     }
     update_state({ block: 4, trial: state.trial + 1, phase: "awaiting-response-1"});
@@ -228,11 +228,11 @@ function block34_peck2(side) {
             next = block4_peck1;
 
         if (state.block == 4 && state.trial == par.block_trials && !argv.F) {
-            winston.info("shape completed!")
+            logger.info("shape completed!")
             if (argv.notify)
                 util.mail(name, par.user, "shape completed for " + par.subject,
                           "Subject " + par.subject + " completed shaping. Trials will continue to run.",
-                         _.partial(winston.info, "sent email to", par.user))
+                         _.partial(logger.info, "sent email to", par.user))
         }
 
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);

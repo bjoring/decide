@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 var os = require("os");
-var winston = require("winston");
-var t = require("../client");
+var t = require("../lib/client");
+var logger = require("../lib/log");
 var util = require("../lib/util");
 
 // Experiments need to manage their own state. They manipulate the state of the
@@ -38,20 +38,20 @@ t.connect(name, function(socket) {
 
     // these REQ messages require a response!
     sock.on("get-state", function(data, rep) {
-        winston.debug("req to lights: get-state");
+        logger.debug("req to lights: get-state");
         if (rep) rep("ok", state);
     });
     sock.on("get-params", function(data, rep) {
-        winston.debug("req to lights: get-params");
+        logger.debug("req to lights: get-params");
         if (rep) rep("ok", par);
     });
     sock.on("get-meta", function(data, rep) {
-        winston.debug("req to lights: get-meta");
+        logger.debug("req to lights: get-meta");
         if (rep) rep("ok", meta);
     });
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
-    sock.on("state-changed", function(data) { winston.debug("pub to lights: state-changed", data)})
+    sock.on("state-changed", function(data) { logger.debug("pub to lights: state-changed", data)})
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});

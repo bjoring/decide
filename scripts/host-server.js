@@ -1,10 +1,10 @@
 // this is the broker process for the host
 var fs = require("fs");
-var winston = require("winston");
 var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
-var util = require("./lib/util");
+var logger = require("../lib/log");
+var util = require("../lib/util");
 var par = JSON.parse(fs.readFileSync(__dirname + "/host-config.json"));
 
 var boxes = {};
@@ -16,7 +16,7 @@ var serv_dev = http.Server(app_dev);
 serv_dev.listen(par.port_int, par.addr_int);
 serv_dev.on("listening", function() {
     var addr = serv_dev.address();
-    winston.info("endpoint for devices: http://%s:%s", addr.address, addr.port);
+    logger.info("endpoint for devices: http://%s:%s", addr.address, addr.port);
 });
 
 var app_cli = express();
@@ -25,7 +25,7 @@ var serv_cli = http.Server(app_cli);
 serv_cli.listen(par.port_ext, par.addr_ext);
 serv_cli.on("listening", function() {
     var addr = serv_cli.address();
-    winston.info("endpoint for clients: http://%s:%s", addr.address, addr.port);
+    logger.info("endpoint for clients: http://%s:%s", addr.address, addr.port);
 });
 
 // handle http requests from clients
@@ -125,9 +125,9 @@ bpub.on("connection", function(socket) {
     });
 
     // set up unique loggers for each box
-    var datalog = new(winston.Logger)({
+    var datalog = new(logger.Logger)({
         transports: [
-            new(winston.transports.File)({
+            new(logger.transports.File)({
                 filename: __dirname + par.log_path + "/data.json",
                 json: true,
                 timestamp: function() {
@@ -138,9 +138,9 @@ bpub.on("connection", function(socket) {
     });
     datalog.levels.data = 3;
 
-    var eventlog = new(winston.Logger)({
+    var eventlog = new(logger.Logger)({
         transports: [
-            new(winston.transports.File)({
+            new(logger.transports.File)({
                 filename: __dirname + par.log_path + "/eventlog.json",
                 json: true,
                 timestamp: function() {
@@ -157,7 +157,7 @@ var hpub = io_cli.of("/PUB");
 var hreq = io_cli.of("/REQ");
 
 // temporarily disabled for debugging
-// winston.info("Starting baby-sitter");
+// logger.info("Starting baby-sitter");
 // var babysitter = require("child_process").fork(__dirname + "/baby-sitter.js");
 
 // *********************************

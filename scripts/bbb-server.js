@@ -3,7 +3,7 @@
 // a component of the apparatus, but it relays messages to and from other clients
 var _ = require("underscore");
 var os = require("os");
-var winston = require("winston");
+var logger = require("../lib/log");
 var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
@@ -12,17 +12,11 @@ var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
 
 var version = require('../package.json').version;
-
-if (process.env.NODE_ENV == 'debug') {
-    winston.level = 'debug';
-}
-else if (process.env.NODE_ENV == 'production') {
-    winston.level = 'warn';
-}
-winston.info("this is bbb-server, version", version);
-
 var host_params = util.load_config("host-config.json");
 var bbb_params = util.load_config("bbb-config.json");
+
+logger.info("this is bbb-server, version", version);
+
 
 // *********************************
 // HTTP server
@@ -32,7 +26,7 @@ var server = http.Server(app);
 server.listen(host_params.port_int);
 server.on("listening", function() {
     var addr = server.address();
-    winston.info("server listening on %s port %s", addr.address, addr.port);
+    logger.info("server listening on %s port %s", addr.address, addr.port);
 })
 
 app.get("/", function(req, res) {
@@ -60,21 +54,21 @@ var io = sockets(server);
 io.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.handshake.address);
-    winston.info("connection from:", client_addr);
+    logger.info("connection from:", client_addr);
 
     // key used to route to client - needed for unrouting due to disconnect
     var client_key = null;
 
     // forward pub from clients to other clients and apparatus components
     socket.on("state-changed", function(msg) {
-        winston.debug("PUB from", client_addr, msg);
+        logger.debug("PUB from", client_addr, msg);
         apparatus.pub.emit("state-changed", msg.addr, msg.data);
         socket.broadcast.emit("state-changed", msg);
     });
 
     // trial data is logged to disk locally
     socket.on("trial-data", function(msg) {
-        winston.info("trial-data", msg);
+        logger.info("trial-data", msg);
     });
 
     // req message types
@@ -82,7 +76,7 @@ io.on("connection", function(socket) {
     req_msg.forEach( function(req) {
         socket.on(req, function(msg, rep) {
             rep = rep || function() {};
-            winston.debug("REQ from", client_addr, req, msg);
+            logger.debug("REQ from", client_addr, req, msg);
             apparatus.req(req, msg.addr, msg.data, function(err, data) {
                 if (err)
                     rep("err", err);
@@ -106,7 +100,7 @@ io.on("connection", function(socket) {
             function proxy() {
                 this.req = function(req, data, rep) {
                     // internal reqs get packaged into messages
-                    winston.debug("req to socket:", req, data);
+                    logger.debug("req to socket:", req, data);
                     socket.emit(req, _.extend({addr: msg.ret_addr}, data), function(reply, result) {
                         if (reply == "err")
                             rep(result);
@@ -138,7 +132,7 @@ io.on("connection", function(socket) {
             client_key = null;
             // TODO: check if experiment needs to be reset
         }
-        winston.info("disconnect from:", client_addr);
+        logger.info("disconnect from:", client_addr);
     });
 });
 
@@ -165,20 +159,20 @@ function controller(params, addr, pub) {
     }
 
     host.on("connection", function() {
-        winston.info("connected to host socket %s", host_addr);
+        logger.info("connected to host socket %s", host_addr);
         state.server = host_addr;
         callback(null, state);
     });
 
     host.on("disconnect", function() {
-        winston.info("lost connection to host (queuing messages)");
+        logger.info("lost connection to host (queuing messages)");
         state.server = null;
         callback(null, state);
     });
 
     // pubh.on("register-box", function(reply) {
     //     reply(state.host_name, state.ip_address, par.port);
-    //     winston.info(state.host_name, "registered in host");
+    //     logger.info(state.host_name, "registered in host");
     //     send_store();
     // });
 
@@ -189,7 +183,7 @@ function controller(params, addr, pub) {
             time: time || Date.now(),
             data: data
         };
-        winston.log("pub", "state-changed", msg);
+        logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
@@ -199,7 +193,7 @@ function controller(params, addr, pub) {
 
     // REQ messages from the apparatus
     this.req = function(msg, data, rep) {
-        winston.debug("req to controller: ", msg, data);
+        logger.debug("req to controller: ", msg, data);
         if (msg == "reset-state")
             rep();
         else if (msg == "get-state")
@@ -218,7 +212,7 @@ function controller(params, addr, pub) {
 // *********************************
 // Error handling
 function error(msg) {
-    winston.error(msg);
+    logger.error(msg);
     if (host_params.send_emails && apparatus.experiment && apparatus.experiment.user) {
         util.mail("bbb-server", apparatus.experiment.user, msg.substr(0,30), msg);
     }
@@ -228,7 +222,7 @@ if (host_params.send_emails) {
     process.on("uncaughtException", function(err) {
         var subject = "fatal exception";
         var message = err;
-        winston.error("fatal error: ", err);
+        logger.error("fatal error: ", err);
         util.mail("bbb-server", host_params.mail_list, subject, message, process.exit);
     });
 }
