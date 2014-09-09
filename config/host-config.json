@@ -1,8 +1,8 @@
 {
-    "addr_int": "192.168.10.1",
-    "port_int": 8020,
+    "addr_int": "localhost",
+    "port_int": 8010,
     "addr_ext": "localhost",
-    "port_ext": 8010,
+    "port_ext": 8020,
     "admin_emails": ["dmeliza@gmail.com"],
     "log_local": true,
     "send_emails": false

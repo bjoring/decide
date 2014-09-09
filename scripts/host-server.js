@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // this is the broker process for the host
 var fs = require("fs");
 var express = require("express");
@@ -5,156 +6,169 @@ var http = require("http");
 var sockets = require("socket.io");
 var logger = require("../lib/log");
 var util = require("../lib/util");
-var par = JSON.parse(fs.readFileSync(__dirname + "/host-config.json"));
+
+var par = util.load_config("host-config.json");
 
 var boxes = {};
 
 // *********************************
 // HTTP servers: one facing devices, one facing clients
-var app_dev = express();
-var serv_dev = http.Server(app_dev);
-serv_dev.listen(par.port_int, par.addr_int);
-serv_dev.on("listening", function() {
-    var addr = serv_dev.address();
+var app_int = express();
+var serv_int = http.Server(app_int);
+serv_int.listen(par.port_int, par.addr_int);
+serv_int.on("listening", function() {
+    var addr = serv_int.address();
     logger.info("endpoint for devices: http://%s:%s", addr.address, addr.port);
 });
 
-var app_cli = express();
-app_cli.enable('trust proxy');
-var serv_cli = http.Server(app_cli);
-serv_cli.listen(par.port_ext, par.addr_ext);
-serv_cli.on("listening", function() {
-    var addr = serv_cli.address();
+var app_ext = express();
+app_ext.enable('trust proxy');
+var serv_ext = http.Server(app_ext);
+// serv_ext.listen(par.port_ext, par.addr_ext);
+serv_ext.listen(8030, "localhost")
+serv_ext.on("listening", function() {
+    var addr = serv_ext.address();
     logger.info("endpoint for clients: http://%s:%s", addr.address, addr.port);
 });
 
 // handle http requests from clients
-app_cli.get("/", function(req, res) {
+app_ext.get("/", function(req, res) {
     res.sendfile(__dirname + "/static/directory.html");
 });
 
-app_cli.get("/boxes", function(req, res) {
+app_ext.get("/boxes", function(req, res) {
     res.send(boxes);
 });
 
 // all other static content resides in /static
-app_cli.use("/static", express.static(__dirname + "/static"));
+app_ext.use("/static", express.static(__dirname + "/static"));
 
 
 // *********************************
 // socket.io servers
-var io_dev = sockets(serv_dev);
-var io_cli = sockets(serv_cli);
+var io_int = sockets(serv_int);
+var io_ext = sockets(serv_ext);
 
 // PUB messages from devices
-var bpub = io_dev.of("/PUB");
-bpub.on("connection", function(socket) {
-    var name = "unregistered";
+io_int.on("connection", function(socket) {
+    var client_key = null;
+    var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
+                       socket.request.connection.remoteAddress);
+    logger.info("connection on internal port from:", client_addr);
 
-    socket.emit("register-box", function(hostname, ip, port) {
-        name = hostname;
-        boxes[name] = {};
-        boxes[name].name = hostname;
-        boxes[name].ip = ip;
-        boxes[name].port = port;
-        boxes[name].socket = socket.id;
-        boxes[name].graceful_exit = false;
-        console.log(name, "connected");
-        hpub.emit("msg", {
-            addr: "",
-            time: Date.now(),
-            event: "box-registered",
-            data: boxes[name]
-        });
-        get_store(name);
+    // state-changed messages are forwarded to clients and logged locally
+    socket.on("state-changed", function(msg) {
+        logger.debug("PUB from", client_addr, msg);
+        io_ext.emit("state-changed", msg);
     });
 
-    socket.on("msg", function(msg) {
-        // add the BBB hostname to the front of pub addresses
-        msg.addr = msg.addr ? name + "." + msg.addr : name;
-
-        // forward BBB pub messages to the host-side clients
-        hpub.emit("msg", msg);
-
-        // log trial-data
-        // TODO: separate this into own component
-        if (msg.event == "trial-data") {
-            var datafile = msg.data.subject + "_" + msg.data.program + "_" + msg.data.box + ".json";
-            datalog.transports.file.filename = datalog.transports.file._basename = datafile;
-
-            if (msg.data.end == 0) msg.error = "LOG ERROR: Trial terminated early";
-
-            datalog.log("data", "data-logged", {
-                data: msg.data
-            });
-            console.log(name + ": data logged");
-        } else {
-            var eventfile = name + "_events.json";
-            eventlog.transports.file.filename = eventlog.transports.file._basename = eventfile;
-
-            if (msg.event == "log") {
-                if (msg.level == "error") {
-                    eventlog.log("error", "error-logged", msg);
-                    console.log(name + ": error logged");
-                } else {
-                    eventlog.log("info", "info-logged", msg);
-                    console.log(name + ": info logged");
-                }
-            } else {
-                eventlog.log("event", "event-logged", msg);
-                console.log(name + ": event logged");
-            }
+    // route messages are used to register the client
+    socket.on("route", function(msg, rep) {
+        rep = rep || function() {};
+        if (client_key) {
+            rep("err", "socket is already registered as " + client_key);
         }
+        else if (_.has(boxes, msg.ret_addr)) {
+            rep("err", "address " + msg.ret_addr + " already taken");
+        }
+        else {
+            client_key = msg.ret_addr;
+            boxes[client_key] = {
+                address: client_addr
+            }
+            logger.info("%s registered as", client_addr, client_key);
+            rep("ok");
+        }
+    });
 
-        socket.on("graceful-exit", function() {
-            boxes[name].graceful_exit = true;
-        });
+    socket.on("unroute", function(msg, rep) {
+        rep = rep || function() {};
+        delete boxes[client_key];
+        logger.info("%s unregistered as", client_addr, client_key);
+        client_key = null;
+        rep("ok")
     });
 
     socket.on("disconnect", function() {
-        console.log(name, "disconnected");
-        if (boxes[name].graceful_exit === false) util.mail("host-server",par.mail_list,"Beaglebone disconnect", name + " disconnected from host - " + Date.now());
-        hpub.emit("msg", {
-            addr: "",
-            time: Date.now(),
-            event: "box-unregistered",
-            data: boxes[name]
-        });
-        delete boxes[name];
+        if (client_key) {
+            error("client " + client_key + " disconnected unexpectedly")
+            delete boxes[client_key];
+            client_key = null;
+        }
+        else
+            logger.info("disconnection from internal port by", client_addr)
+    })
 
-    });
+    // socket.on("msg", function(msg) {
+    //     // add the BBB hostname to the front of pub addresses
+    //     msg.addr = msg.addr ? name + "." + msg.addr : name;
 
-    // set up unique loggers for each box
-    var datalog = new(logger.Logger)({
-        transports: [
-            new(logger.transports.File)({
-                filename: __dirname + par.log_path + "/data.json",
-                json: true,
-                timestamp: function() {
-                    return Date.now();
-                }
-            })
-        ]
-    });
-    datalog.levels.data = 3;
+    //     // forward BBB pub messages to the host-side clients
+    //     hpub.emit("msg", msg);
 
-    var eventlog = new(logger.Logger)({
-        transports: [
-            new(logger.transports.File)({
-                filename: __dirname + par.log_path + "/eventlog.json",
-                json: true,
-                timestamp: function() {
-                    return Date.now();
-                }
-            })
-        ]
-    });
-    eventlog.levels.event = 3;
+    //     // log trial-data
+    //     // TODO: separate this into own component
+    //     if (msg.event == "trial-data") {
+    //         var datafile = msg.data.subject + "_" + msg.data.program + "_" + msg.data.box + ".json";
+    //         datalog.transports.file.filename = datalog.transports.file._basename = datafile;
+
+    //         if (msg.data.end == 0) msg.error = "LOG ERROR: Trial terminated early";
+
+    //         datalog.log("data", "data-logged", {
+    //             data: msg.data
+    //         });
+    //         console.log(name + ": data logged");
+    //     } else {
+    //         var eventfile = name + "_events.json";
+    //         eventlog.transports.file.filename = eventlog.transports.file._basename = eventfile;
+
+    //         if (msg.event == "log") {
+    //             if (msg.level == "error") {
+    //                 eventlog.log("error", "error-logged", msg);
+    //                 console.log(name + ": error logged");
+    //             } else {
+    //                 eventlog.log("info", "info-logged", msg);
+    //                 console.log(name + ": info logged");
+    //             }
+    //         } else {
+    //             eventlog.log("event", "event-logged", msg);
+    //             console.log(name + ": event logged");
+    //         }
+    //     }
+
+    //     socket.on("graceful-exit", function() {
+    //         boxes[name].graceful_exit = true;
+    //     });
+    // });
+
+    // // set up unique loggers for each box
+    // var datalog = new(logger.Logger)({
+    //     transports: [
+    //         new(logger.transports.File)({
+    //             filename: __dirname + par.log_path + "/data.json",
+    //             json: true,
+    //             timestamp: function() {
+    //                 return Date.now();
+    //             }
+    //         })
+    //     ]
+    // });
+    // datalog.levels.data = 3;
+
+    // var eventlog = new(logger.Logger)({
+    //     transports: [
+    //         new(logger.transports.File)({
+    //             filename: __dirname + par.log_path + "/eventlog.json",
+    //             json: true,
+    //             timestamp: function() {
+    //                 return Date.now();
+    //             }
+    //         })
+    //     ]
+    // });
+    // eventlog.levels.event = 3;
 });
 
-var breq = io_dev.of("/REQ");
-var hpub = io_cli.of("/PUB");
-var hreq = io_cli.of("/REQ");
 
 // temporarily disabled for debugging
 // logger.info("Starting baby-sitter");
@@ -168,9 +182,4 @@ if (par.send_emails) {
         var message = "Caught exception: " + err;
         util.mail("host-server", par.mail_list, subject, message, process.exit);
     });
-}
-
-function get_store(name) {
-    console.log("requesting " + name + " log store");
-    io.to(boxes[name].socket).emit("send-store");
 }

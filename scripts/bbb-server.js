@@ -29,7 +29,7 @@ else
 var app = express();
 app.enable('trust proxy');
 var server = http.Server(app);
-server.listen(host_params.port_int);
+server.listen(host_params.port_ext, host_params.addr_ext);
 server.on("listening", function() {
     var addr = server.address();
     logger.info("server listening on %s port %s", addr.address, addr.port);
@@ -59,7 +59,7 @@ var io = sockets(server);
 
 io.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
-                       socket.handshake.address);
+                       socket.request.connection.remoteAddress);
     logger.info("connection from:", client_addr);
 
     // key used to route to client - needed for unrouting due to disconnect
@@ -148,7 +148,7 @@ io.on("connection", function(socket) {
 // *********************************
 // socket.io connection to host
 var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
-var host = sock_cli.connect(host_addr);
+var host = sock_cli.connect(host_addr, {transports: ["websocket"]});
 
 // the controller's job is to route messages to and from the host socket
 function controller(params, addr, pub) {
@@ -170,13 +170,13 @@ function controller(params, addr, pub) {
     host.on("connection", function() {
         logger.info("connected to host socket %s", host_addr);
         state.server = host_addr;
-        callback(null, state);
+        // callback(null, state);
     });
 
     host.on("disconnect", function() {
         logger.info("lost connection to host (queuing messages)");
         state.server = null;
-        callback(null, state);
+        // callback(null, state);
     });
 
     // pubh.on("register-box", function(reply) {
@@ -235,14 +235,6 @@ if (host_params.send_emails) {
         util.mail("bbb-server", host_params.mail_list, subject, message, process.exit);
     });
 }
-
-// process.on("SIGINT", function() {
-//     console.log("SIGINT received.");
-//     console.log("Informing host of graceful exit");
-//     prepare_host_disconnect();
-//     console.log("Exiting gracefully");
-//     process.kill();
-// });
 
 // start the controller
 apparatus.register("controller", controller, bbb_params.controller);
