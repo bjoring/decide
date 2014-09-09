@@ -1,5 +1,5 @@
 {
-    "addr_int": "localhost",
+    "addr_int": "192.168.10.1",
     "port_int": 8010,
     "addr_ext": "localhost",
     "port_ext": 8020,

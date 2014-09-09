@@ -29,14 +29,14 @@ else
 var app = express();
 app.enable('trust proxy');
 var server = http.Server(app);
-server.listen(host_params.port_ext, host_params.addr_ext);
+server.listen(host_params.port_ext);
 server.on("listening", function() {
     var addr = server.address();
     logger.info("server listening on %s port %s", addr.address, addr.port);
 })
 
 app.get("/", function(req, res) {
-    res.sendfile(__dirname + "/static/interface.html");
+    res.sendfile("interface.html", {root: __dirname + "/../static/"});
 });
 
 app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
@@ -50,7 +50,7 @@ app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
 });
 
 // all other static content resides in /static
-app.use("/static", express.static(__dirname + "/static"));
+app.use("/static", express.static(__dirname + "/../static"));
 
 
 // *********************************
