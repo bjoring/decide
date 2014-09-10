@@ -12,7 +12,7 @@ var argv = require("yargs")
     .describe("F", "skip immediately to final block")
     .describe("color", "set cue color: red, green, blue")
     .describe("notify", "if set, sends an email when the bird completes block 4")
-    .describe("trials", "set the number of trials per ")
+    .describe("trials", "set the number of trials per block in blocks 2-3")
     .default({color: "green", trials: 100})
     .demand(2)
     .argv;
@@ -51,20 +51,20 @@ t.connect(name, function(socket) {
 
     // these REQ messages require a response!
     sock.on("get-state", function(data, rep) {
-        logger.debug("req to lights: get-state");
+        logger.debug("req to shape: get-state");
         if (rep) rep("ok", state);
     });
     sock.on("get-params", function(data, rep) {
-        logger.debug("req to lights: get-params");
+        logger.debug("req to shape: get-params");
         if (rep) rep("ok", par);
     });
     sock.on("get-meta", function(data, rep) {
-        logger.debug("req to lights: get-meta");
+        logger.debug("req to shape: get-meta");
         if (rep) rep("ok", meta);
     });
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
-    sock.on("state-changed", function(data) { logger.debug("pub to lights: state-changed", data)})
+    sock.on("state-changed", function(data) { logger.debug("pub to shape: state-changed", data)})
 
     // query hopper duty cycle - assume both hoppers the same
     t.req("get-params", {addr: "feeder_left"}, function(err, results) {
@@ -129,7 +129,7 @@ function block1_await() {
 
     function _test(msg) {
         if (!msg) return true;
-        else if (msg && msg.data.peck_center)
+        else if (msg.data.peck_center)
             return pecked = true;
     }
 
@@ -166,7 +166,7 @@ function block2_await() {
     update_state({ block: 2, trial: state.trial + 1, phase: "awaiting-response"});
 
     // NB: end of day will not exit state, but this isn't a huge problem as the
-    // lights will go out anyway
+    // shape will go out anyway
     t.await("keys", null, function(msg) { return msg.data.peck_center }, _exit);
 
     function _exit() {

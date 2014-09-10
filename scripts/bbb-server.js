@@ -18,11 +18,8 @@ var bbb_params = util.load_config("bbb-config.json");
 
 logger.info("this is bbb-server, version", version);
 
-var triallogger;
-if (host_params.log_local)
-    triallogger = util.defaultdict(jsonl);
-else
-    triallogger = util.defaultdict(function() {});
+var triallog = (host_params.log_local_trials) ? util.defaultdict(jsonl) : util.defaultdict(function() {});
+var eventlog = (host_params.log_local_events) ? jsonl("events.jsonl") : function() {};
 
 // *********************************
 // HTTP server
@@ -77,7 +74,7 @@ io.on("connection", function(socket) {
         logger.info("trial-data", msg);
         // flatten the record
         var data = _.extend(_.omit(msg, "data"), msg.data);
-        triallogger(msg.data.subject + "_" + msg.addr + ".jsonl")(data);
+        triallog(msg.data.subject + "_" + msg.addr + ".jsonl")(data);
     });
 
     // req message types
@@ -179,12 +176,6 @@ function controller(params, addr, pub) {
         // callback(null, state);
     });
 
-    // pubh.on("register-box", function(reply) {
-    //     reply(state.host_name, state.ip_address, par.port);
-    //     logger.info(state.host_name, "registered in host");
-    //     send_store();
-    // });
-
     // brokers PUB messages from the apparatus
     pub.on("state-changed", function(addr, data, time) {
         var msg = {
@@ -198,6 +189,7 @@ function controller(params, addr, pub) {
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
         host.emit("msg", msg);
+        eventlog(_.extend({addr: addr, time: msg.time}, data));
     });
 
     // REQ messages from the apparatus

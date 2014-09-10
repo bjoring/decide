@@ -4,6 +4,7 @@
     "addr_ext": "localhost",
     "port_ext": 8020,
     "admin_emails": ["dmeliza@gmail.com"],
-    "log_local": true,
+    "log_local_trials": true,
+    "log_local_events": true,
     "send_emails": false
 }
