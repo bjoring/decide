@@ -399,7 +399,10 @@ function drawInterface() {
     expt.exit().remove();
 
     expt.selectAll("ul").selectAll("li")
-        .data(function(d) { return d3.entries(d.value.state) }, function(d) { return d.key })
+        .data(function(d) { return d3
+                     .entries(d.value.state)
+                     .filter(function(d) { return typeof d.value !== "object"}) },
+              function(d) { return d.key })
         .enter()
         .append("li")
         .text(function(d) { return d.key + ": "})

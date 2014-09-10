@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 /*
   gng.js
   This script starts a "go-nogo" experiment. Subject learns
@@ -14,17 +15,35 @@
   4. Reward/punish accordingly:
   only GO responses are consequated:
   correct hits are rewarded with food access;
-  false positives are punished with lights out.
+  false positives are punished with gng out.
   5. If response was correct, a new stimulus is presented.
 
-  Session ends when the lights go out for the day.
+  Session ends when the gng go out for the day.
 
   Adapted from CDM's gng.cc used in Chicago lab
 */
 
-// Import required modules
-var t = require("./toolkit");           // bank of apparatus manipulation functions
-var winston = require("winston");       // logger
+var os = require("os");
+var _ = require("underscore");
+var path = require("path")
+var t = require("../lib/client");           // bank of apparatus manipulation functions
+var logger = require("../lib/log");
+var util = require("../lib/util");
+
+var name = "gng";
+
+var argv = require("yargs")
+    .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com stims.json")
+.describe("response-window", "response window duration (in ms)")
+    .describe("feed-duration", "default feeding duration (in ms)")
+    .describe("timeout-duration", "default timeout duration (in ms)")
+    .describe("max-corrections", "maximum number of correction trials")
+    .describe("replace", "randomize trials with replacement")
+    .default({"response-window": 2000, "feed-duration": 4000,
+              "timeout-duration": 10000, "max-corrections": 10,
+              replace: false})
+    .demand(3)
+    .argv;
 
 /* TRIAL DATA */
 // This dictionary contains all values that will be logged as data at the end of each trial
@@ -48,38 +67,134 @@ var trial_data = {
 
 /* Parameters */
 var par = {
-    subject: 0,
-    target_key: "peck_center",                                      // key used to intiate trials and register responses
-    response_window_duration: 2000,                         // how long subject has to respond after stimulus played
-    correction_limit: 3,                                            // limit to number of subsequent correction trials
-    stimuli_database: "../stimuli/gngstimuli",      // database of stimuli to use in trials
-    default_feed: "left",                                           // hopper with which to feed/reward subject
-    feed_duration: 2000,                                            // how long to feed/reward subject
-    punish_duration: 2000,                                          // how long to punish subject
-    mail_list: ""                                                           // who to email upon disaster (string or string array)
+    subject: argv._[0],         // sets the subject number
+    user: argv._[1],
+    response_window: argv["response-window"],
+    feed_duration: argv["feed-duration"],
+    timeout_duration: argv["timeout-duration"],
+    max_corrections: argv["max-corrections"],
+    rand_replace: argv["replace"],
+    init_key: "peck_center"
 };
 
-var params = {};
-process.argv.forEach(function(val, index, array) {
-    if (val == "-c") params = require(array[index + 1]);
-});
+var state = {
+    trial: 0,
+    phase: null,
+    correction: false,
+    stimulus: null,
 
-require("../lib/util").update(par, params);
-trial_data.subject = par.subject; // set the subject number in data
+};
 
-/* Setup */
-var stim_set = create_stim_set(par.stimuli_database);           // Create stimulus set
-t.lights().on();
-//t.lights().clock_set();                                                                       // make sure lights are on and set by sun altitude
+var meta = {
+    type: "experiment",
+    variables: {
+        trial: "integer",
+        phase: "string",
+        correction: [true, false]
+    }
+};
 
-t.initialize("gng", par.subject, function() {                           // create gng component in apparatus
-    t.mail_on_disaster(par.mail_list);                                              // email someone when something bad happens
-    //      t.run_by_clock( function() {                                            // run trials only during daytime
-    t.loop(trial); // run trial() in a loop
-    //});
-});
+var sock;
+var update_state = t.state_changer(name, state);
 
+// Parse stimset
+var stimset = new util.StimSet(argv._[2]);
 
+t.connect(name, function(socket) {
+
+    sock = socket;
+
+    // these REQ messages require a response!
+    sock.on("get-state", function(data, rep) {
+        logger.debug("req to gng: get-state");
+        if (rep) rep("ok", state);
+    });
+    sock.on("get-params", function(data, rep) {
+        logger.debug("req to gng: get-params");
+        if (rep) rep("ok", par);
+    });
+    sock.on("get-meta", function(data, rep) {
+        logger.debug("req to gng: get-meta");
+        if (rep) rep("ok", meta);
+    });
+    sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
+    sock.on("reset-state", function(data, rep) { rep("ok") });
+    sock.on("state-changed", function(data) { logger.debug("pub to gng: state-changed", data)})
+
+    // query hopper duty cycle - assume both hoppers the same
+    t.req("get-params", {addr: "feeder_left"}, function(err, results) {
+        par.max_hopper_duty = results.duty;
+    })
+
+    // update user and subject information:
+    t.req("change-state", {addr: "experiment", data: par});
+
+    // start state machine for monitoring daytime
+    t.ephemera(t.state_changer(name, state));
+    // initial state;
+    await_init();
+})
+
+function shutdown() {
+    t.disconnect(process.exit);
+}
+
+// disconnect will reset apparatus to base state
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
+
+function await_init() {
+    update_state({trial: state.trial + 1,
+                  phase: "awaiting-trial-init"});
+    t.await("keys", null, function(msg) { return msg && msg.data[par.init_key]}, present_stim);
+}
+
+function present_stim() {
+    var stim = (state.correction) ? state.stimulus : stimset.next(par.rand_replace);
+
+    logger.debug("next stim:", stim)
+    update_state({phase: "presenting-stimulus", stimulus: stim })
+    t.req("change-state", {addr: "aplayer", data: {playing: true,
+                                                   stimulus: stim.filename,
+                                                   root: stimset.root}});
+    t.await("aplayer", null, function(msg) { return msg && !msg.data.playing }, await_response)
+
+}
+
+function await_response() {
+    var pecked = "timeout";
+    update_state({phase: "awaiting-response"});
+
+    t.await("keys", par.response_window, _test, _exit);
+
+    function _test(msg) {
+        if (!msg) return true;
+        // test against each defined response - only set pecked if true, because
+        // we'll get a false event on the key off
+        _.find(state.stimulus.responses, function(val, key) {
+            if (msg.data[key]) {
+                pecked = key;
+                return true;
+            }
+        });
+        return pecked;
+    }
+
+    function _exit() {
+        logger.debug("response:", pecked);
+        if (pecked) {
+            var consq = state.stimulus.responses[pecked];
+            var rand = Math.random();
+            var p_feed = 0 + consq.p_reward;
+            var p_punish = p_feed + consq.p_punish;
+            if (rand < p_feed)
+                var result = "feed";
+            else if (rand < p_punish)
+                var result = "punish";
+        }
+        await_init();
+    }
+}
 
 function trial(next_trial) {
 
@@ -94,13 +209,7 @@ function trial(next_trial) {
         t.keys(par.target_key).wait_for(false, play_stimulus);
     }
 
-    function select_stimulus() {
-        //console.log("selecting stimulus");
-        var rand = Math.random();
-        var length = Object.keys(stim_set).length - 1;
-        var select = Math.round(rand * length);
-        return stim_set[select];
-    }
+
 
     function play_stimulus() {
         t.log_info("beginning trial " + trial_data.trial);
@@ -136,7 +245,7 @@ function trial(next_trial) {
             if (trial_data.response != "none") {
                 trial_data.err = 1;
                 trial_data.punished = true;
-                t.lights().off(par.punish_duration, run_correction);
+                t.gng().off(par.punish_duration, run_correction);
                 t.state_update("phase", "punishing");
             } else {
                 trial_data.err = 2;
@@ -177,18 +286,4 @@ function trial(next_trial) {
             }
         }
     }
-}
-
-function create_stim_set(loc) {
-    var bank = require(loc);
-    var i = 0;
-    var stim_set = {};
-    for (var stimulus in bank) {
-        var f = bank[stimulus].freq;
-        for (var j = 0; j < f; j++) {
-            stim_set[i] = bank[stimulus];
-            i++;
-        }
-    }
-    return stim_set;
 }
