@@ -10,8 +10,8 @@ var sock = io.connect("/", {
 
 sock.on("connect", function() {
     queue()
-        .defer(d3.json, "/components/")
-        .defer(d3.json, "/state/")
+        .defer(d3.json, "components/")
+        .defer(d3.json, "state/")
         .await(function(err, components, state) {
             if (err) console.warn(err);
             else {
