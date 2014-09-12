@@ -26,7 +26,7 @@ def read_jsonl(filename):
 def feeder_rec_p(rec):
     try:
         addr = rec["addr"]
-        return addr.startswith("feeder") or (addr == "keys" and "hopper_up" in rec)
+        return addr.startswith("feeder") or addr == "hopper"
     except KeyError:
         return False
 
@@ -47,8 +47,8 @@ if __name__ == '__main__':
     # 2. feeder is deactivated but hopper is not up - failure to rise
     # 3. hopper goes down but feeder is still active - "bounce" error
     for record in filter(feeder_rec_p, read_jsonl(opts.filename)):
-        #ts = datetime.datetime.fromtimestamp(record["time"] / 1000)
-        ts = record["time"]
+        t = record["time"]
+        ts = datetime.datetime.fromtimestamp(t / 1000)
         if "feeding" in record:
             feeding = record["feeding"]
             if feeding and hopper_up:
@@ -60,14 +60,14 @@ if __name__ == '__main__':
             if feeding:
                 last_hopper = record["addr"].split("_")[1]
                 feedings += 1
-        elif record["addr"] == "keys":
-            hopper_up = record["hopper_up"]
+        elif record["addr"] == "hopper":
+            hopper_up = record["up"]
             if not hopper_up and feeding:
                 print("%s: error switch bounce %s (%f ms)" %
-                      (ts, last_hopper, ts - last_hopper_up_time))
+                      (ts, last_hopper, t - last_hopper_up_time))
                 bounces += 1
             if hopper_up:
-                last_hopper_up_time = ts
+                last_hopper_up_time = t
 
     print("feed events: %d, failures: %d, bounces: %d" % (feedings, failures, bounces))
 # Variables:
