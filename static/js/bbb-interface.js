@@ -217,7 +217,7 @@ function drawInterface() {
     cues.exit().remove();
 
     var keygrp = svg.selectAll(".peckgroup")
-        .data(data.filter(function(d) { return d.value.type == "key";}),
+        .data(data.filter(function(d) { return d.key == "keys";}),
               function(d) { return d.key; });
     keygrp.enter()
         .append("g")
