@@ -6,6 +6,7 @@ var logger = require("../lib/log");
 var util = require("../lib/util");
 
 var name = "shape";
+var version = "1.0a1";
 
 var argv = require("yargs")
     .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")
@@ -73,6 +74,8 @@ t.connect(name, function(socket) {
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
+
+    t.trial_data(name, {subject: par.subject, comment: true, version: version, params: par});
 
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));

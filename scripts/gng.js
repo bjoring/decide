@@ -31,12 +31,13 @@ var logger = require("../lib/log");
 var util = require("../lib/util");
 
 var name = "gng";
+var version = "1.0a1";
 
 var argv = require("yargs")
     .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com stims.json")
 .describe("response-window", "response window duration (in ms)")
-    .describe("feed-duration", "default feeding duration (in ms)")
-    .describe("timeout-duration", "default timeout duration (in ms)")
+    .describe("feed-duration", "default feeding duration for correct responses (in ms)")
+    .describe("lightsout-duration", "default lights out duration for incorrect responses (in ms)")
     .describe("max-corrections", "maximum number of correction trials")
     .describe("replace", "randomize trials with replacement")
     .default({"response-window": 2000, "feed-duration": 4000,
@@ -61,7 +62,7 @@ var trial_data = {
     err: 0,                                                 // [0,1,2]: type of error (Type I = false positive, Type II false negative)
     rewarded: false,                                // whether subject was rewarded for response
     punished: false,                                // whether subject was punished for response
-    correction: false,                              // whether the trial is a correction trial
+    correction: 0,                              // whether the trial is a correction trial
     correction_count: 0,                    // number of subsequent correction trials
 };
 
@@ -71,16 +72,17 @@ var par = {
     user: argv._[1],
     response_window: argv["response-window"],
     feed_duration: argv["feed-duration"],
-    timeout_duration: argv["timeout-duration"],
+    punish_duration: argv["lightsout-duration"],
     max_corrections: argv["max-corrections"],
     rand_replace: argv["replace"],
-    init_key: "peck_center"
+    init_key: "peck_center",
+    hoppers: ["feeder_left", "feeder_right"],
 };
 
 var state = {
     trial: 0,
     phase: null,
-    correction: false,
+    correction: 0,
     stimulus: null,
 
 };
@@ -129,6 +131,8 @@ t.connect(name, function(socket) {
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
 
+    t.trial_data(name, {comment: true, subject: par.subject,
+                        version: t.version, params: par, stimset: stimset.stimset});
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     // initial state;
@@ -155,7 +159,7 @@ function present_stim() {
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
     t.req("change-state", {addr: "aplayer", data: {playing: true,
-                                                   stimulus: stim.filename,
+                                                   stimulus: stim.name + ".wav",
                                                    root: stimset.root}});
     t.await("aplayer", null, function(msg) { return msg && !msg.data.playing }, await_response)
 
@@ -163,6 +167,7 @@ function present_stim() {
 
 function await_response() {
     var pecked = "timeout";
+    var stim = state.stimulus;
     update_state({phase: "awaiting-response"});
 
     t.await("keys", par.response_window, _test, _exit);
@@ -171,7 +176,7 @@ function await_response() {
         if (!msg) return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
-        _.find(state.stimulus.responses, function(val, key) {
+        _.find(stim.responses, function(val, key) {
             if (msg.data[key]) {
                 pecked = key;
                 return true;
@@ -181,20 +186,65 @@ function await_response() {
     }
 
     function _exit() {
-        logger.debug("response:", pecked);
+        var conseq = "none";
+        var resp = stim.responses[pecked];
+        logger.debug("response:", pecked, resp);
         if (pecked) {
-            var consq = state.stimulus.responses[pecked];
             var rand = Math.random();
-            var p_feed = 0 + consq.p_reward;
-            var p_punish = p_feed + consq.p_punish;
+            var p_feed = 0 + (resp.p_reward || 0);
+            var p_punish = p_feed + (resp.p_punish || 0);
             if (rand < p_feed)
-                var result = "feed";
+                conseq = "feed";
             else if (rand < p_punish)
-                var result = "punish";
+                conseq = "punish";
+            logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
         }
+        t.trial_data(name, {subject: par.subject,
+                            trial: state.trial,
+                            correction: state.correction,
+                            stimulus: stim.name,
+                            category: stim.category,
+                            response: pecked,
+                            correct: resp.correct,
+                            result: conseq
+                           });
+        if (resp.correct || state.correction >= par.max_corrections)
+            state.correction = 0;
+        else
+            state.correction += 1;
+        if (conseq == "feed")
+            feed()
         await_init();
     }
 }
+
+function feed() {
+    var hopper = random_hopper();
+    update_state({phase: "feeding"})
+    t.req("change-state", {addr: hopper, data: { feeding: true, interval: par.feed_duration}});
+    t.await(hopper, null, function(msg) { return msg.data.feeding == false }, await_init)
+}
+
+function lightsout() {
+    var obj = "lights";
+    update_state({phase: "lights-out"});
+    t.req("change-state", {addr: obj, data: {clock_on: false, brightness: 0}});
+    t.await(null, par.lightsout_duration, null, function() {
+        t.req("change-state", {addr: obj, data: {clock_on: true}});
+        await_init();
+    });
+}
+
+function sleeping() {
+    update_state({phase: "sleeping"});
+    t.await("house_lights", null, function(msg) { return msg.data.daytime }, await_init);
+}
+
+function random_hopper() {
+    var i = Math.floor(Math.random() * par.hoppers.length);
+    return par.hoppers[i];
+}
+
 
 function trial(next_trial) {
 
