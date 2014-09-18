@@ -15,11 +15,12 @@ var argv = require("yargs")
 .describe("response-window", "response window duration (in ms)")
     .describe("feed-duration", "default feeding duration for correct responses (in ms)")
     .describe("lightsout-duration", "default lights out duration for incorrect responses (in ms)")
-    .describe("max-corrections", "maximum number of correction trials")
+    .describe("max-corrections", "maximum number of correction trials (0 = no corrections)")
     .describe("replace", "randomize trials with replacement")
+    .describe("correct-timeout", "correction trials for incorrect failure to respond ")
     .default({"response-window": 2000, "feed-duration": 4000,
               "lightsout-duration": 10000, "max-corrections": 10,
-              replace: false})
+              replace: false, "correct-timeout": false})
     .demand(3)
     .argv;
 
@@ -32,6 +33,7 @@ var par = {
     punish_duration: argv["lightsout-duration"],
     max_corrections: argv["max-corrections"],
     rand_replace: argv["replace"],
+    corr_timeout: argv["correct-timeout"],
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
 };
@@ -165,7 +167,9 @@ function await_response() {
                             result: conseq,
                             rtime: rtime
                            });
-        if (resp.correct || (state.correction >= par.max_corrections))
+        if (resp.correct ||
+            (pecked == "timeout" && !par.corr_timeout) ||
+            (state.correction >= par.max_corrections))
             update_state({correction: 0});
         else
             update_state({correction: state.correction + 1});
