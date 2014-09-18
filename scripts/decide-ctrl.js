@@ -10,23 +10,19 @@ var sockets = require("socket.io");
 var sock_cli = require("socket.io-client");
 var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
-var jsonl = require("../lib/jsonl");
 
 var version = require('../package.json').version;
 var host_params = util.load_config("host-config.json");
 var bbb_params = util.load_config("bbb-config.json");
 
-logger.info("this is bbb-server, version", version);
-
-var triallog = (host_params.log_local_trials) ? util.defaultdict(jsonl) : util.defaultdict(function() {});
-var eventlog = (host_params.log_local_events) ? jsonl("events.jsonl") : function() {};
+logger.info("this is decide-ctrl, version", version);
 
 // *********************************
 // HTTP server
 var app = express();
 app.enable('trust proxy');
 var server = http.Server(app);
-server.listen(host_params.port_ext);
+server.listen(host_params.port_ctrl);
 server.on("listening", function() {
     var addr = server.address();
     logger.info("server listening on %s port %s", addr.address, addr.port);
@@ -67,14 +63,6 @@ io.on("connection", function(socket) {
         logger.debug("PUB from", client_addr, msg);
         apparatus.pub.emit("state-changed", msg.addr, msg.data);
         socket.broadcast.emit("state-changed", msg);
-    });
-
-    // trial data is logged to disk locally
-    socket.on("trial-data", function(msg) {
-        logger.info("trial-data", msg);
-        // flatten the record
-        var data = _.extend(_.omit(msg, "data"), msg.data);
-        triallog(msg.data.subject + "_" + msg.addr + ".jsonl")(data);
     });
 
     // req message types
@@ -189,7 +177,6 @@ function controller(params, addr, pub) {
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
         host.emit("msg", msg);
-        eventlog(_.extend({addr: addr, time: msg.time}, data));
     });
 
     // REQ messages from the apparatus

@@ -1,0 +1,17 @@
+[Unit]
+Description=decide operant host service
+After=network-online.target
+ConditionPathExists=|/srv/decide
+
+[Service]
+ExecStart=/usr/bin/node /srv/decide/decide-host.js
+Restart=always
+StandardOutput=syslog
+SyslogIdentifier=decide-ctrl
+User=nobody
+Group=operant
+Environment=PATH=/usr/bin:/usr/local/bin:
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

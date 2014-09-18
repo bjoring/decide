@@ -8,3 +8,5 @@ pom.xml
 .lein-plugins/
 /node_modules/
 *.jsonl
+/.DS_Store
+/attic/

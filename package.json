@@ -32,7 +32,8 @@
         "node": "0.10"
     },
     "bin": {
-        "bbb-server": "scripts/bbb-server.js",
+        "decide-ctrl": "scripts/decide-ctrl.js",
+        "decide-host": "scripts/decide-host.js",
         "lights": "scripts/lights.js",
         "shape": "scripts/shape.js",
         "gng": "scripts/gng.js"
