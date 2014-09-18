@@ -244,7 +244,6 @@ function block34_peck2(side) {
     }
 }
 
-
 function random_hopper() {
     var r = Math.random();
     var i = Math.floor(r * par.hoppers.length);
