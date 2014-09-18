@@ -170,6 +170,7 @@ function await_response() {
     var stim = state.stimulus;
     update_state({phase: "awaiting-response"});
 
+    var resp_start = Date.now();
     t.await("keys", par.response_window, _test, _exit);
 
     function _test(msg) {
@@ -185,20 +186,19 @@ function await_response() {
         return pecked;
     }
 
-    function _exit() {
+    function _exit(time) {
         var conseq = "none";
         var resp = stim.responses[pecked];
         logger.debug("response:", pecked, resp);
-        if (pecked) {
-            var rand = Math.random();
-            var p_feed = 0 + (resp.p_reward || 0);
-            var p_punish = p_feed + (resp.p_punish || 0);
-            if (rand < p_feed)
-                conseq = "feed";
-            else if (rand < p_punish)
-                conseq = "punish";
-            logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
-        }
+        var rtime = (pecked == "timeout") ? null : time - resp_start;
+        var rand = Math.random();
+        var p_feed = 0 + (resp.p_reward || 0);
+        var p_punish = p_feed + (resp.p_punish || 0);
+        if (rand < p_feed)
+            conseq = "feed";
+        else if (rand < p_punish)
+            conseq = "punish";
+        logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
         t.trial_data(name, {subject: par.subject,
                             trial: state.trial,
                             correction: state.correction,
@@ -206,7 +206,8 @@ function await_response() {
                             category: stim.category,
                             response: pecked,
                             correct: resp.correct,
-                            result: conseq
+                            result: conseq,
+                            rtime: rtime
                            });
         if (resp.correct || (state.correction >= par.max_corrections))
             update_state({correction: 0});
