@@ -1,4 +1,8 @@
 {
+    "parameters": {
+        "correct_timeout": false,
+        "rand_replace": true
+    },
     "stimulus_root": "stimuli",
     "stimuli": [
         {

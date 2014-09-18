@@ -33,7 +33,7 @@ var par = {
     punish_duration: argv["lightsout-duration"],
     max_corrections: argv["max-corrections"],
     rand_replace: argv["replace"],
-    corr_timeout: argv["correct-timeout"],
+    correct_timeout: argv["correct-timeout"],
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
 };
@@ -59,6 +59,8 @@ var update_state = t.state_changer(name, state);
 
 // Parse stimset
 var stimset = new util.StimSet(argv._[2]);
+// update parameters with stimset values
+_.extend(par, stimset.config.parameters);
 
 t.connect(name, function(socket) {
 
@@ -90,7 +92,7 @@ t.connect(name, function(socket) {
     t.req("change-state", {addr: "experiment", data: par});
 
     t.trial_data(name, {comment: true, subject: par.subject,
-                        version: t.version, params: par, stimset: stimset.stimset});
+                        version: t.version, params: par, stimset: stimset.config.stimuli});
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     // initial state;
@@ -168,7 +170,7 @@ function await_response() {
                             rtime: rtime
                            });
         if (resp.correct ||
-            (pecked == "timeout" && !par.corr_timeout) ||
+            (pecked == "timeout" && !par.correct_timeout) ||
             (state.correction >= par.max_corrections))
             update_state({correction: 0});
         else
