@@ -37,7 +37,6 @@ sock.on("state-changed", function(msg) {
         if (!starboard.hasOwnProperty(msg.addr)) {
             starboard[msg.addr] = {state: {}};
         }
-        if (msg.addr == "experiment") console.log(msg.data)
         d3.entries(msg.data).forEach(function(x) {
             starboard[msg.addr].state[x.key] = x.value;
         });

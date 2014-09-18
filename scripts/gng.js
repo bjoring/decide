@@ -41,7 +41,7 @@ var argv = require("yargs")
     .describe("max-corrections", "maximum number of correction trials")
     .describe("replace", "randomize trials with replacement")
     .default({"response-window": 2000, "feed-duration": 4000,
-              "timeout-duration": 10000, "max-corrections": 10,
+              "lightsout-duration": 10000, "max-corrections": 10,
               replace: false})
     .demand(3)
     .argv;
@@ -208,13 +208,16 @@ function await_response() {
                             correct: resp.correct,
                             result: conseq
                            });
-        if (resp.correct || state.correction >= par.max_corrections)
-            state.correction = 0;
+        if (resp.correct || (state.correction >= par.max_corrections))
+            update_state({correction: 0});
         else
-            state.correction += 1;
+            update_state({correction: state.correction + 1});
         if (conseq == "feed")
-            feed()
-        await_init();
+            feed();
+        else if (conseq == "punish")
+            lightsout();
+        else
+            await_init();
     }
 }
 
@@ -226,10 +229,10 @@ function feed() {
 }
 
 function lightsout() {
-    var obj = "lights";
+    var obj = "house_lights";
     update_state({phase: "lights-out"});
     t.req("change-state", {addr: obj, data: {clock_on: false, brightness: 0}});
-    t.await(null, par.lightsout_duration, null, function() {
+    t.await(null, par.punish_duration, null, function() {
         t.req("change-state", {addr: obj, data: {clock_on: true}});
         await_init();
     });
