@@ -12,9 +12,10 @@ var argv = require("yargs")
     .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")
     .describe("F", "skip immediately to final block")
     .describe("color", "set cue color: red, green, blue")
-    .describe("notify", "if set, sends an email when the bird completes block 4")
+    .describe("no-notify", "if set, don't an email when the bird completes block 4")
     .describe("trials", "set the number of trials per block in blocks 2-3")
-    .default({color: "green", trials: 100})
+    .describe("feed-delay", "time (in ms) to wait between response and feeding")
+    .default({color: "green", trials: 100, "feed-delay": 0})
     .demand(2)
     .argv;
 
@@ -23,6 +24,7 @@ var par = {
     user: argv._[1],
     block_trials: argv.trials,  // number of trials in blocks 2+
     cue_color: argv.color,
+    feed_delay: argv["feed-delay"],
     hoppers: ["feeder_left", "feeder_right"],
     max_hopper_duty: 1,
     blink_period: 300,
@@ -102,7 +104,8 @@ function intertrial(duration, next_state) {
 
 function feed(hopper, duration, next_state) {
     update_state({phase: "feeding"})
-    t.req("change-state", {addr: hopper, data: { feeding: true, interval: duration}});
+    _.delay(t.req, par.feed_delay,
+            "change-state", {addr: hopper, data: { feeding: true, interval: duration}})
     t.await(hopper, null, function(msg) { return msg.data.feeding == false }, next_state)
 }
 
@@ -232,7 +235,7 @@ function block34_peck2(side) {
 
         if (state.block == 4 && state.trial == par.block_trials && !argv.F) {
             logger.info("shape completed!")
-            if (argv.notify)
+            if (!argv["no-notify"])
                 util.mail(name, par.user, "shape completed for " + par.subject,
                           "Subject " + par.subject + " completed shaping. Trials will continue to run.",
                          _.partial(logger.info, "sent email to", par.user))

@@ -9,6 +9,7 @@
             "name": "musicbox",
             "frequency": 1,
             "category": "S+",
+            "cue": "center_blue",
             "responses": {"peck_right": {"p_reward": 1.0, "correct": true},
                           "timeout": {"correct": false}}
         },

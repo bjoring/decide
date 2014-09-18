@@ -18,8 +18,10 @@ var argv = require("yargs")
     .describe("max-corrections", "maximum number of correction trials (0 = no corrections)")
     .describe("replace", "randomize trials with replacement")
     .describe("correct-timeout", "correction trials for incorrect failure to respond ")
+    .describe("feed-delay", "time (in ms) to wait between response and feeding")
     .default({"response-window": 2000, "feed-duration": 4000,
               "lightsout-duration": 10000, "max-corrections": 10,
+              "feed-delay": 0,
               replace: false, "correct-timeout": false})
     .demand(3)
     .argv;
@@ -34,6 +36,7 @@ var par = {
     max_corrections: argv["max-corrections"],
     rand_replace: argv["replace"],
     correct_timeout: argv["correct-timeout"],
+    feed_delay: argv["feed-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
 };
@@ -118,11 +121,13 @@ function present_stim() {
 
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
+    // TODO support multiple cue lights
+    if (stim.cue)
+        t.req("change-state", {addr: "cue_" + stim.cue, data: {brightness: 1}});
     t.req("change-state", {addr: "aplayer", data: {playing: true,
                                                    stimulus: stim.name + ".wav",
                                                    root: stimset.root}});
     t.await("aplayer", null, function(msg) { return msg && !msg.data.playing }, await_response)
-
 }
 
 function await_response() {
@@ -169,6 +174,8 @@ function await_response() {
                             result: conseq,
                             rtime: rtime
                            });
+        if (stim.cue)
+            t.req("change-state", {addr: "cue_" + stim.cue, data: {brightness: 0}})
         if (resp.correct ||
             (pecked == "timeout" && !par.correct_timeout) ||
             (state.correction >= par.max_corrections))
@@ -187,7 +194,8 @@ function await_response() {
 function feed() {
     var hopper = random_hopper();
     update_state({phase: "feeding"})
-    t.req("change-state", {addr: hopper, data: { feeding: true, interval: par.feed_duration}});
+    _.delay(t.req, par.feed_delay,
+            "change-state", {addr: hopper, data: { feeding: true, interval: par.feed_duration}})
     t.await(hopper, null, function(msg) { return msg.data.feeding == false }, await_init)
 }
 
