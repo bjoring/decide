@@ -16,6 +16,7 @@ var argv = require("yargs")
     .describe("trials", "set the number of trials per block in blocks 2-3")
     .describe("feed-delay", "time (in ms) to wait between response and feeding")
     .default({color: "green", trials: 100, "feed-delay": 0})
+    .boolean(['F'])
     .demand(2)
     .argv;
 
