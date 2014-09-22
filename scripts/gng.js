@@ -46,6 +46,8 @@ var state = {
     phase: null,
     correction: 0,
     stimulus: null,
+    "last-feed": null,
+    "last-trial": null,
 };
 
 var meta = {
@@ -122,8 +124,8 @@ function present_stim() {
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
     // TODO support multiple cue lights
-    if (stim.cue)
-        t.req("change-state", {addr: "cue_" + stim.cue, data: {brightness: 1}});
+    // if (stim.cue)
+    //     t.req("change-state", {addr: "cue_" + stim.cue, data: {brightness: 1}});
     t.req("change-state", {addr: "aplayer", data: {playing: true,
                                                    stimulus: stim.name + ".wav",
                                                    root: stimset.root}});
@@ -133,11 +135,13 @@ function present_stim() {
 function await_response() {
     var pecked = "timeout";
     var stim = state.stimulus;
-    update_state({phase: "awaiting-response"});
+    update_state({phase: "awaiting-response", "last-trial": Date.now()});
 
     var resp_start = Date.now();
+    _.map(stim.cue_resp || [], function(cue) {
+        t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
+    });
     t.await("keys", par.response_window, _test, _exit);
-
     function _test(msg) {
         if (!msg) return true;
         // test against each defined response - only set pecked if true, because
@@ -174,16 +178,18 @@ function await_response() {
                             result: conseq,
                             rtime: rtime
                            });
-        if (stim.cue)
-            t.req("change-state", {addr: "cue_" + stim.cue, data: {brightness: 0}})
+        _.map(stim.cue_resp || [], function(cue) {
+            t.req("change-state", {addr: "cue_" + cue, data: {brightness: 0}})
+        });
         if (resp.correct ||
             (pecked == "timeout" && !par.correct_timeout) ||
             (state.correction >= par.max_corrections))
             update_state({correction: 0});
         else
             update_state({correction: state.correction + 1});
-        if (conseq == "feed")
+        if (conseq == "feed") {
             feed();
+        }
         else if (conseq == "punish")
             lightsout();
         else
@@ -193,7 +199,7 @@ function await_response() {
 
 function feed() {
     var hopper = random_hopper();
-    update_state({phase: "feeding"})
+    update_state({phase: "feeding", "last-feed": Date.now()})
     _.delay(t.req, par.feed_delay,
             "change-state", {addr: hopper, data: { feeding: true, interval: par.feed_duration}})
     t.await(hopper, null, function(msg) { return msg.data.feeding == false }, await_init)
@@ -210,7 +216,7 @@ function lightsout() {
 }
 
 function sleeping() {
-    update_state({phase: "sleeping"});
+    update_state({phase: "sleeping", "last-feed": Date.now()});
     t.await("house_lights", null, function(msg) { return msg.data.daytime }, await_init);
 }
 

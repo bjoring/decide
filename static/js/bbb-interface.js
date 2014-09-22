@@ -382,7 +382,8 @@ function drawInterface() {
         .append("span")
         .attr("id", function(d) { return "state-" + d.key })
         .attr("class", "success")
-        .text(function(d) { return d.value });
+        .text(function(d) { return d.value})
+
     lines.exit().remove();
 
 
@@ -408,7 +409,9 @@ function drawInterface() {
         .append("span")
         .attr("id", function(d) { return "state-" + d.key })
         .attr("class", "success")
-        .text(function(d) { return d.value });
+        .text(function(d) { return (/^last-/.test(d.key)) ?
+                     new Date(d.value).toLocaleTimeString() :
+                     d.value });
 }
 
 /*function appendConsole(data, console) {

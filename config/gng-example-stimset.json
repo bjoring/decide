@@ -9,7 +9,7 @@
             "name": "musicbox",
             "frequency": 1,
             "category": "S+",
-            "cue": "center_blue",
+            "cue_resp": ["right_green"],
             "responses": {"peck_right": {"p_reward": 1.0, "correct": true},
                           "timeout": {"correct": false}}
         },
@@ -17,6 +17,7 @@
             "name": "musicbox_broken",
             "frequency": 1,
             "category": "S-",
+            "cue_resp": ["right_green"],
             "responses": {"peck_right": {"p_punish": 1.0, "correct": false},
                           "timeout": {"correct": true}}
         }
