@@ -121,7 +121,7 @@ io.on("connection", function(socket) {
 
     socket.on("trial-data", function(msg) {
         logger.log("pub", "trial-data", msg);
-        controller.forward("trial-data", msg);
+        kontrol.forward("trial-data", msg);
     })
 
     socket.on("disconnect", function() {
@@ -214,11 +214,17 @@ function controller(params, addr, pub) {
         if (host) host.emit(msg_t, msg);
     }
 
+    this.disconnect = function() {
+        if (host)
+            host.emit("unroute", {ret_addr: state.hostname}, function(reply) {});
+    }
+
     pub.emit("state-changed", addr, state);
 }
 
 // *********************************
 // Error handling
+
 function error(msg) {
     logger.error(msg);
     if (host_params.send_emails && apparatus.experiment && apparatus.experiment.user) {
@@ -236,7 +242,15 @@ if (host_params.send_emails) {
 }
 
 // start the controller
-var controller = apparatus.register("controller", controller, bbb_params.controller);
+var kontrol = apparatus.register("controller", controller, bbb_params.controller);
 
 // initialize the apparatus
 apparatus.init(bbb_params);
+
+function shutdown() {
+    kontrol.disconnect();
+    process.exit(0);
+}
+
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);
