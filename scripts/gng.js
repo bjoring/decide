@@ -8,7 +8,7 @@ var logger = require("../lib/log");
 var util = require("../lib/util");
 
 var name = "gng";
-var version = "1.0a1";
+var version = "1.0a2";
 
 var argv = require("yargs")
     .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com stims.json")
@@ -123,9 +123,7 @@ function present_stim() {
 
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
-    // TODO support multiple cue lights
-    // if (stim.cue)
-    //     t.req("change-state", {addr: "cue_" + stim.cue, data: {brightness: 1}});
+    // TODO cue lights during stimulus presentation
     t.req("change-state", {addr: "aplayer", data: {playing: true,
                                                    stimulus: stim.name + ".wav",
                                                    root: stimset.root}});
@@ -168,7 +166,8 @@ function await_response() {
         else if (rand < p_punish)
             conseq = "punish";
         logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
-        t.trial_data(name, {subject: par.subject,
+        t.trial_data(name, {paradigm: name,
+                            subject: par.subject,
                             trial: state.trial,
                             correction: state.correction,
                             stimulus: stim.name,
