@@ -121,7 +121,7 @@ io.on("connection", function(socket) {
 
     socket.on("trial-data", function(msg) {
         logger.log("pub", "trial-data", msg);
-        apparatus.components.controller.forward("trial-data", msg);
+        controller.forward("trial-data", msg);
     })
 
     socket.on("disconnect", function() {
@@ -236,7 +236,7 @@ if (host_params.send_emails) {
 }
 
 // start the controller
-apparatus.register("controller", controller, bbb_params.controller);
+var controller = apparatus.register("controller", controller, bbb_params.controller);
 
 // initialize the apparatus
 apparatus.init(bbb_params);

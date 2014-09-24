@@ -96,7 +96,7 @@ t.connect(name, function(socket) {
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
 
-    t.trial_data(name, {comment: true, subject: par.subject,
+    t.trial_data(name, {comment: true, subject: par.subject, program: name,
                         version: t.version, params: par, stimset: stimset.config.stimuli});
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
@@ -166,7 +166,7 @@ function await_response() {
         else if (rand < p_punish)
             conseq = "punish";
         logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
-        t.trial_data(name, {paradigm: name,
+        t.trial_data(name, {program: name,
                             subject: par.subject,
                             trial: state.trial,
                             correction: state.correction,
