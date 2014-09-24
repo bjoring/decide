@@ -10,3 +10,6 @@ pom.xml
 *.jsonl
 /.DS_Store
 /attic/
+/lib/cljs/
+/lib/decide/
+/scripts/logger.js

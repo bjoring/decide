@@ -119,6 +119,11 @@ io.on("connection", function(socket) {
             rep("err", "no address associated with this connection");
     });
 
+    socket.on("trial-data", function(msg) {
+        logger.log("pub", "trial-data", msg);
+        apparatus.components.controller.forward("trial-data", msg);
+    })
+
     socket.on("disconnect", function() {
         if (client_key) {
             error("client " + client_key + " disconnected unexpectedly")
@@ -132,8 +137,6 @@ io.on("connection", function(socket) {
 
 // *********************************
 // socket.io connection to host
-var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
-var host = sock_cli.connect(host_addr, {transports: ["websocket"]});
 
 // the controller's job is to route messages to and from the host socket
 function controller(params, addr, pub) {
@@ -152,19 +155,31 @@ function controller(params, addr, pub) {
         server: null
     }
 
-    host.on("connection", function() {
-        logger.info("connected to host socket %s", host_addr);
-        state.server = host_addr;
-        // callback(null, state);
-    });
+    if (!host_params.standalone) {
+        var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
+        var host = sock_cli.connect(host_addr, {transports: ["websocket"]});
 
-    host.on("disconnect", function() {
-        logger.info("lost connection to host (queuing messages)");
-        state.server = null;
-        // callback(null, state);
-    });
+        host.on("connect", function() {
+            logger.info("connected to host socket %s", host_addr);
+            host.emit("route", {ret_addr: state.hostname}, function(reply, data) {
+                if (reply == "err") {
+                    logger.error("error registering with host server");
+                    process.exit(-1);
+                }
+            });
+            state.server = host_params.addr_int;
+            pub.emit("state-changed", addr, {server: state.server});
+        });
 
-    // brokers PUB messages from the apparatus
+        host.on("disconnect", function() {
+            logger.info("lost connection to host (queuing messages)");
+            state.server = null;
+            pub.emit("state-changed", addr, {server: state.server});
+        });
+
+    }
+
+    // forward PUB messages from the apparatus to connected clients and host
     pub.on("state-changed", function(addr, data, time) {
         var msg = {
             addr: addr,
@@ -176,7 +191,7 @@ function controller(params, addr, pub) {
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
-        host.emit("msg", msg);
+        if (host) host.emit("state-changed", msg);
     });
 
     // REQ messages from the apparatus
@@ -194,6 +209,11 @@ function controller(params, addr, pub) {
             rep("invalid or unsupported REQ type");
     };
 
+    this.forward = function(msg_t, msg) {
+        msg.addr = state.hostname + "." + msg.addr;
+        if (host) host.emit(msg_t, msg);
+    }
+
     pub.emit("state-changed", addr, state);
 }
 
@@ -202,7 +222,7 @@ function controller(params, addr, pub) {
 function error(msg) {
     logger.error(msg);
     if (host_params.send_emails && apparatus.experiment && apparatus.experiment.user) {
-        util.mail("bbb-server", apparatus.experiment.user, msg.substr(0,30), msg);
+        util.mail("decide-ctrl", apparatus.experiment.user, msg.substr(0,30), msg);
     }
 }
 
@@ -211,7 +231,7 @@ if (host_params.send_emails) {
         var subject = "fatal exception";
         var message = err;
         logger.error("fatal error: ", err);
-        util.mail("bbb-server", host_params.mail_list, subject, message, process.exit);
+        util.mail("decide-ctrl", host_params.admin_emails, subject, message, process.exit);
     });
 }
 

@@ -4,10 +4,11 @@ var fs = require("fs");
 var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
+var _ = require("underscore");
 var logger = require("../lib/log");
 var util = require("../lib/util");
 
-var par = util.load_config("host-config.json");
+var params = util.load_config("host-config.json");
 
 var boxes = {};
 
@@ -15,7 +16,7 @@ var boxes = {};
 // HTTP servers: one facing devices, one facing clients
 var app_int = express();
 var serv_int = http.Server(app_int);
-serv_int.listen(par.port_int, par.addr_int);
+serv_int.listen(params.port_int, params.addr_int);
 serv_int.on("listening", function() {
     var addr = serv_int.address();
     logger.info("endpoint for devices: http://%s:%s", addr.address, addr.port);
@@ -24,8 +25,8 @@ serv_int.on("listening", function() {
 var app_ext = express();
 app_ext.enable('trust proxy');
 var serv_ext = http.Server(app_ext);
-// serv_ext.listen(par.port_ext, par.addr_ext);
-serv_ext.listen(8030, "localhost")
+// serv_ext.listen(params.port_ext, params.addr_ext);
+serv_ext.listen(params.port_ext, params.addr_ext)
 serv_ext.on("listening", function() {
     var addr = serv_ext.address();
     logger.info("endpoint for clients: http://%s:%s", addr.address, addr.port);
@@ -56,17 +57,12 @@ io_int.on("connection", function(socket) {
                        socket.request.connection.remoteAddress);
     logger.info("connection on internal port from:", client_addr);
 
-    // state-changed messages are forwarded to clients and logged locally
-    socket.on("state-changed", function(msg) {
-        logger.debug("PUB from", client_addr, msg);
-        io_ext.emit("state-changed", msg);
-    });
-
     // route messages are used to register the client
     socket.on("route", function(msg, rep) {
         rep = rep || function() {};
         if (client_key) {
-            rep("err", "socket is already registered as " + client_key);
+            rep("err", "connection from " + client_addr +
+                " is already registered as " + client_key);
         }
         else if (_.has(boxes, msg.ret_addr)) {
             rep("err", "address " + msg.ret_addr + " already taken");
@@ -97,6 +93,16 @@ io_int.on("connection", function(socket) {
         }
         else
             logger.info("disconnection from internal port by", client_addr)
+    })
+
+    socket.on("state-changed", function(msg) {
+        logger.log("pub", "state-changed", msg);
+        io_ext.emit("state-changed", msg);
+    })
+
+    socket.on("trial-data", function(msg) {
+        logger.log("pub", "trial-data", msg);
+        io_ext.emit("trial-data", msg);
     })
 
     // socket.on("msg", function(msg) {
@@ -145,7 +151,7 @@ io_int.on("connection", function(socket) {
     // var datalog = new(logger.Logger)({
     //     transports: [
     //         new(logger.transports.File)({
-    //             filename: __dirname + par.log_path + "/data.json",
+    //             filename: __dirname + params.log_path + "/data.json",
     //             json: true,
     //             timestamp: function() {
     //                 return Date.now();
@@ -158,7 +164,7 @@ io_int.on("connection", function(socket) {
     // var eventlog = new(logger.Logger)({
     //     transports: [
     //         new(logger.transports.File)({
-    //             filename: __dirname + par.log_path + "/eventlog.json",
+    //             filename: __dirname + params.log_path + "/eventlog.json",
     //             json: true,
     //             timestamp: function() {
     //                 return Date.now();
@@ -169,17 +175,31 @@ io_int.on("connection", function(socket) {
     // eventlog.levels.event = 3;
 });
 
+io_ext.on("connection", function(socket) {
+    var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
+                       socket.request.connection.remoteAddress);
+    logger.info("connection on external port from:", client_addr);
 
-// temporarily disabled for debugging
-// logger.info("Starting baby-sitter");
-// var babysitter = require("child_process").fork(__dirname + "/baby-sitter.js");
+    socket.on("disconnect", function() {
+        logger.info("disconnection from external port by", client_addr)
+    })
+})
 
 // *********************************
 // Error handling
-if (par.send_emails) {
+function error(msg) {
+    logger.error(msg);
+    if (params.send_email) {
+        util.mail("decide-host", par.admin_emails, msg.substr(0,30), msg);
+    }
+}
+
+if (params.send_emails) {
     process.on("uncaughtException", function(err) {
-        var subject = "Uncaught Exception";
-        var message = "Caught exception: " + err;
-        util.mail("host-server", par.mail_list, subject, message, process.exit);
+        var subject = "fatal exception";
+        var message = err;
+        logger.error("fatal error: ", err);
+        util.mail("decide-host", params.admin_emails, subject, message, process.exit);
+        process.exit(-1);
     });
 }
