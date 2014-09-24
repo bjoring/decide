@@ -11,9 +11,9 @@
   :source-paths ["src"]
 
   :cljsbuild {:builds
-              [{:source-paths ["src/logger"]
+              [{:source-paths ["src/decide"]
                 :compiler
-                {:output-to "scripts/logger.js"
+                {:output-to "scripts/server.js"
                  :output-dir "lib"
                  :optimizations :simple
                  :pretty-print true
