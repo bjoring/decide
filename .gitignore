@@ -12,4 +12,5 @@ pom.xml
 /attic/
 /lib/cljs/
 /lib/decide/
-/scripts/logger.js
+/scripts/decide-host.js
+/lib/clojure/

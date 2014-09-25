@@ -31,7 +31,9 @@
           app-external (express)
           server-external (.createServer http app-external)
           io-external (sock-io server-external)]
-      (defn connect-internal [socket]
+      (defn connect-internal
+        "function to handle connections to internal socket"
+        [socket]
         (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
                           (aget socket "request" "connection" "remoteAddress"))
               key (atom nil)]
@@ -77,6 +79,15 @@
                  (let [msg (flatten-record msg :time)
                        logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
                    (json/write-record! logfile msg))))))
+      (defn connect-external
+        "Handles socket connections from external clients"
+        [socket]
+        (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
+                          (aget socket "request" "connection" "remoteAddress"))]
+          (.info console "connection on external port from" address)
+          (.on so cket "disconnect" #(.info console "disconnection from external port by" address))
+          ;; TODO route REQs
+          ))
 
       (.enable app-external "trust proxy")
       (.on server-external "listening"
@@ -89,9 +100,11 @@
              (let [address (.address server-internal)]
                (.info console "internal endpoint is http://%s:%s" (.-address address)
                       (.-port address)))))
+      ;; set up routes for external http requests
       (-> app-external
           (.get "/controllers" (fn [req res] (.send res (clj->js @controllers)))))
       (.on io-internal "connection" connect-internal)
+      (.on io-external "connection" connect-external)
       (.listen server-external (:port_ext config) (:addr_ext config))
       (.listen server-internal (:port_int config) (:addr_int config))))
 

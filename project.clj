@@ -13,7 +13,7 @@
   :cljsbuild {:builds
               [{:source-paths ["src/decide"]
                 :compiler
-                {:output-to "scripts/server.js"
+                {:output-to "scripts/decide-host.js"
                  :output-dir "lib"
                  :optimizations :simple
                  :pretty-print true

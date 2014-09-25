@@ -20,7 +20,7 @@ Automated operant behavioral experiments involve the following processes:
    conditions.
 3. Logging of apparatus state changes, experiment events, and trial data.
 4. Automated monitoring of systems and animal behavior over long time windows to
-   ensure adequate food access.
+   detect equipment failure and ensure adequate food access.
 5. Interfaces to monitor and manipulate the apparatus and experimental progress,
    including starting and stopping experiments.
 
@@ -34,28 +34,25 @@ There are two kinds of information flow in this system. When the state of one
 component changes (for example, the animal pecks a key), the other components
 need to be notifed, so there are messages that are for broadcast (PUB). In other
 cases, one component needs to manipulate the state of another component (for
-example, the experiment control program needs to raise a food hopper to provide
-a reward), so there needs to be a system for sending requests (REQ) to specific
-parts of the system. In turn, clients need a method for discovering addresses.
+example, the experiment control program raises a food hopper to provide a
+reward), so there needs to be a system for sending requests (REQ) to specific
+parts of the system. This protocol describes these messages.
 
 ## System and network architecture
 
-Each embedded computer is connected to an array of physical devices. The current
-complement is 9 cue LEDs of various colors, 2 food hoppers, one high-power LED
-for lighting, 4 beam break detectors that act like switches (3 for peck
-responses and one to detect when a hopper has been raised), and a stereo sound
-card. Each BBB can run one operant protocol that runs an experiment by
-manipulating these components. External clients can connect via HTTP to
-manipulate and inspect the state of the apparatus and the running protocol.
+Each embedded computer (`controller`) is connected to an array of physical
+devices. The current complement is 9 cue LEDs of various colors, 2 food hoppers,
+one high-power LED for lighting, 4 beam break detectors that act like switches
+(3 for peck responses and one to detect when a hopper has been raised), and a
+stereo sound card. Each controller runs a process (`decide-ctrl`) that provides
+a mechanism for clients running on the controller or on other machines to
+monitor events and manipulate the apparatus.
 
-In addition, the BBBs can be connected to a network with a host computer that
-provides logging, monitoring, and aggregation for the connected BBBs. External
-clients can connect to this computer to manipulate and inspect any of the
-connected BBBs.
-
-A process runs on each BBB and the host computer that acts as a broker for PUB
-and REQ messages. Other processes may run on any of these computers, but should
-connect to the local broker to send or receive messages.
+In addition, `decide-ctrl` may be configured to connect over a network to a host
+computer running a process (`decide-host`) that provides additional services,
+including logging, monitoring, and statistical analysis. External clients can
+connect to this computer to manipulate and inspect any of the connected
+controllers.
 
 ## Messages
 
@@ -68,7 +65,8 @@ message type (whether PUB or REQ) followed by a javascript object `payload`.
 
 ### PUB messages
 
-PUB messages payloads much include the following fields:
+PUB messages are sent asynchronously and do not require a response. The payload
+must include the following fields:
 
 - `addr`: the address of the *source* of the message
 - `time`: a timestamp indicating when the event was created. Value is the number
@@ -90,7 +88,7 @@ Messages may have additional fields depending on the message type. Defined PUB t
 
 ### REQ messages
 
-REQ messages use an asynchronous asynchronous request-reply pattern. The controller may route some kinds of messages to specfic recipients based on an `addr` field. See next section for more information on addressing.
+REQ messages use an asynchronous request-reply pattern. They differ from PUB messages in two respects: first, the sender of the message should expect a response; second, the messages are addressed *to* specific recipients based on the `addr` field. See next section for more information on addressing. Defined REQ types:
 
 1. `change-state`: requests a modification to the state of the component
    specified by `addr`. Message must contain a `data` field with updates to the
@@ -127,10 +125,10 @@ The protocol is not only intended to support independent operation of controller
 
 In this scheme, `controller` refers to the embedded computer(s) directly managing the apparatus, and `host` refers to the computer that acts as a gateway and aggregator. The communication protocol between host and controller is essentially the same as between the controller and its other clients, with the following restrictions:
 
-1. The controller initiates communication with the host by opening PUB and REQ
-   channels to a well-known endpoint on the host. (For security reasons, this
-   endpoint should be only available on the private subnet shared by the host
-   and controllers).
+1. The controller initiates communication with the host by opening a connection
+   to a well-known endpoint on the host. (For security reasons, this endpoint
+   should be only available on the private subnet shared by the host and
+   controllers).
 2. The controller may send an REQ `route` message in order to register in the
    host's routing table. The address used by the controller in this message must
    be the controller's unqualified hostname.
@@ -142,20 +140,20 @@ In this scheme, `controller` refers to the embedded computer(s) directly managin
    must only be removed from the routing table upon receipt of an `unroute`
    message or after the connection is lost and cannot be reestablished within a
    predefined interval.
-5. The address of any PUB messages originating from the controller must be
+5. The address of any PUB messages originating from a controller must be
    prefixed by the controller with its (unqualified) hostname. Controllers are
    not required to send a `route` message prior to emitting PUB messages.
 
 The REQ channel between host and controller is bidirectional. The controller may
 emit REQs addressed to other routable clients connected to the host, and the
-host may emit REQs, typically forwarded from other clients.  The PUB channel is unidirectional; the host must not forward PUB messages from one client to another.
+host may emit REQs, typically forwarded from other clients. The PUB channel is
+unidirectional; the host must not forward PUB messages from one client to
+another.
 
-Depending on the wire protocol, keepalive messages may be used to monitor connection status. If so, these must be sent on the REQ channel using the following message type:
-
-1. `hugz`: a heartbeat message, sent by the controller to the host or vice
-   versa. The recepient must respond with `hugz-ok`. (Additional message types
-   may be needed for connection management if the wire protocol doesn't support
-   automatic reconnection).
+The host must also provide a second endpoint for connections from external
+clients, which may include other processes running on the host. Clients
+connected to the external endpoint may send REQ messages, which will be routed.
+The host must forward PUB messages from internal clients to external clients.
 
 ### Addressing
 
@@ -166,10 +164,11 @@ general identifiers on the left.
 It's probably easiest to work from examples. Say we have a host computer
 connected to one controller called `box_1`, which has two hoppers called
 `left_hopper` and `right_hopper`. The full address of the left hopper would be
-`box_1.left_hopper`. If a client is connected to the host computer, it will
-receive PUB messages from `box_1.left_hopper`, `box_1.right_hopper`, and it can
-address REQs to those addresses. It can also address a `get-state` REQ addressed
-to `box_1`, which might return a nested structure like this:
+`box_1.left_hopper`. If a client is connected to the host computer (on the
+external port), it will receive PUB messages from `box_1.left_hopper`,
+`box_1.right_hopper`, and it can address REQs to those addresses. It can also
+address a `get-state` REQ addressed to `box_1`, which might return a nested
+structure like this:
 
 ```javascript
 {
@@ -183,11 +182,9 @@ don't have the `box_1` prefix, because `box_1` is the host computer's name for
 that controller. Instead, it directly addresses `left_hopper` and
 `right_hopper`.
 
-The address prefix must *removed* by the host from REQ messages sent to controllers, because the host sends those messages over
-
-The host computer adds `box_1` to PUB messages it receives from
-the controller, and strips `box_1` from REQ messages addressed to the
-controller.
+The host must strip the leading hostname from REQ messages addressed to
+controllers; in contrast, the controller is responsible for prefixing its
+hostname to any PUB messages sent to the host.
 
 ### Experiment control
 
@@ -198,11 +195,6 @@ changes state. How do external clients communicate with `shape`? One solution is
 to have the broker treat `shape` as another component of the system. So when
 `shape` sends PUB messages to the broker, they are passed to other clients with
 the `shape` address. Similarly, clients can address REQ messages to `shape`.
-
-What about starting and stopping protocols? Let's add a component to the broker
-for that, called `experiment`. Its state is the currently running experiment, so
-clients can tell the broker to start and stop experiments by modifying the
-state.
 
 The full state dict for the broker now looks like this:
 
@@ -215,83 +207,10 @@ The full state dict for the broker now looks like this:
 }
 ```
 
-## States and state machines (in progress)
+At present, starting and stopping experiment programs must be done through the
+shell. Many experiment programs do not support external manipulation of their
+state.
 
-Each state machine's state is represented as a mapping (i.e., a composite of
-named variables). For example, the apparatus state might be represented as:
-
-```json
-{
-  "time": 1403736696.24122,
-  "cue_left": 0,
-  "cue_right": 1,
-  "cue_center": 0,
-  "key_left": 0,
-  "key_center": 0,
-  "key_right": 0,
-  "hopper_left": 0,
-  "hopper_right": 0,
-  "lights": 100
-}
-```
-
-Keys should be descriptive strings. The `time` key is reserved, but optional (as
-time is not strictly part of the state space).
-
-Values can be scalars or strings. Strings may be part of an implicit
-enumeration, but this is specified elsewhere. Arrays and mappings are
-discouraged as they complicate processing. Fields may be missing (for example,
-if they depend on the value of some other field).
-
-Some state machines are more abstract, representing a stage in a paradigm. For
-example, in a gng experiment, this state might represent the inter-trial interval:
-
-```json
-{
-   "epoch": "inter-trial",
-   "correction": false
-}
-```
-
-And this state the post-response interval:
-
-```json
-{
-   "epoch": "consequating",
-   "reward": true,
-   "hopper": left,
-   "duration": 4
-}
-```
-
-Note that fields that depend on the value of `epoch` are omitted when
-irrelevant. Omitted fields have an implicit value of null.
-
-## State space descriptors (in progress)
-
-In addition, state machines may provide information about the state space they
-occupy. Should probably be a specification for this, but nothing too fancy.
-Something similar to the state vector itself:
-
-```json
-{
-   "cue_left": {
-      "values": [0, 1],
-      "direction": "out",
-      "type": "led"
-    },
-    "key_left": {
-       "values": [0, 1],
-       "direction": "in",
-       "type": "switch"
-    }
-}
-```
-
-Probably the only required field for each element is `values`. If the options
-are discrete and finite this should be an array. Floats and strings could be
-specified by a string naming the type. Any further than this and we start
-getting meta. Other fields are purely advisory.
 
 ## Implementation Notes
 
@@ -301,7 +220,3 @@ record of manual intervention.
 Normal operation for a controller connected to a host is to forward all PUB
 messages for logging on the host. If controller dies, host should notify a
 human. If host dies, controller needs to start saving log messages.
-
-### websockets
-
-Under websockets, messages consist of a string followed by some data. All PUB messages use "msg" as their identifying string, as do all REQ messages except for the following: `route`, `unroute`, and `hugz`. These messages are sent on the REQ channel, but are not routed to specific components.
