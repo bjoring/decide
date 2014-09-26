@@ -1,4 +1,4 @@
-(defproject decide "1.0a3"
+(defproject decide "1.0.0-alpha.3"
   :description "FIXME: write this!"
   :url "http://example.com/FIXME"
 
