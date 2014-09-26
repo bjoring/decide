@@ -85,7 +85,7 @@
         (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
                           (aget socket "request" "connection" "remoteAddress"))]
           (.info console "connection on external port from" address)
-          (.on so cket "disconnect" #(.info console "disconnection from external port by" address))
+          (.on socket "disconnect" #(.info console "disconnection from external port by" address))
           ;; TODO route REQs
           ))
 
