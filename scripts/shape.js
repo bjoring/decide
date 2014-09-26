@@ -6,7 +6,7 @@ var logger = require("../lib/log");
 var util = require("../lib/util");
 
 var name = "shape";
-var version = "1.0a1";
+var version = require('../package.json').version;
 
 var argv = require("yargs")
     .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")

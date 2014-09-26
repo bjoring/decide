@@ -8,7 +8,7 @@ var logger = require("../lib/log");
 var util = require("../lib/util");
 
 var name = "gng";
-var version = "1.0a2";
+var version = require('../package.json').version;
 
 var argv = require("yargs")
     .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com stims.json")
