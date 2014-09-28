@@ -2,6 +2,7 @@
   "Host server; brokers messages from controllers and logs data"
   (:use [decide.core :only [version config mail]])
   (:require [decide.json :as json]
+            [decide.mongo :as mongo]
             [cljs.nodejs :as node]
             [clojure.string :as str]))
 
@@ -24,9 +25,15 @@
 ;; our connected clients
 (def controllers (atom {}))
 
+;; database collections
+(def events (atom nil))
+(def trials (atom nil))
+
 ;;; HTTP/sockets servers
-(defn server []
-    (let [server-internal (.createServer http (express))
+(defn server [db]
+  (reset! events (mongo/collection db "events"))
+  (reset! trials (mongo/collection db "trials"))
+  (let [server-internal (.createServer http (express))
           io-internal (sock-io server-internal)
           app-external (express)
           server-external (.createServer http app-external)
@@ -71,14 +78,16 @@
                  (.emit io-external "state-changed" msg)
                  (let [msg (flatten-record msg :time :addr)
                        logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
-                   (json/write-record! logfile msg))))
+                   (json/write-record! logfile msg)
+                   (mongo/save! @events msg))))
           (.on socket "trial-data"
                (fn [msg]
                  (.log console "pub" "state-changed" msg)
                  (.emit io-external "state-changed" msg)
                  (let [msg (flatten-record msg :time)
                        logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
-                   (json/write-record! logfile msg))))))
+                   (json/write-record! logfile msg)
+                   (mongo/save! @trials msg))))))
       (defn connect-external
         "Handles socket connections from external clients"
         [socket]
@@ -110,5 +119,8 @@
 
 (defn- main [& args]
   (.info console "this is decide host, version" version)
-  (server))
+  (mongo/connect "decide" (fn [err db]
+                            (if err
+                              (.error console "unable to connect to mongo database")
+                              (server db)))))
 (set! *main-cli-fn* main)
