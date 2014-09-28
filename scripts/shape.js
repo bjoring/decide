@@ -78,7 +78,8 @@ t.connect(name, function(socket) {
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
 
-    t.trial_data(name, {subject: par.subject, comment: true, version: version, params: par});
+    t.trial_data(name, {subject: par.subject, comment: true, program: name,
+                        version: version, params: par});
 
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
@@ -155,7 +156,8 @@ function block1_await() {
             logger.debug("trial iti:", iti);
             next_state = _.partial(intertrial, iti, block1_await);
         }
-        t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject})
+        t.trial_data(name, {program: name, subject: par.subject,
+                            block: state.block, trial: state.trial})
         feed(hopper, feed_duration, next_state);
     }
 }
