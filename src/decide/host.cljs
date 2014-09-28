@@ -25,19 +25,15 @@
 ;; our connected clients
 (def controllers (atom {}))
 
-;; database collections
-(def events (atom nil))
-(def trials (atom nil))
-
 ;;; HTTP/sockets servers
 (defn server [db]
-  (reset! events (mongo/collection db "events"))
-  (reset! trials (mongo/collection db "trials"))
   (let [server-internal (.createServer http (express))
-          io-internal (sock-io server-internal)
-          app-external (express)
-          server-external (.createServer http app-external)
-          io-external (sock-io server-external)]
+        io-internal (sock-io server-internal)
+        app-external (express)
+        server-external (.createServer http app-external)
+        io-external (sock-io server-external)
+        events (mongo/collection db "events")
+        trials (mongo/collection db "trials")]
       (defn connect-internal
         "function to handle connections to internal socket"
         [socket]
@@ -79,7 +75,7 @@
                  (let [msg (flatten-record msg :time :addr)
                        logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
                    (json/write-record! logfile msg)
-                   (mongo/save! @events msg))))
+                   (mongo/save! events msg))))
           (.on socket "trial-data"
                (fn [msg]
                  (.log console "pub" "state-changed" msg)
@@ -87,7 +83,7 @@
                  (let [msg (flatten-record msg :time)
                        logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
                    (json/write-record! logfile msg)
-                   (mongo/save! @trials msg))))))
+                   (mongo/save! trials msg))))))
       (defn connect-external
         "Handles socket connections from external clients"
         [socket]
