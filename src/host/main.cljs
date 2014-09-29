@@ -9,8 +9,13 @@
 (def http (js/require "http"))
 (def express (js/require "express"))
 (def sock-io (js/require "socket.io"))
-(def sock-cli (js/require "socket.io-client"))
 (def console (js/require "../lib/log"))
+
+;; our connected clients
+(def controllers (atom {}))
+;; database collections for logging
+(def events (atom nil))
+(def trials (atom nil))
 
 (defn- flatten-record [js & keys]
   (let [js (js->clj js :keywordize-keys true)]
@@ -22,18 +27,35 @@
     (when (:send_email config)
       (mail "decide-host" (:admins config) "major error in decide" msg))))
 
-;; our connected clients
-(def controllers (atom {}))
+(defn- log-event! [msg]
+  (let [msg (flatten-record msg :time :addr)
+        logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
+    (json/write-record! logfile msg)
+    (when @events (mongo/save! @events msg))))
+
+(defn- log-trial! [msg]
+  (let [msg (flatten-record msg :time)
+        logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
+    (json/write-record! logfile msg)
+    (when @trials (mongo/save! trials msg))))
+
+(defn- route-req
+  "generates function to route REQ messages to controller"
+  [req]
+  (fn [msg rep]
+    (let [msg (js->clj msg)
+          [addr-1 addr-2] (str/split (:addr msg) #"\.")]
+      (if-let [ctrl (@controllers addr-1)]
+        (.emit (:socket ctrl) req (clj->js (assoc msg :addr addr-2)) rep)
+        (rep "err" (str "no such controller " addr-1 " registered"))))))
 
 ;;; HTTP/sockets servers
-(defn server [db]
+(defn server []
   (let [server-internal (.createServer http (express))
         io-internal (sock-io server-internal)
         app-external (express)
         server-external (.createServer http app-external)
-        io-external (sock-io server-external)
-        events (mongo/collection db "events")
-        trials (mongo/collection db "trials")]
+        io-external (sock-io server-external)]
       (defn connect-internal
         "function to handle connections to internal socket"
         [socket]
@@ -50,7 +72,7 @@
                     (get @controllers from) (rep "err" (str "address " from " already taken"))
                     :else (do
                             (reset! key from)
-                            (swap! controllers assoc from {:address address})
+                            (swap! controllers assoc from {:address address :socket socket})
                             (.info console "%s registered as" address from)
                             (rep "ok"))))))
           (.on socket "unroute"
@@ -72,27 +94,24 @@
                (fn [msg]
                  (.log console "pub" "state-changed" msg)
                  (.emit io-external "state-changed" msg)
-                 (let [msg (flatten-record msg :time :addr)
-                       logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
-                   (json/write-record! logfile msg)
-                   (mongo/save! events msg))))
+                 (log-event! msg)))
           (.on socket "trial-data"
                (fn [msg]
-                 (.log console "pub" "state-changed" msg)
-                 (.emit io-external "state-changed" msg)
-                 (let [msg (flatten-record msg :time)
-                       logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
-                   (json/write-record! logfile msg)
-                   (mongo/save! trials msg))))))
+                 (.log console "pub" "trial-data" msg)
+                 (.emit io-external "trial-data" msg)
+                 (log-trial! msg)))))
       (defn connect-external
         "Handles socket connections from external clients"
         [socket]
         (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
                           (aget socket "request" "connection" "remoteAddress"))]
           (.info console "connection on external port from" address)
-          (.on socket "disconnect" #(.info console "disconnection from external port by" address))
-          ;; TODO route REQs
-          ))
+          ;; all req messages get routed
+          (map #(.on socket %1 (route-req [%1]))
+               ["change-state" "reset-state" "get-state" "get-meta" "get-params"])
+          ;; TODO route external clients? - do they need to be addressed?
+          (.on socket "disconnect"
+               #(.info console "disconnection from external port by" address))))
 
       (.enable app-external "trust proxy")
       (.on server-external "listening"
@@ -115,8 +134,13 @@
 
 (defn- main [& args]
   (.info console "this is decide host, version" version)
-  (mongo/connect "decide" (fn [err db]
-                            (if err
-                              (.error console "unable to connect to mongo database")
-                              (server db)))))
+  (mongo/connect "decide"
+                 (fn [err db]
+                   (if err
+                     (.warn console "unable to connect to mongo database")
+                     (do
+                       (.info console "connected to mongodb for logging")
+                       (reset! events (mongo/collection db "events"))
+                       (reset! trials (mongo/collection db "trials"))))
+                   (server))))
 (set! *main-cli-fn* main)

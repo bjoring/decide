@@ -11,10 +11,15 @@
   :source-paths ["src"]
 
   :cljsbuild {:builds
-              [{:source-paths ["src/decide"]
+              [{:source-paths ["src/host" "src/decide"]
                 :compiler
                 {:output-to "scripts/decide-host.js"
-                 :output-dir "lib"
+                 :optimizations :simple
+                 :pretty-print true
+                 :target :nodejs}}
+               {:source-paths ["src/babysitter" "src/decide"]
+                :compiler
+                {:output-to "scripts/decide-babysitter.js"
                  :optimizations :simple
                  :pretty-print true
                  :target :nodejs}}]})

@@ -11,7 +11,7 @@
 (defn connect
   ([host port db callback]
      (let [server (Server. host port)]
-       (.open (Db. db server) callback)))
+       (.open (Db. db server (clj->js {:journal true})) callback)))
   ([host db callback]
      (connect host 27017 db callback))
   ([db callback]
