@@ -132,12 +132,17 @@
       (.listen server-external (:port_ext config) (:addr_ext config))
       (.listen server-internal (:port_int config) (:addr_int config))))
 
+;;; TODO
+;; 1. publish information about unexpected disconnects by internal clients to
+;; external clients. Does this mean storing information from state-changed?
+;; 2. provide HTTP API for getting trial data - used to generate online plots
+
 (defn- main [& args]
-  (.info console "this is decide host, version" version)
+  (.info console "this is decide-host, version" version)
   (mongo/connect "decide"
                  (fn [err db]
                    (if err
-                     (.warn console "unable to connect to mongo database")
+                     (.warn console "unable to connect to log database")
                      (do
                        (.info console "connected to mongodb for logging")
                        (reset! events (mongo/collection db "events"))

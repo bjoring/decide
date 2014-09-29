@@ -1,6 +1,4 @@
 
-
-
 # Networking
 
 You can interact with a Beaglebone Black running `decide` in several ways:
@@ -35,9 +33,9 @@ In order for devices on the private network to access the Internet, you also nee
 
 Devices connecting to the private network need to be assigned IP addresses and hostnames. `dnsmasq` is a simple DHCP and DNS server that can accomplish both these tasks for small subnets.  After installing `dnsmasq`, copy `dnsmasq.conf` in this directory to `/etc/dnsmasq.conf` and restart `dnsmasq`. The BBBs should now be able to obtain IP addresses in the range `192.168.10.101` to `192.168.10.220`. Confirm that leases are listed on the host computer in `/var/lib/misc/dnsmasq.leases`, and that you can retrieve the IP address of any connected BBB as follows: `dig <bbb-name> @localhost`.
 
-## Controller daemon
+## Host daemon
 
-The program that handles communication with devices on the network is called `host-server.js` and runs in node. For debugging and testing purposes the script can be run directly, but for deployment it should be run as a daemon so that it's always available.  These instructions assume `systemd` is being used for service management.
+The program that handles communication with devices on the network is called `decide-host.js` and runs in node. For debugging and testing purposes the script can be run directly, but for deployment it should be run as a daemon so that it's always available.  These instructions assume `systemd` is being used for service management.
 
 First, make sure `node.js` and `npm` are installed. If running from source, run `npm install` in the source directory to install dependencies.  Copy `docs/decide-host.service` to `/etc/systemd/system/`
 
@@ -63,3 +61,7 @@ sophisticated authentication system.
 Copy the `static` directory to `/srv/www` on the host computer. These files will be served by the web server, which will slightly reduce the load on the devices.
 
 Start the host node.js process. In final deployment, it should run as a daemon and only accept connections from localhost. You will be able to access the host interface at https://hostname/controller. Similarly, the BBB node.js processes should run as daemons, but they will need to accept connections from external programs. Each BBB can be accessed at https://hostname/device/device-name/, where `device-name` is the hostname of the BBB.
+
+# Log database
+
+`decide-host` can use mongodb for storing log messages. The primary mongodb server should run locally on the host, but you may wish to configure the mongdb server to replicate its data to another machine.

@@ -10,7 +10,4 @@ pom.xml
 *.jsonl
 /.DS_Store
 /attic/
-/lib/cljs/
-/lib/decide/
 /scripts/decide-host.js
-/lib/clojure/
