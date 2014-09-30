@@ -3,23 +3,22 @@
 
 (def mongodb (js/require "mongodb"))
 
-(def ^:export Db (aget mongodb "Db"))
-(def ^:export Server (aget mongodb "Server"))
+(def ^:export Client (aget mongodb "MongoClient"))
 (def ^:export Collection (aget mongodb "Collection"))
 (def ^:export ObjectID (aget mongodb "ObjectID"))
 
 (defn connect
-  ([host port db callback]
-     (let [server (Server. host port)]
-       (.open (Db. db server (clj->js {:journal true})) callback)))
-  ([host db callback]
-     (connect host 27017 db callback))
-  ([db callback]
-     (connect "localhost" db callback)))
+  [uri callback]
+  (.connect Client uri callback))
 
 (defn collection [db coll]
   (Collection. db coll))
 
-(defn save! [coll doc]
-  (let [doc (clj->js doc)]
-    (.save coll doc)))
+(defn save!
+  ([coll doc]
+     (let [doc (clj->js doc)]
+       (.save coll doc)))
+  ([coll doc callback]
+     (let [doc (clj->js doc)
+           opts (js-obj "journal" true)]
+       (.save coll doc opts callback))))

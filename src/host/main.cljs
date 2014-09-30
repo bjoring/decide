@@ -25,19 +25,23 @@
   (let [msg (apply str args)]
     (.error console msg)
     (when (:send_email config)
+      ;; TODO send emails on first instance of certain error classes
       (mail "decide-host" (:admins config) "major error in decide" msg))))
+
+(defn- log-callback [err msg]
+  (when err (.error console "error saving log data" err)))
 
 (defn- log-event! [msg]
   (let [msg (flatten-record msg :time :addr)
         logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
     (json/write-record! logfile msg)
-    (when @events (mongo/save! @events msg))))
+    (when @events (mongo/save! @events msg log-callback))))
 
 (defn- log-trial! [msg]
   (let [msg (flatten-record msg :time)
         logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
     (json/write-record! logfile msg)
-    (when @trials (mongo/save! trials msg))))
+    (when @trials (mongo/save! trials msg log-callback))))
 
 (defn- route-req
   "generates function to route REQ messages to controller"
@@ -139,13 +143,14 @@
 
 (defn- main [& args]
   (.info console "this is decide-host, version" version)
-  (mongo/connect "decide"
-                 (fn [err db]
-                   (if err
-                     (.warn console "unable to connect to log database")
-                     (do
-                       (.info console "connected to mongodb for logging")
-                       (reset! events (mongo/collection db "events"))
-                       (reset! trials (mongo/collection db "trials"))))
-                   (server))))
+  (when-let [mongo-uri (:log_db config)]
+    (mongo/connect mongo-uri
+                   (fn [err db]
+                     (if err
+                       (.error console "unable to connect to log database at " mongo-uri)
+                       (do
+                         (.info console "connected to mongodb for logging")
+                         (reset! events (mongo/collection db "events"))
+                         (reset! trials (mongo/collection db "trials"))))
+                     (server)))))
 (set! *main-cli-fn* main)
