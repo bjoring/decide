@@ -15,6 +15,7 @@
   (Collection. db coll))
 
 (defn save!
+  "Saves a doc to database coll, optionally calling callback when done"
   ([coll doc]
      (let [doc (clj->js doc)]
        (.save coll doc)))
@@ -22,3 +23,12 @@
      (let [doc (clj->js doc)
            opts (js-obj "journal" true)]
        (.save coll doc opts callback))))
+
+(defn find-all
+  "Returns all documents matching query in coll"
+  [coll query callback]
+  (.find coll (clj->js query)
+         (fn [err cursor]
+           (if err
+             (callback err)
+             (.toArray cursor callback)))))

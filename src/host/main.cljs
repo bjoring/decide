@@ -17,7 +17,9 @@
 (def events (atom nil))
 (def trials (atom nil))
 
-(defn- flatten-record [js & keys]
+(defn- flatten-record
+  "Returns (:data js) plus any of :keys present in js"
+  [js & keys]
   (let [js (js->clj js :keywordize-keys true)]
     (merge (select-keys js keys) (:data js))))
 
@@ -29,7 +31,7 @@
       (mail "decide-host" (:admins config) "major error in decide" msg))))
 
 (defn- log-callback [err msg]
-  (when err (.error console "error saving log data" err)))
+  (when err (.error console "unable to write log record to database" err)))
 
 (defn- log-event! [msg]
   (let [msg (flatten-record msg :time :addr)
@@ -52,6 +54,18 @@
       (if-let [ctrl (@controllers addr-1)]
         (.emit (:socket ctrl) req (clj->js (assoc msg :addr addr-2)) rep)
         (rep "err" (str "no such controller " addr-1 " registered"))))))
+
+(defn send-trials
+  "Sends all the trials for a subject"
+  [req res]
+  (let [subject (aget req "params" "subject")
+        query (merge {"subject" subject} (js->clj (aget req "query")))]
+    (mongo/find-all @trials query
+                    (fn [err docs]
+                      (.set res "Content-Type" "application/json")
+                      (if err
+                        (.send res 500 err)
+                        (.json res docs))))))
 
 ;;; HTTP/sockets servers
 (defn server []
@@ -130,7 +144,8 @@
                       (.-port address)))))
       ;; set up routes for external http requests
       (-> app-external
-          (.get "/controllers" (fn [req res] (.send res (clj->js @controllers)))))
+          (.get "/controllers" (fn [req res] (.send res (clj->js @controllers))))
+          (.get "/trials/:subject" send-trials))
       (.on io-internal "connection" connect-internal)
       (.on io-external "connection" connect-external)
       (.listen server-external (:port_ext config) (:addr_ext config))
