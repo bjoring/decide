@@ -64,4 +64,7 @@ Start the host node.js process. In final deployment, it should run as a daemon a
 
 # Log database
 
-`decide-host` can use mongodb for storing log messages. The primary mongodb server should run locally on the host, but you may wish to configure the mongdb server to replicate its data to another machine.
+`decide-host` can use mongodb for storing log messages. The primary mongodb
+server should run locally on the host, but you may wish to configure the mongdb
+server to replicate its data to another machine. Setting up the database server
+is beyond the scope of this document. To use mongodb logging, set the "log_db" key in `host-config.json` to the uri of the database.
