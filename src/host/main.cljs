@@ -11,6 +11,11 @@
 (def sock-io (js/require "socket.io"))
 (def console (js/require "../lib/log"))
 
+;; external http app
+(def app (express))
+;; sockets
+(def io-internal (atom nil))
+(def io-external (atom nil))
 ;; our connected clients
 (def controllers (atom {}))
 ;; database collections for logging
@@ -33,20 +38,24 @@
 (defn- log-callback [err msg]
   (when err (.error console "unable to write log record to database" err)))
 
-(defn- log-event! [msg]
+(defn- log-event!
+  "Logs msg to the event log and (if connected) the event database"
+  [msg]
   (let [msg (flatten-record msg :time :addr)
         logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
     (json/write-record! logfile msg)
     (when @events (mongo/save! @events msg log-callback))))
 
-(defn- log-trial! [msg]
+(defn- log-trial!
+  "Logs msg to the trial log and (if connected) the trial database"
+  [msg]
   (let [msg (flatten-record msg :time)
         logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
     (json/write-record! logfile msg)
     (when @trials (mongo/save! trials msg log-callback))))
 
 (defn- route-req
-  "generates function to route REQ messages to controller"
+  "Generates function to route REQ messages to controller"
   [req]
   (fn [msg rep]
     (let [msg (js->clj msg)
@@ -55,7 +64,93 @@
         (.emit (:socket ctrl) req (clj->js (assoc msg :addr addr-2)) rep)
         (rep "err" (str "no such controller " addr-1 " registered"))))))
 
-(defn send-trials
+(defn- remove-controller!
+  "Unregisters a controller. Returns the new controllers value if successful; nil if not"
+  [name]
+  (when-let [data (get @controllers name)]
+    (.info console "%s unregistered as" (data :address) name)
+    (swap! controllers dissoc name)))
+
+(defn- connect-internal
+  "Handles connections to internal socket"
+  [socket]
+  (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
+                    (aget socket "request" "connection" "remoteAddress"))
+        key (atom nil)]
+    (.info console "connection on internal port from" address)
+    (-> socket
+        (.on "route"
+         (fn [msg rep]
+           (let [msg (js->clj msg :keywordize-keys true)
+                 from (msg :ret_addr)]
+             (cond
+              @key (rep "err" (str "connection from " address " already registered as " @key))
+              (get @controllers from) (rep "err" (str "address " from " already taken"))
+              :else (do
+                      (reset! key from)
+                      (swap! controllers assoc from {:address address :socket socket})
+                      (.info console "%s registered as" address from)
+                      (rep "ok"))))))
+        (.on "unroute"
+             (fn [msg rep]
+               (when (remove-controller! @key)
+                 (reset! key nil))
+               (rep "ok")))
+        (.on "disconnect"
+         (fn []
+           (.info console "disconnection from internal port by" address)
+           (when (remove-controller! @key)
+             (error "client " @key " disconnected unexpectedly")
+             (reset! key nil))))
+        (.on "state-changed"
+         (fn [msg]
+           (.log console "pub" "state-changed" msg)
+           (.emit @io-external "state-changed" msg)
+           (log-event! msg)))
+        (.on "trial-data"
+         (fn [msg]
+           (.log console "pub" "trial-data" msg)
+           (.emit @io-external "trial-data" msg)
+           (log-trial! msg))))))
+
+
+(defn connect-external
+  "Handles socket connections from external clients"
+  [socket]
+  (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
+                    (aget socket "request" "connection" "remoteAddress"))]
+    (.info console "connection on external port from" address)
+    ;; all req messages get routed
+    (map #(.on socket % (route-req %))
+         ["change-state" "reset-state" "get-state" "get-meta" "get-params"])
+    ;; TODO route external clients? - do they need to be addressed?
+    (.on socket "disconnect"
+         #(.info console "disconnection from external port by" address))))
+
+;;; HTTP/sockets servers
+(defn server []
+  (let [server-internal (.createServer http (express))
+        server-external (.createServer http app)]
+    (reset! io-internal (sock-io server-internal))
+    (reset! io-external (sock-io server-external))
+    (.enable app "trust proxy")
+    (.on server-external "listening"
+         (fn []
+           (let [address (.address server-external)]
+             (.info console "external endpoint is http://%s:%s" (.-address address)
+                    (.-port address)))))
+    (.on server-internal "listening"
+         (fn []
+           (let [address (.address server-internal)]
+             (.info console "internal endpoint is http://%s:%s" (.-address address)
+                    (.-port address)))))
+    (.on @io-internal "connection" connect-internal)
+    (.on @io-external "connection" connect-external)
+    (.listen server-external (:port_ext config) (:addr_ext config))
+    (.listen server-internal (:port_int config) (:addr_int config))))
+
+;; HTTP methods
+(defn- send-trials
   "Sends all the trials for a subject"
   [req res]
   (let [subject (aget req "params" "subject")
@@ -67,94 +162,15 @@
                         (.send res 500 err)
                         (.json res docs))))))
 
-;;; HTTP/sockets servers
-(defn server []
-  (let [server-internal (.createServer http (express))
-        io-internal (sock-io server-internal)
-        app-external (express)
-        server-external (.createServer http app-external)
-        io-external (sock-io server-external)]
-      (defn connect-internal
-        "function to handle connections to internal socket"
-        [socket]
-        (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
-                          (aget socket "request" "connection" "remoteAddress"))
-              key (atom nil)]
-          (.info console "connection on internal port from" address)
-          (.on socket "route"
-               (fn [msg rep]
-                 (let [msg (js->clj msg :keywordize-keys true)
-                       from (msg :ret_addr)]
-                   (cond
-                    @key (rep "err" (str "connection from " address " already registered as " @key))
-                    (get @controllers from) (rep "err" (str "address " from " already taken"))
-                    :else (do
-                            (reset! key from)
-                            (swap! controllers assoc from {:address address :socket socket})
-                            (.info console "%s registered as" address from)
-                            (rep "ok"))))))
-          (.on socket "unroute"
-               (fn [msg rep]
-                 (when @key
-                   (.info console "%s unregistered as" address @key)
-                   (swap! controllers dissoc @key)
-                   (reset! key nil))
-                 (rep "ok")))
-          (.on socket "disconnect"
-               (fn []
-                 (if @key
-                   (do
-                     (error "client " @key " disconnected unexpectedly")
-                     (swap! controllers dissoc @key)
-                     (reset! key nil))
-                   (.info console "disconnection from internal port by" address))))
-          (.on socket "state-changed"
-               (fn [msg]
-                 (.log console "pub" "state-changed" msg)
-                 (.emit io-external "state-changed" msg)
-                 (log-event! msg)))
-          (.on socket "trial-data"
-               (fn [msg]
-                 (.log console "pub" "trial-data" msg)
-                 (.emit io-external "trial-data" msg)
-                 (log-trial! msg)))))
-      (defn connect-external
-        "Handles socket connections from external clients"
-        [socket]
-        (let [address (or (aget socket "handshake" "headers" "x-forwarded-for")
-                          (aget socket "request" "connection" "remoteAddress"))]
-          (.info console "connection on external port from" address)
-          ;; all req messages get routed
-          (map #(.on socket %1 (route-req [%1]))
-               ["change-state" "reset-state" "get-state" "get-meta" "get-params"])
-          ;; TODO route external clients? - do they need to be addressed?
-          (.on socket "disconnect"
-               #(.info console "disconnection from external port by" address))))
-
-      (.enable app-external "trust proxy")
-      (.on server-external "listening"
-           (fn []
-             (let [address (.address server-external)]
-               (.info console "external endpoint is http://%s:%s" (.-address address)
-                      (.-port address)))))
-      (.on server-internal "listening"
-           (fn []
-             (let [address (.address server-internal)]
-               (.info console "internal endpoint is http://%s:%s" (.-address address)
-                      (.-port address)))))
-      ;; set up routes for external http requests
-      (-> app-external
-          (.get "/controllers" (fn [req res] (.send res (clj->js @controllers))))
-          (.get "/trials/:subject" send-trials))
-      (.on io-internal "connection" connect-internal)
-      (.on io-external "connection" connect-external)
-      (.listen server-external (:port_ext config) (:addr_ext config))
-      (.listen server-internal (:port_int config) (:addr_int config))))
+(-> app
+    (.get "/" #(.sendfile %2 "host.html"
+                          (js-obj "root" (str node/__dirname "/../static"))))
+    (.get "/controllers" #(.send %2 (clj->js (keys @controllers))))
+    (.get "/trials/:subject" send-trials))
 
 ;;; TODO
 ;; 1. publish information about unexpected disconnects by internal clients to
 ;; external clients. Does this mean storing information from state-changed?
-;; 2. provide HTTP API for getting trial data - used to generate online plots
 
 (defn- main [& args]
   (.info console "this is decide-host, version" version)

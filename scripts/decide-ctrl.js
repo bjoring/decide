@@ -29,7 +29,7 @@ server.on("listening", function() {
 })
 
 app.get("/", function(req, res) {
-    res.sendfile("interface.html", {root: __dirname + "/../static/"});
+    res.sendfile("controller.html", {root: __dirname + "/../static/"});
 });
 
 app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
