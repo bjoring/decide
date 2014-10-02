@@ -34,8 +34,8 @@
 
         // need to force socket.io to use a relative path in case we are proxied
         var sock = io.connect("/", {path: location.pathname + "socket.io"});
-        sock.on("state-changed", function() {
-            if (msg.addr == "") {
+        sock.on("state-changed", function(msg) {
+            if (msg.addr == "_controllers") {
                controllers = msg.data;
                drawDirectory();
             }
@@ -52,13 +52,13 @@
 
         function drawDirectory() {
             var el = d3.select("#controller-list").selectAll("li")
-                .data(d3.entries(controllers), function(d) { return d.key});
+                .data(controllers);
 
             el.enter()
                 .append("li")
                 .append("a")
-                .attr("href", function(d) { return "/device/" + d.key + "/"})
-                .text(function(d) { return d.key});
+                .attr("href", function(d) { return "/device/" + d + "/"})
+                .text(function(d) { return d});
 
             el.exit().remove();
         }

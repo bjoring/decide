@@ -6,6 +6,7 @@
             [cljs.nodejs :as node]
             [clojure.string :as str]))
 
+(def Date (js* "Date"))
 (def __dirname (js* "__dirname"))
 (def http (js/require "http"))
 (def express (js/require "express"))
@@ -22,6 +23,8 @@
 ;; database collections for logging
 (def events (atom nil))
 (def trials (atom nil))
+
+(defn- list-controllers [] (or (keys @controllers) []))
 
 (defn- flatten-record
   "Returns (:data js) plus any of :keys present in js"
@@ -65,10 +68,10 @@
         (.emit (:socket ctrl) req (clj->js (assoc msg :addr addr-2)) rep)
         (rep "err" (str "no such controller " addr-1 " registered"))))))
 
-(defn export-controllers
-  "Returns a sanitized version of the controllers structure for export"
-  []
-  (into {} (for [[k v] @controllers] [k (select-keys v [:address])])))
+(defn state-changed
+  [name data]
+  (.emit @io-external "state-changed"
+           (js-obj "addr" name "time" (.now Date) "data" (clj->js data))))
 
 (defn- remove-controller!
   "Unregisters a controller. Returns the new controllers value if successful; nil if not"
@@ -76,8 +79,7 @@
   (when-let [data (get @controllers name)]
     (.info console "%s unregistered as" (data :address) name)
     (swap! controllers dissoc name)
-    (.emit @io-external "state-changed"
-           (js-obj "addr" "" "time" (.now Date) "data" (clj->js (export-controllers))))))
+    (state-changed "_controllers" (list-controllers))))
 
 (defn- connect-internal
   "Handles connections to internal socket"
@@ -97,7 +99,7 @@
               :else (do
                       (reset! key from)
                       (swap! controllers assoc from {:address address :socket socket})
-                      (.emit @io-external "state-changed" (clj->js (export-controllers)))
+                      (state-changed "_controllers" (list-controllers))
                       (.info console "%s registered as" address from)
                       (rep "ok"))))))
         (.on "unroute"
@@ -174,9 +176,9 @@
 (-> app
     (.get "/" #(.sendfile %2 "host.html"
                           (js-obj "root" (str __dirname "/../static"))))
-    (.get "/controllers" #(.send %2 (clj->js (export-controllers))))
+    (.get "/controllers" #(.send %2 (clj->js (list-controllers))))
     (.get "/trials/:subject" send-trials)
-    (.use "/static" (.static express (str __dirname "/../static"))))
+    (.use "/static" ((aget express "static") (str __dirname "/../static"))))
 
 ;;; TODO
 ;; 1. publish information about unexpected disconnects by internal clients to
