@@ -53,7 +53,7 @@
   (let [msg (flatten-record msg :time)
         logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
     (json/write-record! logfile msg)
-    (when @trials (mongo/save! trials msg log-callback))))
+    (when @trials (mongo/save! @trials msg log-callback))))
 
 (defn- route-req
   "Generates function to route REQ messages to controller"
