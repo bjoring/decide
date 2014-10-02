@@ -34,9 +34,11 @@
 
         // need to force socket.io to use a relative path in case we are proxied
         var sock = io.connect("/", {path: location.pathname + "socket.io"});
-        sock.on("state-changed", function(data) {
-            controllers = data;
-            drawDirectory();
+        sock.on("state-changed", function() {
+            if (msg.addr == "") {
+               controllers = msg.data;
+               drawDirectory();
+            }
         })
 
         d3.json("controllers", function(err, data) {

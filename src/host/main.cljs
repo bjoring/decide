@@ -76,7 +76,8 @@
   (when-let [data (get @controllers name)]
     (.info console "%s unregistered as" (data :address) name)
     (swap! controllers dissoc name)
-    (.emit @io-external "state-changed" (clj->js (export-controllers)))))
+    (.emit @io-external "state-changed"
+           (js-obj "addr" "" "time" (.now Date) "data" (clj->js (export-controllers))))))
 
 (defn- connect-internal
   "Handles connections to internal socket"
