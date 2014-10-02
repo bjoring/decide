@@ -17,8 +17,9 @@
       <div data-role="header" class="hbar">
         <h3>Starboard Directory</h3>
       </div>
-      <div id="boxlist">
-        <p class="ahead">Registered Boxes</p>
+      <div id="console">
+        <p class="ahead">Registered Controllers</p>
+        <ul id="controller-list"></ul>
       </div>
 
       <script src="/static/js/jquery-1.9.1.min.js"></script>
@@ -33,53 +34,31 @@
 
         // need to force socket.io to use a relative path in case we are proxied
         var sock = io.connect("/", {path: location.pathname + "socket.io"});
+        sock.on("state-changed", function(data) {
+            controllers = data;
+            drawDirectory();
+        })
 
         d3.json("controllers", function(err, data) {
+            console.log(data);
             if (err) console.warn(err);
             else {
                 controllers = data;
                 drawDirectory();
+            }
+        });
 
-
-                                        pub.on("disconnect", function(){
-                                                alert("Error: Disconnected from PUB channel.")
-                                        })
-
-                                        req.on("disconnect", function(){
-                                                alert("Error: Disconnected from REQ channel.")
-                                        })
-
-                                        pub.on("msg", function(msg) {
-                                                if (msg.event == "box-registered") {
-                                                        boxes[msg.data.name] = msg.data;
-                                                        drawDirectory();
-                                                } else if (msg.event == "box-unregistered") {
-                                                        delete boxes[msg.data.name];
-                                                        drawDirectory();
-                                                }
-                                        });
-                                }
-                        }
-               );
         function drawDirectory() {
-                var data = d3.entries(boxes);
+            var el = d3.select("#controller-list").selectAll("li")
+                .data(d3.entries(controllers), function(d) { return d.key});
 
-                var boxlist = d3.select("#boxlist");
-                boxlist.selectAll(".abox").remove();
-                boxlist.selectAll(".abox")
-                        .data(data)
-                        .enter()
-                        .append("p")
-                        .attr("class", "abox")
-                        .append("a")
-                        .attr("href", function(d) {
-                                console.log(d);
-                                var link = "/device/" + d.value.name + "/";
-                                return link;
-                        })
-                        .text(function(d) {
-                                return d.key;
-                        });
+            el.enter()
+                .append("li")
+                .append("a")
+                .attr("href", function(d) { return "/device/" + d.key + "/"})
+                .text(function(d) { return d.key});
+
+            el.exit().remove();
         }
         </script>
   </body>

@@ -6,6 +6,7 @@
             [cljs.nodejs :as node]
             [clojure.string :as str]))
 
+(def __dirname (js* "__dirname"))
 (def http (js/require "http"))
 (def express (js/require "express"))
 (def sock-io (js/require "socket.io"))
@@ -64,12 +65,18 @@
         (.emit (:socket ctrl) req (clj->js (assoc msg :addr addr-2)) rep)
         (rep "err" (str "no such controller " addr-1 " registered"))))))
 
+(defn export-controllers
+  "Returns a sanitized version of the controllers structure for export"
+  []
+  (into {} (for [[k v] @controllers] [k (select-keys v [:address])])))
+
 (defn- remove-controller!
   "Unregisters a controller. Returns the new controllers value if successful; nil if not"
   [name]
   (when-let [data (get @controllers name)]
     (.info console "%s unregistered as" (data :address) name)
-    (swap! controllers dissoc name)))
+    (swap! controllers dissoc name)
+    (.emit @io-external "state-changed" (clj->js (export-controllers)))))
 
 (defn- connect-internal
   "Handles connections to internal socket"
@@ -89,6 +96,7 @@
               :else (do
                       (reset! key from)
                       (swap! controllers assoc from {:address address :socket socket})
+                      (.emit @io-external "state-changed" (clj->js (export-controllers)))
                       (.info console "%s registered as" address from)
                       (rep "ok"))))))
         (.on "unroute"
@@ -164,9 +172,10 @@
 
 (-> app
     (.get "/" #(.sendfile %2 "host.html"
-                          (js-obj "root" (str node/__dirname "/../static"))))
-    (.get "/controllers" #(.send %2 (clj->js (keys @controllers))))
-    (.get "/trials/:subject" send-trials))
+                          (js-obj "root" (str __dirname "/../static"))))
+    (.get "/controllers" #(.send %2 (clj->js (export-controllers))))
+    (.get "/trials/:subject" send-trials)
+    (.use "/static" (.static express (str __dirname "/../static"))))
 
 ;;; TODO
 ;; 1. publish information about unexpected disconnects by internal clients to
@@ -174,6 +183,7 @@
 
 (defn- main [& args]
   (.info console "this is decide-host, version" version)
+  (.info console (str __dirname "/../static"))
   (when-let [mongo-uri (:log_db config)]
     (mongo/connect mongo-uri
                    (fn [err db]
