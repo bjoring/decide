@@ -50,6 +50,21 @@ app.use("/static", express.static(__dirname + "/../static"));
 // socket.io server
 var io = sockets(server);
 
+function register_req(sock) {
+    var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
+    req_msg.forEach( function(req) {
+        sock.on(req, function(msg, rep) {
+            rep = rep || function() {};
+            apparatus.req(req, msg.addr, msg.data, function(err, data) {
+                if (err)
+                    rep("err", err);
+                else
+                    rep("ok", data);
+            });
+        });
+    });
+}
+
 io.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.request.connection.remoteAddress);
@@ -65,20 +80,7 @@ io.on("connection", function(socket) {
         socket.broadcast.emit("state-changed", msg);
     });
 
-    // req message types
-    var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
-    req_msg.forEach( function(req) {
-        socket.on(req, function(msg, rep) {
-            rep = rep || function() {};
-            logger.debug("REQ from", client_addr, req, msg);
-            apparatus.req(req, msg.addr, msg.data, function(err, data) {
-                if (err)
-                    rep("err", err);
-                else
-                    rep("ok", data);
-            });
-        });
-    });
+    register_req(socket);
 
     // routing requests are always handled by the controller/broker
     socket.on("route", function(msg, rep) {
@@ -176,6 +178,9 @@ function controller(params, addr, pub) {
             state.server = null;
             pub.emit("state-changed", addr, {server: state.server});
         });
+
+        // req messages from the host
+        register_req(host);
 
     }
 

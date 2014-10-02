@@ -56,11 +56,17 @@ t.connect(name, function(socket) {
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
+    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
+                        version: version, params: par});
     // start first state
     t.ephemera(t.state_changer(name, state));
 });
 
+function shutdown() {
+    t.trial_data(name, {comment: "stopping", subject: par.subject, program: name})
+    t.disconnect(process.exit);
+}
 
 // disconnect will reset apparatus to base statet
-process.on("SIGINT", t.disconnect);
-process.on("SIGTERM", t.disconnect);
+process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdown);

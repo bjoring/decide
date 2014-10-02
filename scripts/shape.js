@@ -78,7 +78,7 @@ t.connect(name, function(socket) {
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
 
-    t.trial_data(name, {subject: par.subject, comment: true, program: name,
+    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
                         version: version, params: par});
 
     // start state machine for monitoring daytime
@@ -90,6 +90,7 @@ t.connect(name, function(socket) {
 });
 
 function shutdown() {
+    t.trial_data(name, {comment: "stopping", subject: par.subject, program: name})
     t.disconnect(process.exit);
 }
 

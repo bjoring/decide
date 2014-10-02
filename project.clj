@@ -1,6 +1,6 @@
-(defproject decide "1.0.0-alpha.3"
-  :description "FIXME: write this!"
-  :url "http://example.com/FIXME"
+(defproject decide "1.0.0-alpha.4"
+  :description "operant control system"
+  :url "http://meliza.org/starboard"
 
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/clojurescript "0.0-2173"]
