@@ -1,8 +1,11 @@
 (ns decide.core
-  (:require [decide.json :as json]))
+  (:require [decide.json :as json]
+            [goog.string :as gstring]
+            [goog.string.format]))
 
 (def os (js/require "os"))
 (def path (js/require "path"))
+(def console (js/require "../lib/log"))
 (def mailer (.createTransport (js/require "nodemailer")))
 
 (def version "1.0.0-alpha.3")                   ; TODO get this from project.clj
@@ -15,4 +18,8 @@
                             "to" to
                             "subject" subject
                             "text" message)
-             (fn [])))
+             (fn [err info]
+               (when err (.error console "unable to send email:" err)))))
+
+(defn format [fmt & args]
+  (apply gstring/format fmt args))

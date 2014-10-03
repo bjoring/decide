@@ -27,8 +27,11 @@
 (defn find-all
   "Returns all documents matching query in coll"
   [coll query callback]
-  (.find coll (clj->js query)
-         (fn [err cursor]
-           (if err
-             (callback err)
-             (.toArray cursor callback)))))
+  (-> (.find coll (clj->js query))
+      (.toArray callback)))
+
+(defn find-one
+  "Returns first document matching query in coll or nil if no match"
+  [coll query callback]
+  (.findOne coll (clj->js query)
+            (fn [err result] (callback result))))

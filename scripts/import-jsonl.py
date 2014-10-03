@@ -8,8 +8,12 @@ Make sure to add unique indices to your collections to avoid importing duplicate
 db.events.ensureIndex({"time":1, "addr": 1}, {unique: true})
 db.trials.ensureIndex({"time":1, "subject": 1}, {unique: true})
 
+However, you should probably make the event index non-unique afterwards, as in
+some cases events may have the same time and address.
+
 Copyright (C) 2014 Dan Meliza <dmeliza@gmail.com>
 Created Wed Oct  1 14:38:34 2014
+
 """
 
 # python 3 compatibility

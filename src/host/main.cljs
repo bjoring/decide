@@ -1,17 +1,17 @@
 (ns decide.host
   "Host server; brokers messages from controllers and logs data"
-  (:use [decide.core :only [version config mail]])
+  (:use [decide.core :only [version config mail console]])
   (:require [decide.json :as json]
             [decide.mongo :as mongo]
             [cljs.nodejs :as node]
             [clojure.string :as str]))
 
 (def Date (js* "Date"))
+(def JSON (js* "JSON"))
 (def __dirname (js* "__dirname"))
 (def http (js/require "http"))
 (def express (js/require "express"))
 (def sock-io (js/require "socket.io"))
-(def console (js/require "../lib/log"))
 
 ;; external http app
 (def app (express))
@@ -186,7 +186,6 @@
 
 (defn- main [& args]
   (.info console "this is decide-host, version" version)
-  (.info console (str __dirname "/../static"))
   (when-let [mongo-uri (:log_db config)]
     (mongo/connect mongo-uri
                    (fn [err db]
