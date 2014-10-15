@@ -7,10 +7,10 @@
 
 ;; things the babysitter monitors (for each subject / controller)
 ;;
-;; - hopper malfunctions (checks beam break events against hopper events)
-;; - unexpected disconnections / program failures
-;; - number of trials and feed events over some window
-;; - daily statistics for each subject - running avg and std dev
+;; 1. hopper malfunctions (checks beam break events against hopper events)
+;; 2. unexpected disconnections / program failures
+;; 3. number of trials and feed events over some window
+;; 4. daily statistics for each subject - running avg and std dev
 
 ;; how to keep track of state in this paradigm? Atoms and/or mongodb. DB has
 ;; major advantage of maintaining state if program exits. Can it be the only
@@ -23,35 +23,44 @@
 
 ;; There are really two parts to this process. One is to digest state-changed
 ;; and trial-data messages to update state. The other is to analyze the state
-;; and notify the user if there are problems.
+;; and notify the user if there are problems. Conceivably the analysis could be
+;; split out into a separate program that operates directly on the database, in
+;; which case this process would only need to do tasks 1 and 2 above.
 
 (def sock-cli (js/require "socket.io-client"))
 
 (def prog-name "decide-babysitter")
-(def subjects (atom {}))
+(def subjects (atom nil))
 
-(defn- prog-start-data
+(defn- prog-comment-data
   "Returns useful information from program startup message"
   [trial-data]
   (let [data (:data trial-data)]
     {:subject (:subject data)
      :controller (-> trial-data :addr (str/split #"\.") (first))
      :program (:program data)
+     :start-time (:time trial-data)
      :user (-> data :params :user)}))
 
 (defn process-event
   [event]
   #_(.log console "pub" "state-changed" event))
 
-(defn- drop-subject
-  "Stops monitoring a subject"
-  [subject]
-  (when-let [subject-data (get @subjects subject)]
-    (.info console "%s: stopped monitoring" subject (:program subject-data))
-    ;; TODO update database
-    (swap! subjects dissoc subject)))
+(defn- check-update [err]
+  (when err (.error console "error updating subject record in database" err)))
 
-(defn- duplicate-subject-error [subject trial-data subject-data]
+(defn- drop-subject
+  "Stops monitoring a subject (removes controller from database entry)"
+  [trial]
+  (let [subject-data (prog-comment-data trial)
+        subject (:subject subject-data)]
+    (.info console (format "%s: stopped running %s on %s"
+                           subject (:program subject-data) (:controller subject-data)))
+    (mongo/update! @subjects {:subject subject}
+                   {:$unset {:program 1}}
+                   check-update)))
+
+(defn- duplicate-expt-error [subject trial-data subject-data]
   (.error console "%s: duplicate experiments!" subject)
   ;; stop monitoring while the user figures this out
   (drop-subject subject)
@@ -65,33 +74,25 @@
 (defn- add-subject
   "Starts monitoring subject"
   [trial-data]
-  (let [subject-data (prog-start-data trial-data)
+  (let [subject-data (prog-comment-data trial-data)
         subject (:subject subject-data)]
-    (.info console (format "%s: started monitoring (running %s on %s)"
+    (.info console (format "%s: started running %s on %s"
                            subject (:program subject-data) (:controller subject-data)))
-    (.debug console (clj->js subject-data))
-    (if-let [old-data (get @subjects subject)]
-      (duplicate-subject-error subject subject-data old-data)
-      (swap! subjects assoc subject subject-data))))
-
-;; monitoring trial and feed events. Lots of ways to do this. One thought is to
-;; bin events by hour over the course of the day. We could also just run queries
-;; on the database at intervals and dynamically calculate the statistics.
-(defn- update-subject
-  "Update subject data with trial data"
-  [trial-data]
-  (let [subject (-> trial-data :data :subject)
-        subject-data (get @subjects subject)]
-    (when subject-data
-      (.debug console "updating data for" subject))))
+    ;; check for existing record
+    (mongo/find-one @subjects {:subject subject}
+                    (fn [result]
+                      #_(duplicate-expt-error subject subject-data old-data)
+                      (mongo/update! @subjects {:subject subject}
+                                     {:$set subject-data}
+                                     check-update)))))
 
 (defn- process-trial
   [trial]
+  (.debug console trial)
   (let [trial (js->clj trial :keywordize-keys true)]
-    (cond
-     (-> trial :data :comment (= "starting")) (add-subject trial)
-     (-> trial :data :comment (= "stopping")) (drop-subject (:subject trial))
-     :else (update-subject trial))))
+    (case (-> trial :data :comment)
+      "starting" (add-subject trial)
+      "stopping" (drop-subject trial))))
 
 (defn- connect-to-host []
   (let [uri (str "http://" (:addr_ext config) ":" (:port_ext config) "/")
@@ -114,7 +115,7 @@
          (.exit node/process -1))
        (do
          (.info console "connected to log database")
-         #_(reset! subjects (mongo/collection db "subjects"))
+         (reset! subjects (mongo/collection db "subjects"))
          (connect-to-host))))))
 
 (set! *main-cli-fn* main)
