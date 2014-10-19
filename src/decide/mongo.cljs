@@ -40,4 +40,4 @@
   "Returns first document matching query in coll or nil if no match"
   [coll query callback]
   (.findOne coll (clj->js query)
-            (fn [err result] (callback (js->clj result)))))
+            (fn [err result] (callback (js->clj result :keywordize-keys true)))))

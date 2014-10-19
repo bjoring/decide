@@ -37,7 +37,7 @@
     (.error console msg)
     (when (:send_email config)
       ;; TODO send emails on first instance of certain error classes
-      (mail "decide-host" (:admins config) "major error in decide" msg))))
+      (mail "decide-host" (:admins config) "alert!" msg))))
 
 (defn- log-callback [err msg]
   (when err (.error console "unable to write log record to database" err)))
@@ -74,7 +74,7 @@
            (js-obj "addr" name "time" (.now Date) "data" (clj->js data))))
 
 (defn- remove-controller!
-  "Unregisters a controller. Returns the new controllers value if successful; nil if not"
+  "Unregisters a controller. Returns the new controller's value if successful; nil if not"
   [name]
   (when-let [data (get @controllers name)]
     (.info console "%s unregistered as" (data :address) name)
