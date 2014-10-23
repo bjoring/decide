@@ -56,10 +56,10 @@ t.connect(name, function(socket) {
 
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
-    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
-                        version: version, params: par});
     // start first state
     t.ephemera(t.state_changer(name, state));
+    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
+                        version: version, params: par});
 });
 
 function shutdown() {

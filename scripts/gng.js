@@ -96,10 +96,10 @@ t.connect(name, function(socket) {
     // update user and subject information:
     t.req("change-state", {addr: "experiment", data: par});
 
-    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
-                        version: version, params: par, stimset: stimset.config.stimuli});
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
+    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
+                        version: version, params: par, stimset: stimset.config.stimuli});
     // initial state;
     await_init();
 })

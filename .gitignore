@@ -11,3 +11,4 @@ pom.xml
 /.DS_Store
 /attic/
 /scripts/decide-host.js
+/.nrepl-port
