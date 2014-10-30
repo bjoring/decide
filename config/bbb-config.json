@@ -43,7 +43,7 @@
         "max_duty": 0.25
     },
     "house_lights": {
-        "clock_interval": 60000,
+        "clock_interval": 600000,
         "day_start": 7,
         "day_stop": 19,
         "device": "starboard::lights",
