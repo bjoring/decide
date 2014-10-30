@@ -1,5 +1,5 @@
 (ns decide.host
-  "Host server; brokers messages from controllers and logs data"
+  "Host server; brokers messages from controllers, logs data, and monitors health"
   (:use [decide.core :only [version config mail console]])
   (:require [decide.json :as json]
             [decide.mongo :as mongo]
@@ -23,6 +23,7 @@
 ;; database collections for logging
 (def events (atom nil))
 (def trials (atom nil))
+(def subjs (atom nil))
 
 (defn- list-controllers [] (or (keys @controllers) []))
 
@@ -32,31 +33,64 @@
   (let [js (js->clj js :keywordize-keys true)]
     (merge (select-keys js keys) (:data js))))
 
-(defn- error [& args]
+;;; error handling: The host broker monitors for the following serious errors:
+;;; unexpected disconnection by controllers and unexpected termination of
+;;; experiment processes. Other, less urgent errors can be detected by analyzing
+;;; the log data at intervals.
+(defn- error-email
+  "Sends an error email to user"
+  [user & args]
   (let [msg (apply str args)]
-    (.error console msg)
-    (when (:send_email config)
-      ;; TODO send emails on first instance of certain error classes
-      (mail "decide-host" (:admins config) "alert!" msg))))
+    (.error console msg "- sending email to" user)
+    (mail "decide-host" user "error!" msg)))
 
 (defn- log-callback [err msg]
-  (when err (.error console "unable to write log record to database" err)))
+  (when err (.error console "unable to write record to database" err)))
 
 (defn- log-event!
   "Logs msg to the event log and (if connected) the event database"
   [msg]
-  (let [msg (flatten-record msg :time :addr)
-        logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
+  (let [logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
     (json/write-record! logfile msg)
     (when @events (mongo/save! @events msg log-callback))))
 
 (defn- log-trial!
   "Logs msg to the trial log and (if connected) the trial database"
   [msg]
-  (let [msg (flatten-record msg :time)
-        logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
+  (let [logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
     (json/write-record! logfile msg)
     (when @trials (mongo/save! @trials msg log-callback))))
+
+(defn- update-subject!
+  "Updates subject record on experiment start and stop"
+  [msg]
+  (let [subject (:subject msg)
+        data {:subject subject
+              :controller (-> msg :addr (str/split #"\.") (first))
+              :program (:program msg)
+              :running (= (:comment msg) "starting")
+              :user (-> msg :params :user)}]
+    (.info console "%s: %s %s on %s"
+           subject (:comment msg) (:program data) (:controller data))
+    (when @subjs (mongo/update! @subjs {:subject subject} data log-callback))))
+
+(defn- check-event
+  "Checks event data for various error conditions"
+  [msg]
+  ;; currently the only error checked here is for unexpected termination of an
+  ;; experiment process. This can be detected by checking any messages from the
+  ;; controller's experiment component and seeing if the database lists a
+  ;; running process
+  (when-let [[controller component] (str/split (:addr msg) #"\.")]
+    (when (and @subjs (= component "experiment") (nil? (:procedure msg)))
+      (.debug console "experiment stopped on" controller)
+      (mongo/find-one @subjs {:controller controller}
+                      (fn [result]
+                        (.debug console (:subject result) "on" controller "running:" (:running result))
+                        (when (:running result)
+                          (error-email (or (:user result) (:admins config))
+                                       (:program result) " quit running running unxpectedly on " controller)
+                          (mongo/save! @subjs (assoc result :running false) log-callback)))))))
 
 (defn- route-req
   "Generates function to route REQ messages to controller"
@@ -111,18 +145,23 @@
          (fn []
            (.info console "disconnection from internal port by" address)
            (when (remove-controller! @key)
-             (error "client " @key " disconnected unexpectedly")
+             (error-email (:admins config)
+                          {:controller @key} "controller " @key " disconnected unexpectedly")
              (reset! key nil))))
         (.on "state-changed"
          (fn [msg]
-           (.log console "pub" "state-changed" msg)
+           #_(.log console "pub" "state-changed" msg)
            (.emit @io-external "state-changed" msg)
-           (log-event! msg)))
+           (let [msg (flatten-record msg :time :addr)]
+             (log-event! msg)
+             (check-event msg))))
         (.on "trial-data"
          (fn [msg]
            (.log console "pub" "trial-data" msg)
            (.emit @io-external "trial-data" msg)
-           (log-trial! msg))))))
+           (let [msg (flatten-record msg :time :addr)]
+             (log-trial! msg)
+             (when (:comment msg) (update-subject! msg))))))))
 
 
 (defn connect-external
@@ -180,10 +219,6 @@
     (.get "/trials/:subject" send-trials)
     (.use "/static" ((aget express "static") (str __dirname "/../static"))))
 
-;;; TODO
-;; 1. publish information about unexpected disconnects by internal clients to
-;; external clients. Does this mean storing information from state-changed?
-
 (defn- main [& args]
   (.info console "this is decide-host, version" version)
   (when-let [mongo-uri (:log_db config)]
@@ -194,6 +229,7 @@
                        (do
                          (.info console "connected to mongodb for logging")
                          (reset! events (mongo/collection db "events"))
-                         (reset! trials (mongo/collection db "trials"))))
+                         (reset! trials (mongo/collection db "trials"))
+                         (reset! subjs (mongo/collection db "subjects"))))
                      (server)))))
 (set! *main-cli-fn* main)

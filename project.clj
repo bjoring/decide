@@ -17,9 +17,4 @@
                  :optimizations :simple
                  :pretty-print true
                  :target :nodejs}}
-               {:source-paths ["src/babysitter" "src/decide"]
-                :compiler
-                {:output-to "scripts/decide-babysitter.js"
-                 :optimizations :simple
-                 :pretty-print true
-                 :target :nodejs}}]})
+               ]})

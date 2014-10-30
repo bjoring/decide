@@ -1,9 +1,10 @@
+# systemd service parameters - change /srv/decide to the install location of the package
 [Unit]
 Description=decide operant device controller
 ConditionPathExists=|/srv/decide
 
 [Service]
-ExecStart=/usr/bin/node /srv/decide/decide-ctrl.js
+ExecStart=/usr/bin/node /srv/decide/scripts/decide-ctrl.js
 WorkingDirectory=/srv/decide
 Restart=always
 StandardOutput=syslog
@@ -11,7 +12,7 @@ SyslogIdentifier=decide-ctrl
 User=root
 Group=operant
 Environment=PATH=/usr/bin:/usr/local/bin:/srv/decide/node_modules/.bin
-#Environment=NODE_ENV=production
+Environment=NODE_ENV=production
 
 [Install]
 WantedBy=multi-user.target

@@ -18,7 +18,7 @@
 
 ;; the state of the babysitter should be organized by subject. Some messages
 ;; won't have subject information, so they need to be matched by controller
-;; name. We could babysit controllers and subjects separately, except that a
+;; name. We could babysit controllers and subjs separately, except that a
 ;; specific user needs to be notified when there's a hardware failure.
 
 ;; There are really two parts to this process. One is to digest state-changed
@@ -30,7 +30,7 @@
 (def sock-cli (js/require "socket.io-client"))
 
 (def prog-name "decide-babysitter")
-(def subjects (atom nil))
+(def subjs (atom nil))
 
 (defn- prog-comment-data
   "Returns useful information from program startup/shutdown message"
@@ -45,7 +45,7 @@
 
 (defn- update-subject [subject query]
   (mongo/update!
-   @subjects {:subject subject} query
+   @subjs {:subject subject} query
    (fn [err]
      (when err (.error console "error updating subject record in database" err)))))
 
@@ -53,8 +53,8 @@
   "Stops monitoring a subject (removes controller from database entry)"
   [subject-data]
   (let [subject (:subject subject-data)]
-    (.info console (format "%s: stopped running %s on %s"
-                           subject (:program subject-data) (:controller subject-data)))
+    (.info console (format
+                           ))
     (update-subject subject {:$unset {:program 1}})))
 
 (defn- duplicate-expt-error [subject msg subject-data]
@@ -76,7 +76,7 @@
                            subject (:program subject-data) (:controller subject-data)))
     ;; check for existing record
     (mongo/find-one
-     @subjects
+     @subjs
      {:subject subject}
      (fn [result]
        (if-not (nil? (:program result))
@@ -112,7 +112,7 @@
                      (.error console "unable to connect to log database at " (:log_db config))
                      (.exit node/process -1))
                    (.info console "connected to log database")
-                   (reset! subjects (mongo/collection db "subjects"))
+
                    (connect-to-host))))
 
 (set! *main-cli-fn* main)

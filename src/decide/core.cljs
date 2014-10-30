@@ -19,6 +19,7 @@
                             "subject" subject
                             "text" message)
              (fn [err info]
+               (.debug console "sent email to" to)
                (when err (.error console "unable to send email:" err)))))
 
 (defn format [fmt & args]
