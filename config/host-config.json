@@ -9,5 +9,5 @@
     "log_local_trials": false,
     "log_local_events": false,
     "log_db": "mongodb://localhost:27017/decide",
-    "send_emails": true
+    "send_emails": false
 }
