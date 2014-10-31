@@ -23,13 +23,17 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import pymongo
+import datetime
 
 def jsonl_seq(c):
     """Yields records from a sequence of json strings"""
     import json
     for i,line in enumerate(c):
         try:
-            yield json.loads(line)
+            data = json.loads(line)
+            if "time" in data:
+                data["time"] = datetime.datetime.fromtimestamp(data["time"] / 1000)
+            yield data
         except ValueError as e:
             print("error parsing line (%d) %s: %s" % (i, line, e))
 

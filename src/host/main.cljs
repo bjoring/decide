@@ -33,6 +33,16 @@
   (let [js (js->clj js :keywordize-keys true)]
     (merge (select-keys js keys) (:data js))))
 
+(defn- addr-parts
+  "Returns the controller and component from a message"
+  [msg]
+  (str/split (:addr msg) #"\."))
+
+(defn- convert-times
+  "Returns a copy of msg with time field converted to javascript Date type"
+  [msg]
+  (assoc msg :time (Date. (:time msg))))
+
 ;;; error handling: The host broker monitors for the following serious errors:
 ;;; unexpected disconnection by controllers and unexpected termination of
 ;;; experiment processes. Other, less urgent errors can be detected by analyzing
@@ -50,23 +60,24 @@
 (defn- log-event!
   "Logs msg to the event log and (if connected) the event database"
   [msg]
-  (let [logfile (str "events_" (first (str/split (:addr msg) #"\.")) ".jsonl")]
+  (let [[controller component] (addr-parts msg)
+        logfile (str "events_" controller ".jsonl")]
     (json/write-record! logfile msg)
-    (when @events (mongo/save! @events msg log-callback))))
+    (when @events (mongo/save! @events (convert-times msg) log-callback))))
 
 (defn- log-trial!
   "Logs msg to the trial log and (if connected) the trial database"
   [msg]
   (let [logfile (str (:subject msg) "_" (:program msg) ".jsonl")]
     (json/write-record! logfile msg)
-    (when @trials (mongo/save! @trials msg log-callback))))
+    (when @trials (mongo/save! @trials (convert-times msg) log-callback))))
 
 (defn- update-subject!
   "Updates subject record on experiment start and stop"
   [msg]
   (let [subject (:subject msg)
         data {:subject subject
-              :controller (-> msg :addr (str/split #"\.") (first))
+              :controller (first (addr-parts msg))
               :program (:program msg)
               :running (= (:comment msg) "starting")
               :user (-> msg :params :user)}]
@@ -81,7 +92,7 @@
   ;; experiment process. This can be detected by checking any messages from the
   ;; controller's experiment component and seeing if the database lists a
   ;; running process
-  (when-let [[controller component] (str/split (:addr msg) #"\.")]
+  (when-let [[controller component] (addr-parts msg)]
     (when (and @subjs (= component "experiment") (nil? (:procedure msg)))
       (.debug console "experiment stopped on" controller)
       (mongo/find-one @subjs {:controller controller}
