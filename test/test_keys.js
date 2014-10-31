@@ -1,16 +1,18 @@
 
-var keys = new (require("../lib/keys"))();
+var fs = require("fs");
+var tty = require("tty");
+var EV_KEY = 1;
 
-keys.subscribe("state-changed", console.log);
-keys.subscribe("error", console.log);
-keys.subscribe("stopped", console.log);
+var input = new tty.ReadStream(fs.openSync("/dev/input/event2", "r"));
+input.setRawMode(true);
 
-keys.event({
-  id: "modify-state",
-  time: Date.now(),
-  peck_right: 1
+input.on("data", function(chunk) {
+    console.log(chunk);
+    if (chunk.readUInt16LE(8) === EV_KEY) {
+        var keycode = chunk.readUInt16LE(10);
+	var data = chunk.readUInt32LE(12);
+	var time = chunk.readUInt32LE(0) * 1000 + chunk.readUInt32LE(4) / 1000;
+	console.log(keycode, data, time);
+    }
 });
-
-//setTimeout(function() { keys.close();}, 6000);
-
 
