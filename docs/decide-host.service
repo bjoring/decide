@@ -4,7 +4,8 @@ After=network-online.target
 ConditionPathExists=|/srv/decide
 
 [Service]
-ExecStart=/usr/bin/node /srv/decide/decide-host.js
+WorkingDirectory=/srv/decide
+ExecStart=/usr/bin/node /srv/decide/scripts/decide-host.js
 Restart=always
 StandardOutput=syslog
 SyslogIdentifier=decide-ctrl
