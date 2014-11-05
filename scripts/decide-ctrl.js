@@ -240,15 +240,6 @@ function error(msg) {
     }
 }
 
-if (host_params.send_emails) {
-    process.on("uncaughtException", function(err) {
-        var subject = "fatal exception";
-        var message = err;
-        logger.error("fatal error: ", err);
-        util.mail("decide-ctrl", host_params.admin_emails, subject, message, process.exit);
-    });
-}
-
 // start the controller
 var kontrol = apparatus.register("controller", controller, bbb_params.controller);
 
