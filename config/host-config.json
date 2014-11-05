@@ -6,8 +6,8 @@
     "port_ctrl": 8000,
     "standalone": false,
     "admins": ["dmeliza@gmail.com"],
-    "log_local_trials": false,
+    "log_local_trials": true,
     "log_local_events": false,
     "log_db": "mongodb://localhost:27017/decide",
-    "send_emails": false
+    "send_emails": true
 }
