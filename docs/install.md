@@ -3,11 +3,11 @@
 
 You can interact with a Beaglebone Black running `decide` in several ways:
 
-1. locally, by connecting a monitor to the HDMI port and a mouse and keyboard via USB
+1. locally, by connecting a monitor to the HDMI port and a mouse and keyboard to the USB port
 2. directly over a network connection, either through the USB port, Ethernet, or wireless
 3. indirectly through a host computer that acts as a gateway to a private network
 
-The advantage of the last system is that it scales up to any number of independently running apparatuses. The `decide` software running on each device communicates with a process running on the host computer, which provides some additional services, including trial and event logging, collating statistics, monitoring connected devices for errors, and providing an overview interface for all the connected devices. If you are concerned about security (which you should be, if you want to access your experiments over a public network), the indirect configuration provides a single access point that can be more efficiently secured than a host of individual Beaglebones. This section describes how to set up this configuration.
+The advantage of the last configuration is that it scales up to any number of independently running apparatuses. The `decide` software running on each device communicates with a process running on the host computer, which provides some additional services, including trial and event logging, collating statistics, monitoring connected devices for errors, and providing an overview interface for all the connected devices. If you are concerned about security (which you should be, if you want to access your experiments over a public network), the indirect configuration provides a single access point that can be more efficiently secured than a host of individual Beaglebones. This section describes how to set up this configuration.
 
 We assume that you've correctly connected all your devices on a private network, and that your host computer has two Ethernet interfaces. For the purposes of this document, `eth0` on the host is connected to the outside world, and `eth1` is connected to the private network, which is on the subnet `192.168.10/24`. All the BBBs are also connected to this network through their Ethernet cables (wireless networks are not recommended due to their insecurity and unreliability). No additional configuration of the BBBs is needed for this configuration, beyond ensuring that each device has a unique hostname.
 
@@ -37,7 +37,7 @@ Devices connecting to the private network need to be assigned IP addresses and h
 
 The program that handles communication with devices on the network is called `decide-host.js` and runs in node. For debugging and testing purposes the script can be run directly, but for deployment it should be run as a daemon so that it's always available.  These instructions assume `systemd` is being used for service management.
 
-First, make sure `node.js` and `npm` are installed. If running from source, run `npm install` in the source directory to install dependencies.  Copy `docs/decide-host.service` to `/etc/systemd/system/`
+First, make sure `node.js` and `npm` are installed. If installing from source, run `npm install` in the source directory to install dependencies.  Copy `docs/decide-host.service` to `/etc/systemd/system/`
 
 ### Web proxy
 
@@ -64,7 +64,5 @@ Start the host node.js process. In final deployment, it should run as a daemon a
 
 # Log database
 
-`decide-host` can use mongodb for storing log messages. The primary mongodb
-server should run locally on the host, but you may wish to configure the mongdb
-server to replicate its data to another machine. Setting up the database server
+`decide-host` can use mongodb for storing log messages. The primary mongodb server should run locally on the host, but you may wish to configure the server to replicate its data to another machine. Setting up the database server
 is beyond the scope of this document. To use mongodb logging, set the "log_db" key in `host-config.json` to the uri of the database.
