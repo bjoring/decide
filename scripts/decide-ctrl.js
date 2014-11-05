@@ -156,7 +156,8 @@ function controller(params, addr, pub) {
 
     var state = {
         hostname: os.hostname(),
-        server: null
+        server: null,
+        version: version
     }
 
     if (!host_params.standalone) {

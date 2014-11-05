@@ -142,7 +142,9 @@ if __name__ == '__main__':
               ("-" * 35)]
 
     print("\n".join(header))
+    event_count = 0
     for controller, ops in group_by(operator.itemgetter("controller"), events).items():
+        event_count += len(ops)
         feed_ops = check_hopper_events(ops)
         counts = collections.Counter(map(operator.itemgetter("hopper", "error"), feed_ops))
         total_errors = sum(v for k,v in counts.items() if k[0]!='none')
@@ -159,3 +161,5 @@ if __name__ == '__main__':
                 send_email(subj["user"], "hopper issues on {0}".format(controller),
                            "\n".join(header + msg))
                 print("- sent email about {0} to {1}".format(controller, subj["user"]))
+
+    print("\ntotal hopper events: {0}".format(event_count))
