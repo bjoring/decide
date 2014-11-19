@@ -32,7 +32,7 @@ def jsonl_seq(c):
         try:
             data = json.loads(line)
             if "time" in data:
-                data["time"] = datetime.datetime.fromtimestamp(data["time"] / 1000)
+                data["time"] = datetime.datetime.utcfromtimestamp(data["time"] / 1000)
             yield data
         except ValueError as e:
             print("error parsing line (%d) %s: %s" % (i, line, e))
