@@ -1,6 +1,9 @@
 [Unit]
 Description=decide operant host service
+Wants=network-online.target
 After=network-online.target
+Wants=mongodb.service
+After=mongodb.service
 ConditionPathExists=|/srv/decide
 
 [Service]
