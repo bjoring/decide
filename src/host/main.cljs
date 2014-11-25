@@ -157,7 +157,7 @@
            (.info console "disconnection from internal port by" address)
            (when (remove-controller! @key)
              (error-email (:admins config)
-                          {:controller @key} "controller " @key " disconnected unexpectedly")
+                          "controller " @key " disconnected unexpectedly")
              (reset! key nil))))
         (.on "state-changed"
          (fn [msg]
