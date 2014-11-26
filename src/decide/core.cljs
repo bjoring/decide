@@ -7,10 +7,9 @@
 (def path (js/require "path"))
 (def console (js/require "../lib/log"))
 (def mailer (.createTransport (js/require "nodemailer")))
+(def version (aget (js/require "../package.json") "version"))
 
-(def version "1.0.0-beta.1")                   ; TODO get this from project.clj
 (defn config-path [name] (.resolve path js/__dirname ".." "config" name))
-
 (def config (json/read-json (config-path "host-config.json")))
 
 (defn mail [from to subject message]
