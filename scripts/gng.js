@@ -39,6 +39,7 @@ var par = {
     feed_delay: argv["feed-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
+    max_hopper_duty: 1
 };
 
 var state = {
@@ -117,6 +118,11 @@ function await_init() {
     update_state({trial: state.trial + 1,
                   phase: "awaiting-trial-init"});
     t.await("keys", null, function(msg) { return msg && msg.data[par.init_key]}, present_stim);
+}
+
+function intertrial(duration) {
+    update_state({phase: "intertrial"})
+    _.delay(await_init, duration);
 }
 
 function present_stim() {
@@ -202,7 +208,8 @@ function feed() {
     update_state({phase: "feeding", "last-feed": Date.now()})
     _.delay(t.req, par.feed_delay,
             "change-state", {addr: hopper, data: { feeding: true, interval: par.feed_duration}})
-    t.await(hopper, null, function(msg) { return msg.data.feeding == false }, await_init)
+    t.await(hopper, null, function(msg) { return msg.data.feeding == false },
+            _.partial(intertrial, par.feed_duration * (1/par.max_hopper_duty - 1)));
 }
 
 function lightsout() {
