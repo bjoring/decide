@@ -50,9 +50,10 @@
 (defn- error-email
   "Sends an error email to user"
   [user & args]
-  (let [msg (apply str args)]
-    (.error console msg "- sending email to" user)
-    (mail "decide-host" user "error!" msg)))
+  (let [msg (apply str args)
+        to (str/join ", " (keep identity (conj (:admins config) user)))]
+    (.error console msg "- sending email to" to)
+    (mail "decide-host" to "error!" msg)))
 
 (defn- log-callback [err msg]
   (when err (.error console "unable to write record to database" err)))
@@ -99,7 +100,7 @@
                       (fn [result]
                         (.debug console (:subject result) "on" controller "running:" (:running result))
                         (when (:running result)
-                          (error-email (or (:user result) (:admins config))
+                          (error-email (:user result)
                                        (:program result) " quit running running unxpectedly on " controller)
                           (mongo/save! @subjs (assoc result :running false) log-callback)))))))
 
@@ -156,8 +157,14 @@
          (fn []
            (.info console "disconnection from internal port by" address)
            (when (remove-controller! @key)
-             (error-email (:admins config)
-                          "controller " @key " disconnected unexpectedly")
+             (if @subjs
+               (mongo/find-one @subjs {:controller @key}
+                               (fn [result]
+                                 (error-email (:user result)
+                                              "controller " (:controller result) ; @key is nil now
+                                              " disconnected unexpectedly")
+                                 (mongo/save! @subjs (assoc result :running false) log-callback)))
+               (error-email nil "controller " @key " disconnected unexpectedly"))
              (reset! key nil))))
         (.on "state-changed"
          (fn [msg]
@@ -230,6 +237,8 @@
     (.get "/trials/:subject" send-trials)
     (.use "/static" ((aget express "static") (str __dirname "/../static"))))
 
+
+
 (defn- main [& args]
   (.info console "this is decide-host, version" version)
   (when-let [mongo-uri (:log_db config)]
@@ -243,4 +252,5 @@
                          (reset! trials (mongo/collection db "trials"))
                          (reset! subjs (mongo/collection db "subjects"))))
                      (server)))))
+(enable-console-print!)
 (set! *main-cli-fn* main)
