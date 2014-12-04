@@ -184,7 +184,8 @@ function block2_await() {
         t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
         var next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
-        t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject});
+        t.trial_data(name, {program: name, subject: par.subject,
+                            block: state.block, trial: state.trial});
         feed(hopper, feed_duration, next);
     }
 }
@@ -246,7 +247,9 @@ function block34_peck2(side) {
         }
 
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
-        t.trial_data(name, {block: state.block, trial: state.trial, subject: par.subject, peck: side});
+        t.trial_data(name, {program: name, subject: par.subject,
+                            block: state.block, trial: state.trial,
+                            peck: side});
         feed(hopper, feed_duration, next);
     }
 }
