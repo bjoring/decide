@@ -80,8 +80,11 @@ t.connect(name, function(socket) {
 
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
-    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
-                        version: version, params: par});
+    t.trial_data(name, {comment: "starting",
+                        subject: par.subject,
+                        program: name,
+                        version: version,
+                        params: par});
 
     if (argv.F)
         block4_peck1();
@@ -124,8 +127,9 @@ function block1_await() {
     var blink_duration = 5000;
     var iti_var = 30000;
     var iti_min = feed_duration * (1/par.max_hopper_duty - 1);
-    var pecked = false;
+    var pecked = "timeout";
     var cue = "cue_center_" + par.cue_color;
+    var key = "peck_center"
 
     // state setup
     if (state.block < 1) {
@@ -138,15 +142,17 @@ function block1_await() {
 
     function _test(msg) {
         if (!msg) return true;
-        else if (msg.data.peck_center)
-            return pecked = true;
+        else if (msg.data[key]) {
+            pecked = key;
+        }
+        return pecked;
     }
 
     function _exit() {
         var next_state;
         var hopper = random_hopper();
         t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
-        if (pecked) {
+        if (pecked != "timeout") {
             next_state = block2_await;
         }
         else if (!state.daytime) {
@@ -157,8 +163,13 @@ function block1_await() {
             logger.debug("trial iti:", iti);
             next_state = _.partial(intertrial, iti, block1_await);
         }
-        t.trial_data(name, {program: name, subject: par.subject,
-                            block: state.block, trial: state.trial})
+        t.trial_data(name, {program: name,
+                            subject: par.subject,
+                            block: state.block,
+                            trial: state.trial,
+                            response: pecked,
+                            result: "feed"
+                           })
         feed(hopper, feed_duration, next_state);
     }
 }
@@ -167,6 +178,7 @@ function block2_await() {
     var feed_duration = 4000;
     var iti = feed_duration * (1 / par.max_hopper_duty - 1);
     var cue = "cue_center_" + par.cue_color;
+    var key = "peck_center";
 
     if (state.block < 2) {
         logger.info("entering block 2")
@@ -184,8 +196,12 @@ function block2_await() {
         t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
         var next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
-        t.trial_data(name, {program: name, subject: par.subject,
-                            block: state.block, trial: state.trial});
+        t.trial_data(name, {program: name,
+                            subject: par.subject,
+                            block: state.block,
+                            trial: state.trial,
+                            response: key,
+                            result: "feed"});
         feed(hopper, feed_duration, next);
     }
 }
@@ -247,9 +263,12 @@ function block34_peck2(side) {
         }
 
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
-        t.trial_data(name, {program: name, subject: par.subject,
-                            block: state.block, trial: state.trial,
-                            peck: side});
+        t.trial_data(name, {program: name,
+                            subject: par.subject,
+                            block: state.block,
+                            trial: state.trial,
+                            response: key,
+                            result: "feed"});
         feed(hopper, feed_duration, next);
     }
 }
