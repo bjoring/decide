@@ -101,6 +101,8 @@ t.connect(name, function(socket) {
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
                         version: version, params: par, stimset: stimset.config.stimuli});
+    // hourly heartbeat messages for the activity monitor
+    t.heartbeat({program: name, subject: par.subject}, 3600000);
     // initial state;
     await_init();
 })

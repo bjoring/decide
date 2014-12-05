@@ -85,7 +85,8 @@ t.connect(name, function(socket) {
                         program: name,
                         version: version,
                         params: par});
-
+    // hourly heartbeat messages for the activity monitor
+    t.heartbeat({program: name, subject: par.subject}, 3600000);
     if (argv.F)
         block4_peck1();
     else
