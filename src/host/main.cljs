@@ -77,7 +77,7 @@
   "Updates subject record on experiment start and stop"
   [msg]
   (let [subject (:subject msg)
-        data {:subject subject
+        data {:_id subject
               :controller (first (addr-parts msg))
               :program (:program msg)
               :running (= (:comment msg) "starting")
