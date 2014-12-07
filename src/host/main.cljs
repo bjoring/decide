@@ -84,7 +84,7 @@
               :user (-> msg :params :user)}]
     (.info console "%s: %s %s on %s"
            subject (:comment msg) (:program data) (:controller data))
-    (when @subjs (mongo/update! @subjs {:subject subject} data log-callback))))
+    (when @subjs (mongo/update! @subjs {:_id subject} data log-callback))))
 
 (defn- check-event
   "Checks event data for various error conditions"
@@ -98,7 +98,7 @@
       (.debug console "experiment stopped on" controller)
       (mongo/find-one @subjs {:controller controller}
                       (fn [result]
-                        (.debug console (:subject result) "on" controller "running:" (:running result))
+                        (.debug console (:_id result) "on" controller "running:" (:running result))
                         (when (:running result)
                           (error-email (:user result)
                                        (:program result) " quit running running unxpectedly on " controller)
