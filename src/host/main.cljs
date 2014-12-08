@@ -48,7 +48,7 @@
 ;;; experiment processes. Other, less urgent errors can be detected by analyzing
 ;;; the log data at intervals.
 (defn- error-email
-  "Sends an error email to user"
+  "Sends an error email to user and to configured admins"
   [user & args]
   (let [msg (apply str args)
         to (str/join ", " (keep identity (conj (:admins config) user)))]
@@ -80,7 +80,7 @@
         data {:_id subject
               :controller (first (addr-parts msg))
               :program (:program msg)
-              :running (= (:comment msg) "starting")
+              :running (not= (:comment msg) "stopping")
               :user (-> msg :params :user)}]
     (.info console "%s: %s %s on %s"
            subject (:comment msg) (:program data) (:controller data))
