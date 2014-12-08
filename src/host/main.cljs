@@ -76,15 +76,24 @@
 (defn- update-subject!
   "Updates subject record on experiment start and stop"
   [msg]
-  (let [subject (:subject msg)
-        data {:_id subject
-              :controller (first (addr-parts msg))
-              :program (:program msg)
-              :running (not= (:comment msg) "stopping")
-              :user (-> msg :params :user)}]
-    (.info console "%s: %s %s on %s"
-           subject (:comment msg) (:program data) (:controller data))
-    (when @subjs (mongo/update! @subjs {:_id subject} data log-callback))))
+  (when @subjs
+    (let [subject (:subject msg)
+          comment (:comment msg)
+          data {:program (:program msg)
+                :controller (first (addr-parts msg))
+                :running true}
+          log-it #(.info console "%s: %s %s on %s"
+                         subject comment (:program data) (:controller data))
+          do-it #(mongo/update! @subjs {:_id subject} % log-callback)]
+      (case comment
+        "starting" (do
+                     (log-it)
+                     (do-it (assoc data :_id subject :user (-> msg :params :user))))
+        "stopping" (do
+                     (log-it)
+                     (do-it (assoc data :running false :user nil)))
+        ;; for other messages, just set running to true
+        (do-it {"$set" {:running true}})))))
 
 (defn- check-event
   "Checks event data for various error conditions"
@@ -179,7 +188,7 @@
            (.emit @io-external "trial-data" msg)
            (let [msg (flatten-record msg :time :addr)]
              (log-trial! msg)
-             (when (:comment msg) (update-subject! msg))))))))
+             (update-subject! msg)))))))
 
 
 (defn connect-external
