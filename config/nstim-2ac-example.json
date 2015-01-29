@@ -1,0 +1,46 @@
+{
+    "parameters": {
+        "correct_timeout": false,
+        "rand_replace": true,
+	"inter-stimulus-inverval": 215
+    },
+    "stimulus_root": "stimuli",
+    "stimuli": [
+        {
+            "name": ["musicbox","musicbox"],
+            "frequency": 1,
+            "category": "same",
+            "cue_resp": ["right_blue","left_blue"],
+            "responses": {"peck_right": {"p_reward": 1.0, "correct": true},
+			  "peck_left": {"p_punish": 1.0, "correct": false},
+                          "timeout": {"correct": false}}
+        },
+        {
+            "name": ["musicbox_broken","musicbox"],
+            "frequency": 1,
+            "category": "different",
+            "cue_resp": ["right_blue","left_blue"],
+            "responses": {"peck_right": {"p_punish": 1.0, "correct": false},
+			  "peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+        },
+        {
+            "name": ["musicbox_broken","musicbox_broken"],
+            "frequency": 1,
+            "category": "same",
+            "cue_resp": ["right_blue","left_blue"],
+            "responses": {"peck_right": {"p_reward": 1.0, "correct": true},
+			  "peck_left": {"p_punish": 1.0, "correct": false},
+                          "timeout": {"correct": false}}
+        },
+        {
+            "name": ["musicbox","musicbox_broken"],
+            "frequency": 1,
+            "category": "different",
+            "cue_resp": ["right_blue","left_blue"],
+            "responses": {"peck_right": {"p_punish": 1.0, "correct": false},
+			  "peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+        }
+    ]
+}
