@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+!/usr/bin/env node
 
 var os = require("os");
 var _ = require("underscore");
@@ -40,7 +40,7 @@ var par = {
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
     max_hopper_duty: 1,
-    inter_stimulus_interval: 220 // inherent 85ms delay, +/- 15ms
+    inter_stimulus_interval: 215 // inherent 85ms delay, +/- 15ms
 };
 
 var state = {
