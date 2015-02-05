@@ -1,4 +1,4 @@
-!/usr/bin/env node
+#!/usr/bin/env node
 
 var os = require("os");
 var _ = require("underscore");
@@ -136,9 +136,11 @@ function present_stim(msg, continue_playlist) {
         logger.debug("next stim:", stim);
         update_state({phase: "presenting-stimulus", stimulus: stim});
         playlist = playlist.concat(stim.name);
+        _.map(stim.cue_stim || [], function(cue) {
+        t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
+    });
     } else stim = state.stimulus;
     
-    // TODO cue lights during stimulus presentation
     t.req("change-state", {addr: "aplayer", data: {playing: true,
                                                    stimulus: playlist.shift() + ".wav",
                                                    root: stimset.root}});
@@ -146,8 +148,7 @@ function present_stim(msg, continue_playlist) {
 
     function check_playlist() {
         if (playlist.length > 0) {
-            util.wait(par.inter_stimulus_interval);
-            present_stim(null, true);
+           _.delay(present_stim,par.inter_stimulus_interval,null,true);
         } else {
             playlist = [];
             await_response();
@@ -161,6 +162,14 @@ function await_response() {
     update_state({phase: "awaiting-response", "last-trial": Date.now()});
 
     var resp_start = Date.now();
+    
+    for (var i = 0; i <= stim.cue_stim.length; i++) {
+        var present = 0;
+        for (var j = 0; j <= stim.cue_resp.length; j++) {
+            if (stim.cue_stim[i] == stim.cue_resp[j]) present = 1;
+	}
+        if (!present) t.req("change-state", {addr: "cue_" + stim.cue_stim[i], data: {brightness: 0}})
+    }
     _.map(stim.cue_resp || [], function(cue) {
         t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
     });
