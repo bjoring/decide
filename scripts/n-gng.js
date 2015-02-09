@@ -128,14 +128,14 @@ function intertrial(duration) {
     _.delay(await_init, duration);
 }
 
-
-function present_stim(msg, playlist) {
+var playlist = [];
+function present_stim(msg, continue_playlist) {
     var stim;
-    if (!playlist) {
+    if (!continue_playlist) {
         stim = (state.correction) ? state.stimulus : stimset.next(par.rand_replace);
         logger.debug("next stim:", stim);
         update_state({phase: "presenting-stimulus", stimulus: stim});
-        var playlist = playlist.concat(stim.name);
+        playlist = playlist.concat(stim.name);
         _.map(stim.cue_stim || [], function(cue) {
         t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
     });
@@ -148,7 +148,7 @@ function present_stim(msg, playlist) {
 
     function check_playlist() {
         if (playlist.length > 0) {
-           _.delay(present_stim,par.inter_stimulus_interval,null,playlist);
+           _.delay(present_stim,par.inter_stimulus_interval,null,true);
         } else {
             playlist = [];
             await_response();
