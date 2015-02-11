@@ -19,10 +19,11 @@ var argv = require("yargs")
     .describe("replace", "randomize trials with replacement")
     .describe("correct-timeout", "correction trials for incorrect failure to respond ")
     .describe("feed-delay", "time (in ms) to wait between response and feeding")
+    .describe("inter-stimulus-interval","time in ms between multiple stimuli in single trial (inherent 85 +/-15ms delay)")
     .default({"response-window": 2000, "feed-duration": 4000,
               "lightsout-duration": 10000, "max-corrections": 10,
-              "feed-delay": 0,
-              replace: false, "correct-timeout": false})
+              "feed-delay": 0, "replace": false, "correct-timeout": false,
+          	  "inter-stimulus-interval": 215})
     .demand(3)
     .argv;
 
@@ -40,7 +41,7 @@ var par = {
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
     max_hopper_duty: 1,
-    inter_stimulus_interval: 215 // inherent 85ms delay, +/- 15ms
+    inter_stimulus_interval: argv["inter-stimulus-interval"] // inherent 85ms delay, +/- 15ms
 };
 
 var state = {
