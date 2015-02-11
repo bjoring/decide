@@ -141,7 +141,7 @@ function present_stim(msg, continue_playlist) {
         t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
     });
     } else stim = state.stimulus;
-    
+
     t.req("change-state", {addr: "aplayer", data: {playing: true,
                                                    stimulus: playlist.shift() + ".wav",
                                                    root: stimset.root}});
@@ -163,14 +163,16 @@ function await_response() {
     update_state({phase: "awaiting-response", "last-trial": Date.now()});
 
     var resp_start = Date.now();
-    
-    for (var i = 0; i <= stim.cue_stim.length; i++) {
-        var present = 0;
-        for (var j = 0; j <= stim.cue_resp.length; j++) {
-            if (stim.cue_stim[i] == stim.cue_resp[j]) present = 1;
+    if (stim.cue_stim) {
+	for (var i = 0; i <= stim.cue_stim.length; i++) {
+	    var present = 0;
+	    for (var j = 0; j <= stim.cue_resp.length; j++) {
+		if (stim.cue_stim[i] == stim.cue_resp[j]) present = 1;
+	    }
+	    if (!present) t.req("change-state", {addr: "cue_" + stim.cue_stim[i], data: {brightness: 0}})
 	}
-        if (!present) t.req("change-state", {addr: "cue_" + stim.cue_stim[i], data: {brightness: 0}})
     }
+
     _.map(stim.cue_resp || [], function(cue) {
         t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
     });
