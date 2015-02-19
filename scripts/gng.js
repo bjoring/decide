@@ -133,6 +133,7 @@ function present_stim() {
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
     // TODO cue lights during stimulus presentation
+    set_cues(stim.cue_stim, 1);
     t.req("change-state", {addr: "aplayer", data: {playing: true,
                                                    stimulus: stim.name + ".wav",
                                                    root: stimset.root}});
@@ -145,9 +146,10 @@ function await_response() {
     update_state({phase: "awaiting-response", "last-trial": Date.now()});
 
     var resp_start = Date.now();
-    _.map(stim.cue_resp || [], function(cue) {
-        t.req("change-state", {addr: "cue_" + cue, data: {brightness: 1}})
-    });
+    // turn off all cues not in cue_resp
+    set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
+    // turn on all cues not in cue_stim
+    set_cues(_.difference(stim.cue_resp, stim.cue_stim), 1);
     t.await("keys", par.response_window, _test, _exit);
     function _test(msg) {
         if (!msg) return true;
@@ -232,4 +234,11 @@ function sleeping() {
 function random_hopper() {
     var i = Math.floor(Math.random() * par.hoppers.length);
     return par.hoppers[i];
+}
+
+// this is a utility function for setting a bunch of cues either on or off
+function set_cues(cuelist, value) {
+    _.map(cuelist || [], function(cue) {
+        t.req("change-state", {addr: "cue_" + cue, data: {brightness: value}})
+    });
 }
