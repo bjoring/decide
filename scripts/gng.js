@@ -134,10 +134,21 @@ function present_stim() {
     update_state({phase: "presenting-stimulus", stimulus: stim })
     // TODO cue lights during stimulus presentation
     set_cues(stim.cue_stim, 1);
-    t.req("change-state", {addr: "aplayer", data: {playing: true,
-                                                   stimulus: stim.name + ".wav",
-                                                   root: stimset.root}});
-    t.await("aplayer", null, function(msg) { return msg && !msg.data.playing }, await_response)
+
+    // if the stimulus is an array, play the sounds in sequence
+    var playlist = (typeof stim.name === "object") ? stim.name : [stim.name];
+    function play_stims(stim, rest) {
+        t.req("change-state", {addr: "aplayer", data: {playing: true,
+                                                       stimulus: stim + ".wav",
+                                                       root: stimset.root}});
+        t.await("aplayer", null, function(msg) { return msg && !msg.data.playing }, function() {
+            if (rest.length > 0)
+                _.delay(play_stims, par.inter_stimulus_interval, _.first(rest), _.rest(rest));
+            else
+                await_response();
+        })
+    }
+    play_stims(_.first(playlist), _.rest(playlist));
 }
 
 function await_response() {

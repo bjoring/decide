@@ -6,7 +6,7 @@
     "stimulus_root": "stimuli",
     "stimuli": [
         {
-            "name": "musicbox",
+            "name": "st15_ac3",
             "frequency": 1,
             "category": "S+",
             "cue_stim": ["center_blue"],
@@ -15,7 +15,7 @@
                           "timeout": {"correct": false}}
         },
         {
-            "name": "musicbox_broken",
+            "name": ["st15_ac4", "st15_ac8"],
             "frequency": 1,
             "category": "S-",
             "cue_stim": ["center_blue"],
