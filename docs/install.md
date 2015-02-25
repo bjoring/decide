@@ -1,68 +1,20 @@
 
-# Networking
+# Beaglebone Black Setup
 
-You can interact with a Beaglebone Black running `decide` in several ways:
+`decide` runs in `node.js` and can theoretically be used on any POSIX computer. It can be run in "dummy" mode for development purposes. However, its intended use is with a low-cost, single-board computer like the Beaglebone Black (BBB) that provides access to digital input and outputs. These lines can be run to physical devices that an animal can interact with during behavioral experiments.
 
-1. locally, by connecting a monitor to the HDMI port and a mouse and keyboard to the USB port
-2. directly over a network connection, either through the USB port, Ethernet, or wireless
-3. indirectly through a host computer that acts as a gateway to a private network
+This document assumes that you have a working BBB and that you understand how to start up the board, connect to it through the USB cable, and access the device through a browser and ssh. Once you are comfortable with using this computer, install the [starboard](http://meliza.org/starboard/) expansion cape by pressing the pins firmly into the expansion headers, making sure that they are correctly aligned. The `starboard` provides 9 low-power digital outputs, 3 high-power digital outputs, 4 digital inputs that can be wired to switches or beam-break detectors, and a 16-bit stereo DAC and amplifier.
 
-The advantage of the last configuration is that it scales up to any number of independently running apparatuses. The `decide` software running on each device communicates with a process running on the host computer, which provides some additional services, including trial and event logging, collating statistics, monitoring connected devices for errors, and providing an overview interface for all the connected devices. If you are concerned about security (which you should be, if you want to access your experiments over a public network), the indirect configuration provides a single access point that can be more efficiently secured than a host of individual Beaglebones. This section describes how to set up this configuration.
+Your `starboard` should have come with a micro-SD card that contains a complete boot image and copy of the `decide` software. If you don't have this card, [this document](ossetup.md) will tell you how to download or clone an existing image and write it to a card.  Plug the card into the uSD card slot and hold down the boot button while turning on the board. The LEDs on the cape should light dimly at first and then go dark as the I/O pins are configured. You should then be able to connect to the BBB through the supplied USB cable.
 
-We assume that you've correctly connected all your devices on a private network, and that your host computer has two Ethernet interfaces. For the purposes of this document, `eth0` on the host is connected to the outside world, and `eth1` is connected to the private network, which is on the subnet `192.168.10/24`. All the BBBs are also connected to this network through their Ethernet cables (wireless networks are not recommended due to their insecurity and unreliability). No additional configuration of the BBBs is needed for this configuration, beyond ensuring that each device has a unique hostname.
+# Starting the software
 
-These instructions assume that the host computer is running a modern Linux distribution (they were tested on Debian 8), and that `decide` has either been installed as an npm module or that the source has been installed somewhere publically accessible.  Although there are some general security observations in this document, you should consult other sources on securing the host computer, and be sure to keep your software updated.
+The boot image comes with the latest stable version of `decide` installed under `/root/decide`. If you would like to upgrade to the current development version, change to this directory and run `git checkout -b develop origin/develop`, then run `npm install`. The last command will install any missing `node` dependencies.
 
-## Firewall
+The main component of the software consists of a controller script, `decide-ctrl.js`, which manages connected devices, logs trial and event data, and provides a web interface for monitoring and manipulating the apparatus.  First, let's explore the software in a standalone mode. Copy or link `config/host-config-standalone.json` to `config/host-config.json`, then execute `scripts/decide-ctrl.js`. You should see a lot of log messages fly by as the program initializes state. Now point your browser at <http://beaglebone.local:8000> (substitute the appropriate hostname if you changed it). You should see an interface that represents the operant panel, with the house light at the top, then the three RGB cue lights, then the peck keys, and then the hoppers. You can change the state of the apparatus by clicking on the components in the interface, and if you block the beam-break detectors (or press the switches) for the response keys, you should see the appropriate element light up. Under the hood, when you interact with the interface, your browser sends messages to `decide-ctrl` requesting that it change the state of a component; `decide-ctrl` sends messages to the browser indicating when it changes state.
 
-Use iptables to restrict access to the host computer on `eth0` (the public interface) to trusted subnets. Add an entry to iptables for the interface of the private network:
+Experiments are run in separate processes that connect to `decide-ctrl.js` through the same websockets interface as your browser and manipulate the state of the apparatus through messages. Experiments themselves have state depending on which phase of a trial they're in. `decide` ships with three experiment programs: `lights`, `shape`, and `gng`.
 
-```bash
-/sbin/iptables -A INPUT -i eth1 -j ACCEPT
-```
+**lights** simply sets the house lights (one of the high-power outputs of `starboard`) to an intensity that matches the local position of the sun.  You can use `lights` when you have an animal on ad lib food. Let's try running it.  At this point, you may want to consider running these programs in `screen`, a virtual terminal program that will let you have multiple virtual screens that don't kill the programs if you get disconnected. You'll need to tell `lights` the name of your subject and give an email it can contact if there are problems. For example: `scripts/lights.js subj_1 me@host.com`. If your browser is still open, you should see it update to indicate that the `lights` procedure is running, the process id, the subject, and your email. If you hover over the house lights bar at the top of the interface, you'll see information about the sun's altitude and the brightness.  If you want to run the animal on a different light cycle, you can edit `config/bbb-config.json` and edit the `house_lights` item to set latitude and longitude or a fixed start and stop time.  To end the `lights` experiment, type ctrl-C.
 
-In order for devices on the private network to access the Internet, you also need to add these entries:
-
-```bash
--t nat -A POSTROUTING -o eth0 -j MASQUERADE
--A FORWARD -i eth0 -o eth1 -m state --state RELATED,ESTABLISHED -j ACCEPT
--A FORWARD -i eth1 -o eth0 -j ACCEPT
-```
-
-## DHCP
-
-Devices connecting to the private network need to be assigned IP addresses and hostnames. `dnsmasq` is a simple DHCP and DNS server that can accomplish both these tasks for small subnets.  After installing `dnsmasq`, copy `dnsmasq.conf` in this directory to `/etc/dnsmasq.conf` and restart `dnsmasq`. The BBBs should now be able to obtain IP addresses in the range `192.168.10.101` to `192.168.10.220`. Confirm that leases are listed on the host computer in `/var/lib/misc/dnsmasq.leases`, and that you can retrieve the IP address of any connected BBB as follows: `dig <bbb-name> @localhost`.
-
-## Host daemon
-
-The program that handles communication with devices on the network is called `decide-host.js` and runs in node. For debugging and testing purposes the script can be run directly, but for deployment it should be run as a daemon so that it's always available.  These instructions assume `systemd` is being used for service management.
-
-First, make sure `node.js` and `npm` are installed. If installing from source, run `npm install` in the source directory to install dependencies.  Copy `docs/decide-host.service` to `/etc/systemd/system/`
-
-### Web proxy
-
-For deployment, the node.js process on the host needs to run behind a dedicated web server. This configuration is necessary to restrict access to authenticated users (and to encrypt the authentication protocol so passwords aren't sent in the clear).  The web server also acts as a proxy for individual BBBs running on a private network.
-
-This section details instructions for using [nginx](http://nginx.org/) as the web server. Apache may also work, but does not support proxy operations for websockets as well as nginx at this date.
-
-After installing nginx, copy `decide-server.conf` to `/etc/nginx/sites-available` and create a soft link to the file in `/etc/nginx/sites-enabled`. You will need to generate an SSL/TLS key and certificate and place them in the locations specified in the configuration file. These instructions should work if you have gnutls:
-
-```bash
-certtool --generate-privkey --outfile server-key.pem
-certtool --generate-self-signed --load-privkey server-key.pem --outfile server-cert.pem
-```
-
-Place `server-key.pem` in `/etc/ssl/private`, set ownership to `root.ssl-cert` and permissions to `640`. Place `server-cert.pem` in `/etc/ssl/certs` and set permissions to `644`. Note that browsers should complain about the certificate, because it's not signed by a recognized Certificate Authority. You can add an exception.
-
-You will also need to create the password file `/etc/nginx/passwords`, which is
-used for authentication. Add users and passwords as needed, or use a more
-sophisticated authentication system.
-
-Copy the `static` directory to `/srv/www` on the host computer. These files will be served by the web server, which will slightly reduce the load on the devices.
-
-Start the host node.js process. In final deployment, it should run as a daemon and only accept connections from localhost. You will be able to access the host interface at https://hostname/controller. Similarly, the BBB node.js processes should run as daemons, but they will need to accept connections from external programs. Each BBB can be accessed at https://hostname/device/device-name/, where `device-name` is the hostname of the BBB.
-
-# Log database
-
-`decide-host` can use mongodb for storing log messages. The primary mongodb server should run locally on the host, but you may wish to configure the server to replicate its data to another machine. Setting up the database server
-is beyond the scope of this document. To use mongodb logging, set the "log_db" key in `host-config.json` to the uri of the database.
+For instructions on shaping and running a go-no-go experiment, see the [next section](experiments.md).

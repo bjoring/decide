@@ -27,3 +27,4 @@ updates to all connected clients.
 
 I'm not sure how to implement this over HTTP and web sockets. HTTP provides a pretty good request-reply mechanism. Can probably be replaced entirely by websockets though; reduced latency. Does look like sockets can do broadcast (where the server sends messages to all clients except the source). What about routing? Requires some sort of addressing scheme. The server needs to know who is connected that can receive messages.
 
+The `decide` software will work with any cape, but you will have to generate your own device tree overlay files to map hardware devices to specific files in the Linux `/sys/class` tree, and then specify those devices in the `config/bbb-config.json` file. If you're designing your own circuit board, you probably know how to do this.
