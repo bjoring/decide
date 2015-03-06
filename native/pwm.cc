@@ -99,7 +99,8 @@ Handle<Value> stop(const Arguments& args)
 }
 
 
-Handle<Value> period(const Arguments& args) {
+Handle<Value> period(const Arguments& args)
+{
         HandleScope scope;
         double usec;
         // PRU loop is 4 instructions except on cycles where the GPIO is flipped
@@ -121,7 +122,24 @@ Handle<Value> period(const Arguments& args) {
 
 Handle<Value> duty(const Arguments& args) {
         HandleScope scope;
-        return scope.Close(String::New("world"));
+        unsigned int idx;
+        double duty;
+        if (args.Length() == 0) {
+                return throw_exception("duty() requires 1 or two arguments");
+        }
+        if (!args[0]->IsNumber()) {
+                return throw_exception("first argument must be an unsigned integer");
+        }
+        idx = args[0]->ToUint32()->Value();
+        if (args.Length() > 1) {
+                if (!args[1]->IsNumber()) {
+                        return throw_exception("arg 2 must be a float between 0 and 100");
+                }
+                duty = args[1]->ToNumber()->Value();
+                _pruDataMem0[2 + idx] = (unsigned int)round(duty * get_period());
+        }
+        duty = (double)_pruDataMem0[2 + idx] / (double)_pruDataMem0[1];
+        return scope.Close(Number::New(duty));
 }
 
 Handle<Value> pulse_hold(const Arguments& args) {
@@ -139,6 +157,8 @@ void Init(Handle<Object> exports) {
                      FunctionTemplate::New(stop)->GetFunction());
         exports->Set(String::NewSymbol("period"),
                      FunctionTemplate::New(period)->GetFunction());
+        exports->Set(String::NewSymbol("duty"),
+                     FunctionTemplate::New(duty)->GetFunction());
 }
 
 NODE_MODULE(pwm, Init)
