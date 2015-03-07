@@ -8,26 +8,17 @@
  *
  * Copyright (C) 2015 C Daniel Meliza <dan || meliza.org>
  */
-
 #include <string>
-#include <cmath>
-
-#include <prussdrv.h>
-#include <pruss_intc_mapping.h>
-#define PRU_NUM 0
-#define PRU_FIRMWARE "./pwm.bin"
-#define PRU_STEP_USEC 0.005
 
 // node headers
 #include <node.h>
 #include <v8.h>
 
+#include "pruss_pwm.hh"
+
 using namespace v8;
 
-
-
-static void * _pruDataMem;
-static unsigned int * _pruDataMem0;
+static pruss::pwm PWM(50);
 
 inline Handle<Value>
 throw_exception(char const * arg)
@@ -35,40 +26,6 @@ throw_exception(char const * arg)
         return ThrowException(Exception::Error(String::New(arg)));
 }
 
-static double
-get_period()
-{
-        return (4.0 * _pruDataMem0[1] + 2 + 9) * PRU_STEP_USEC;
-}
-
-
-/** Initialize the PRU and start the PWM */
-void
-init()
-{
-        int ret;
-        tpruss_intc_initdata pruss_intc_initdata = PRUSS_INTC_INITDATA;
-
-        prussdrv_init();
-        ret = prussdrv_open(PRU_EVTOUT_0);
-        if (ret) {
-                throw_exception("prussdrv_open open failed");
-        }
-
-        // Initialize interrupt
-        prussdrv_pruintc_init(&pruss_intc_initdata);
-
-        // assign the the data RAM address to pointers
-        prussdrv_map_prumem(PRUSS0_PRU0_DATARAM, &_pruDataMem);
-        _pruDataMem0 = reinterpret_cast<unsigned int*>(_pruDataMem);
-
-        _pruDataMem0[0] = 1;
-        _pruDataMem0[1] = 2497;         // default to 20 kHz period
-        _pruDataMem0[2] = 0;
-        _pruDataMem0[3] = 0;
-
-        // prussdrv_exec_program(PRU_NUM, PRU_FIRMWARE);
-}
 
 /** Load a program in the PRU and run it */
 Handle<Value> start(const Arguments& args) {
@@ -82,19 +39,8 @@ Handle<Value> start(const Arguments& args) {
         String::Utf8Value program(args[0]->ToString());
         std::string programS = std::string(*program);
 
-        prussdrv_exec_program (PRU_NUM, (char*)programS.c_str());
+        PWM.start(programS.c_str());
 
-        return scope.Close(Undefined());
-}
-
-Handle<Value> stop(const Arguments& args)
-{
-        HandleScope scope;
-        _pruDataMem0[0] = 0;
-        usleep(get_period());
-        prussdrv_pru_clear_event(PRU_EVTOUT_0, PRU0_ARM_INTERRUPT);
-        prussdrv_pru_disable(PRU_NUM);
-        prussdrv_exit();
         return scope.Close(Undefined());
 }
 
@@ -112,12 +58,9 @@ Handle<Value> period(const Arguments& args)
                         return throw_exception("period() takes 0 or 1 numeric argument");
                 }
                 usec = args[0]->ToNumber()->Value();
-                if (usec <= 0) {
-                        return throw_exception("period must be greater than 0");
-                }
-                _pruDataMem0[1] = (unsigned int)round((usec / PRU_STEP_USEC - 2 - 9) / 4);
+                PWM.period(usec);
         }
-        return scope.Close(Number::New(get_period()));
+        return scope.Close(Number::New(PWM.period()));
 }
 
 Handle<Value> duty(const Arguments& args) {
@@ -131,30 +74,32 @@ Handle<Value> duty(const Arguments& args) {
                 return throw_exception("first argument must be an unsigned integer");
         }
         idx = args[0]->ToUint32()->Value();
+        if (idx >= pruss::pwm::n_pwms) {
+                return throw_exception("invalid PWM index");
+        }
         if (args.Length() > 1) {
                 if (!args[1]->IsNumber()) {
                         return throw_exception("arg 2 must be a float between 0 and 100");
                 }
                 duty = args[1]->ToNumber()->Value();
-                _pruDataMem0[2 + idx] = (unsigned int)round(duty * get_period());
+                PWM.duty(idx, duty);
         }
-        duty = (double)_pruDataMem0[2 + idx] / (double)_pruDataMem0[1];
-        return scope.Close(Number::New(duty));
+        return scope.Close(Number::New(PWM.duty(idx)));
 }
 
-Handle<Value> pulse_hold(const Arguments& args) {
-        HandleScope scope;
-        return scope.Close(String::New("world"));
-}
+// Handle<Value> pulse_hold(const Arguments& args) {
+//         HandleScope scope;
+//         return scope.Close(String::New("world"));
+// }
 
 
 void Init(Handle<Object> exports) {
 
-        init();
+        if (!PWM.is_loaded()) {
+                throw_exception("error calling prussdrv_open() - is driver loaded?");
+        }
         exports->Set(String::NewSymbol("start"),
                      FunctionTemplate::New(start)->GetFunction());
-        exports->Set(String::NewSymbol("stop"),
-                     FunctionTemplate::New(stop)->GetFunction());
         exports->Set(String::NewSymbol("period"),
                      FunctionTemplate::New(period)->GetFunction());
         exports->Set(String::NewSymbol("duty"),
