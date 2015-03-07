@@ -87,10 +87,38 @@ Handle<Value> duty(const Arguments& args) {
         return scope.Close(Number::New(PWM.duty(idx)));
 }
 
-// Handle<Value> pulse_hold(const Arguments& args) {
-//         HandleScope scope;
-//         return scope.Close(String::New("world"));
-// }
+Handle<Value> pulse_hold(const Arguments& args) {
+        HandleScope scope;
+        unsigned int idx;
+        double duration;
+        double pulse, hold;
+        // argument boilerplate
+        if (args.Length() < 4) {
+                return throw_exception("pulse_hold(idx, pulse_duty, pulse_dur, hold_duty)");
+        }
+        for (int i = 0; i < 4; ++i) {
+                if (!args[i]->IsNumber())
+                        return throw_exception("arguments must be numbers");
+        }
+        idx = args[0]->ToUint32()->Value();
+        pulse = args[1]->ToNumber()->Value();
+        duration = args[2]->ToNumber()->Value();
+        hold = args[3]->ToNumber()->Value();
+        if (idx >= pruss::pwm::n_pwms)
+                return throw_exception("invalid PWM index");
+        if (pulse < 0 || pulse > 100)
+                return throw_exception("pulse duty cycle must be between [0, 100]");
+        if (hold < 0 || hold > 100)
+                return throw_exception("hold duty cycle must be between [0, 100]");
+        if (duration <= 0)
+                return throw_exception("duration must be greater than zero");
+        PWM.duty(idx, pulse);
+        // pulses should be short - okay to hold the interpreter?
+        usleep(duration * 1000);
+        PWM.duty(idx, hold);
+
+        return scope.Close(Undefined());
+}
 
 
 void Init(Handle<Object> exports) {
@@ -104,6 +132,8 @@ void Init(Handle<Object> exports) {
                      FunctionTemplate::New(period)->GetFunction());
         exports->Set(String::NewSymbol("duty"),
                      FunctionTemplate::New(duty)->GetFunction());
+        exports->Set(String::NewSymbol("pulse"),
+                     FunctionTemplate::New(pulse_hold)->GetFunction());
 }
 
 NODE_MODULE(pwm, Init)
