@@ -41,6 +41,9 @@ Handle<Value> start(const Arguments& args) {
 
         PWM.start(programS.c_str());
 
+        usleep(1);
+        if (!PWM.running())
+                return throw_exception("failed to run program - check path");
         return scope.Close(Undefined());
 }
 
@@ -123,9 +126,6 @@ Handle<Value> pulse_hold(const Arguments& args) {
 
 void Init(Handle<Object> exports) {
 
-        if (!PWM.is_loaded()) {
-                throw_exception("error calling prussdrv_open() - is driver loaded?");
-        }
         exports->Set(String::NewSymbol("start"),
                      FunctionTemplate::New(start)->GetFunction());
         exports->Set(String::NewSymbol("period"),
