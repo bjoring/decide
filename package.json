@@ -33,7 +33,6 @@
     "engines": {
         "node": "0.10"
     },
-    "gypfile": true,
     "bin": {
         "decide-ctrl": "scripts/decide-ctrl.js",
         "decide-host": "scripts/decide-host.js",
