@@ -32,7 +32,7 @@ Devices connecting to the private network need to be assigned IP addresses and h
 
 The program that handles communication with devices on the network is called `decide-host.js` and runs in node. For debugging and testing purposes the script can be run directly, but for deployment it should be run as a daemon so that it's always available.  These instructions assume `systemd` is being used for service management.
 
-First, make sure `node.js` and `npm` are installed. If installing from source, run `npm install` in the source directory to install dependencies.  Copy `docs/decide-host.service` to `/etc/systemd/system/`
+First, make sure `node.js` and `npm` are installed. If installing from source, run `npm install` in the source directory to install dependencies. You will also need to compile the Clojurescript code to Javascript by running `lein cljsbuild once` (you can get Leiningen [here](http://leiningen.org). Copy `docs/decide-host.service` to `/etc/systemd/system/`
 
 ### Web proxy
 
