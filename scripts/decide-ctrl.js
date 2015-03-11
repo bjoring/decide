@@ -94,15 +94,17 @@ io.on("connection", function(socket) {
         else {
             client_key = msg.ret_addr;
             function proxy() {
-                this.req = function(req, data, rep) {
-                    // internal reqs get packaged into messages
-                    logger.debug("req to socket:", req, data);
-                    socket.emit(req, _.extend({addr: msg.ret_addr}, data), function(reply, result) {
-                        if (reply == "err")
-                            rep(result);
-                        else
-                            rep(null, result);
-                    });
+                return {
+                    req: function(req, data, rep) {
+                        // internal reqs get packaged into messages
+                        logger.debug("req to socket:", req, data);
+                        socket.emit(req, _.extend({addr: msg.ret_addr}, data), function(reply, result) {
+                            if (reply == "err")
+                                rep(result);
+                            else
+                                rep(null, result);
+                        });
+                    }
                 };
             }
             apparatus.register(client_key, proxy);
@@ -202,32 +204,32 @@ function controller(params, addr, pub) {
         if (host) host.emit("state-changed", msg);
     });
 
-    // REQ messages from the apparatus
-    this.req = function(msg, data, rep) {
-        logger.debug("req to controller: ", msg, data);
-        if (msg == "reset-state")
-            rep();
-        else if (msg == "get-state")
-            rep(null, state);
-        else if (msg == "get-meta")
-            rep(null, meta);
-        else if (msg == "get-params")
-            rep(null, par);
-        else
-            rep("invalid or unsupported REQ type");
+    var me = {
+        // REQ messages from the apparatus
+        req: function(msg, data, rep) {
+            logger.debug("req to controller: ", msg, data);
+            if (msg == "reset-state")
+                rep();
+            else if (msg == "get-state")
+                rep(null, state);
+            else if (msg == "get-meta")
+                rep(null, meta);
+            else if (msg == "get-params")
+                rep(null, par);
+            else
+                rep("invalid or unsupported REQ type");
+        },
+        forward: function(msg_t, msg) {
+            msg.addr = state.hostname + "." + msg.addr;
+            if (host) host.emit(msg_t, msg);
+        },
+        disconnect: function() {
+            if (host)
+                host.emit("unroute", {ret_addr: state.hostname}, function(reply) {});
+        }
     };
-
-    this.forward = function(msg_t, msg) {
-        msg.addr = state.hostname + "." + msg.addr;
-        if (host) host.emit(msg_t, msg);
-    }
-
-    this.disconnect = function() {
-        if (host)
-            host.emit("unroute", {ret_addr: state.hostname}, function(reply) {});
-    }
-
     pub.emit("state-changed", addr, state);
+    return me;
 }
 
 // *********************************
