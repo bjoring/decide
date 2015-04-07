@@ -36,11 +36,13 @@
     "experiment": {},
     "feeder_left": {
         "device": "starboard:hopper:left",
-        "max_duty": 0.25
+        "max_duty": 0.25,
+        "pulse_duty": 73
     },
     "feeder_right": {
         "device": "starboard:hopper:right",
-        "max_duty": 0.25
+        "max_duty": 0.25,
+        "pulse_duty": 73
     },
     "house_lights": {
         "clock_interval": 600000,
