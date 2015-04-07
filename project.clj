@@ -1,4 +1,4 @@
-(defproject decide "1.0.0"
+(defproject decide "1.1.0"
   :description "operant control system"
   :url "http://meliza.org/starboard"
 

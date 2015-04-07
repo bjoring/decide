@@ -1,7 +1,7 @@
 {
     "name": "decide",
     "preferGlobal": false,
-    "version": "1.0.0",
+    "version": "1.1.0",
     "author": "Meliza Lab (http://meliza.org/starboard)",
     "description": "operant control system",
     "contributors": [
@@ -14,8 +14,6 @@
     },
     "license": "BSD",
     "dependencies": {
-        "express": "4.4.5",
-        "mongodb": "^1.4.17",
         "glob": "^4.0.3",
         "nodemailer": "1.0.3",
         "npm": ">= 1.1.2",
@@ -35,7 +33,6 @@
     },
     "bin": {
         "decide-ctrl": "scripts/decide-ctrl.js",
-        "decide-host": "scripts/decide-host.js",
         "lights": "scripts/lights.js",
         "shape": "scripts/shape.js",
         "gng": "scripts/gng.js"
