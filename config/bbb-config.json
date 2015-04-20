@@ -37,12 +37,18 @@
     "feeder_left": {
         "device": "starboard:hopper:left",
         "max_duty": 0.25,
-        "pulse_duty": 73
+        "mode": "pulse-hold",
+        "pulse_duty": 73,
+        "pulse_dur": 100,
+        "hold_duty": 10
     },
     "feeder_right": {
         "device": "starboard:hopper:right",
         "max_duty": 0.25,
-        "pulse_duty": 73
+        "mode": "pulse-hold",
+        "pulse_duty": 73,
+        "pulse_dur": 100,
+        "hold_duty": 10
     },
     "house_lights": {
         "clock_interval": 600000,
