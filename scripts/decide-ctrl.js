@@ -7,7 +7,7 @@ var logger = require("../lib/log");
 var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
-var sock_cli = require("socket.io-client");
+var host = require("../lib/host");
 var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
 
@@ -163,29 +163,18 @@ function controller(params, addr, pub) {
     }
 
     if (!host_params.standalone) {
-        var host_addr = "http://" + host_params.addr_int + ":" + host_params.port_int;
-        var host = sock_cli.connect(host_addr, {transports: ["websocket"]});
-
-        host.on("connect", function() {
-            logger.info("connected to host socket %s", host_addr);
-            host.emit("route", {ret_addr: state.hostname}, function(reply, data) {
-                if (reply == "err") {
-                    logger.error("error registering with host server");
-                    process.exit(-1);
-                }
-            });
-            state.server = host_params.addr_int;
+        var host_addr = "tcp://" + host_params.addr + ":" + host_params.port
+        var conn = host(host_addr, function(err) {
+            if (err === null) {
+                logger.error("error registering with host: %s", err);
+                process.exit(-1);
+            }
+            state.server = host_params.addr;
             pub.emit("state-changed", addr, {server: state.server});
-        });
-
-        host.on("disconnect", function() {
-            logger.info("lost connection to host (queuing messages)");
-            state.server = null;
-            pub.emit("state-changed", addr, {server: state.server});
-        });
+        })
 
         // req messages from the host
-        register_req(host);
+        // register_req(host);
 
     }
 
@@ -201,7 +190,7 @@ function controller(params, addr, pub) {
         // outgoing messages need hostname prefixed to address
         msg.addr = os.hostname() + "." + msg.addr;
         // NB: messages are queued during disconnects
-        if (host) host.emit("state-changed", msg);
+        if (conn) conn("state-changed", msg);
     });
 
     var me = {
@@ -221,11 +210,10 @@ function controller(params, addr, pub) {
         },
         forward: function(msg_t, msg) {
             msg.addr = state.hostname + "." + msg.addr;
-            if (host) host.emit(msg_t, msg);
+            if (conn) conn(msg_t, msg);
         },
         disconnect: function() {
-            if (host)
-                host.emit("unroute", {ret_addr: state.hostname}, function(reply) {});
+            if (conn) conn.close();
         }
     };
     pub.emit("state-changed", addr, state);

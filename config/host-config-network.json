@@ -1,6 +1,6 @@
 {
-    "addr_int": "192.168.10.1",
-    "port_int": 8010,
+    "addr": "localhost",
+    "port": 5555,
     "port_ctrl": 8000,
     "standalone": false,
     "admins": ["dmeliza@gmail.com"],
