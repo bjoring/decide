@@ -58,12 +58,12 @@ t.connect(name, function(socket) {
     t.change_state("experiment", par);
     // start first state
     t.ephemera(t.state_changer(name, state));
-    t.trial_data(name, {comment: "starting", subject: par.subject, program: name,
+    t.trial_data(name, {comment: "starting", subject: par.subject,
                         version: version, params: par});
 });
 
 function shutdown() {
-    t.trial_data(name, {comment: "stopping", subject: par.subject, program: name})
+    t.trial_data(name, {comment: "stopping", subject: par.subject})
     t.disconnect(process.exit);
 }
 

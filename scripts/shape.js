@@ -82,11 +82,10 @@ t.connect(name, function(socket) {
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting",
                         subject: par.subject,
-                        program: name,
                         version: version,
                         params: par});
     // hourly heartbeat messages for the activity monitor
-    t.heartbeat({program: name, subject: par.subject});
+    t.heartbeat(name, {subject: par.subject});
     if (argv.F)
         block4_peck1();
     else
@@ -94,7 +93,7 @@ t.connect(name, function(socket) {
 });
 
 function shutdown() {
-    t.trial_data(name, {comment: "stopping", subject: par.subject, program: name})
+    t.trial_data(name, {comment: "stopping", subject: par.subject})
     t.disconnect(process.exit);
 }
 
@@ -111,8 +110,8 @@ function intertrial(duration, next_state) {
 
 function feed(hopper, duration, next_state) {
     update_state({phase: "feeding"})
-    _.delay(t.req, par.feed_delay,
-            "change-state", {name: hopper, data: { feeding: true, interval: duration}})
+    _.delay(t.change_state, par.feed_delay,
+            hopper, { feeding: true, interval: duration})
     t.await(hopper, null, function(msg) { return msg.feeding == false }, next_state)
 }
 
