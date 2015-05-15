@@ -36,7 +36,6 @@
     "experiment": {},
     "feeder_left": {
         "device": "starboard:hopper:left",
-        "max_duty": 0.25,
         "mode": "pulse-hold",
         "pulse_duty": 73,
         "pulse_dur": 100,
@@ -44,7 +43,6 @@
     },
     "feeder_right": {
         "device": "starboard:hopper:right",
-        "max_duty": 0.25,
         "mode": "pulse-hold",
         "pulse_duty": 73,
         "pulse_dur": 100,
