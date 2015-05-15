@@ -165,17 +165,13 @@ function controller(params, addr, pub) {
     if (!host_params.standalone) {
         var host_addr = "tcp://" + host_params.addr + ":" + host_params.port
         var conn = host(host_addr, function(err) {
-            if (err === null) {
+            if (err) {
                 logger.error("error registering with host: %s", err);
                 process.exit(-1);
             }
             state.server = host_params.addr;
             pub.emit("state-changed", addr, {server: state.server});
         })
-
-        // req messages from the host
-        // register_req(host);
-
     }
 
     // forward PUB messages from the apparatus to connected clients and host
@@ -187,9 +183,6 @@ function controller(params, addr, pub) {
         };
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
-        // outgoing messages need hostname prefixed to address
-        msg.addr = os.hostname() + "." + msg.addr;
-        // NB: messages are queued during disconnects
         if (conn) conn("state-changed", msg);
     });
 
