@@ -55,7 +55,7 @@ t.connect(name, function(socket) {
     sock.on("state-changed", function(data) { logger.debug("pub to lights: state-changed", data)})
 
     // update user and subject information:
-    t.req("change-state", {addr: "experiment", data: par});
+    t.req("change-state", {name: "experiment", data: par});
     // start first state
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject, program: name,

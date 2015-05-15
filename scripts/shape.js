@@ -71,12 +71,12 @@ t.connect(name, function(socket) {
     sock.on("state-changed", function(data) { logger.debug("pub to shape: state-changed", data)})
 
     // query hopper duty cycle - assume both hoppers the same
-    t.req("get-params", {addr: "feeder_left"}, function(err, results) {
+    t.req("get-params", {name: "feeder_left"}, function(err, results) {
         par.max_hopper_duty = results.duty;
     })
 
     // update user and subject information:
-    t.req("change-state", {addr: "experiment", data: par});
+    t.req("change-state", {name: "experiment", data: par});
 
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
@@ -112,7 +112,7 @@ function intertrial(duration, next_state) {
 function feed(hopper, duration, next_state) {
     update_state({phase: "feeding"})
     _.delay(t.req, par.feed_delay,
-            "change-state", {addr: hopper, data: { feeding: true, interval: duration}})
+            "change-state", {name: hopper, data: { feeding: true, interval: duration}})
     t.await(hopper, null, function(msg) { return msg.data.feeding == false }, next_state)
 }
 
@@ -136,7 +136,7 @@ function block1_await() {
     if (state.block < 1) {
         logger.info("entering block 1")
     }
-    t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
+    t.req("change-state", {name: cue, data: { trigger: "timer", period: par.blink_period}});
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
 
     t.await("keys", blink_duration, _test, _exit);
@@ -152,7 +152,7 @@ function block1_await() {
     function _exit() {
         var next_state;
         var hopper = random_hopper();
-        t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
+        t.req("change-state", {name: cue, data: { trigger: null, brightness: 0}});
         if (pecked != "timeout") {
             next_state = block2_await;
         }
@@ -185,7 +185,7 @@ function block2_await() {
         logger.info("entering block 2")
         state.trial = 0;
     }
-    t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
+    t.req("change-state", {name: cue, data: { trigger: "timer", period: par.blink_period}});
     update_state({ block: 2, trial: state.trial + 1, phase: "awaiting-response"});
 
     // NB: end of day will not exit state, but this isn't a huge problem as the
@@ -194,7 +194,7 @@ function block2_await() {
 
     function _exit() {
         var hopper = random_hopper();
-        t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
+        t.req("change-state", {name: cue, data: { trigger: null, brightness: 0}});
         var next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
         t.trial_data(name, {program: name,
@@ -215,11 +215,11 @@ function block3_peck1() {
         logger.info("entering block 3")
         state.trial = 0;
     }
-    t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
+    t.req("change-state", {name: cue, data: { trigger: "timer", period: par.blink_period}});
     update_state({ block: 3, trial: state.trial + 1, phase: "awaiting-response-1"});
 
     t.await("keys", null, function(msg) { return msg.data.peck_center}, function() {
-        t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
+        t.req("change-state", {name: cue, data: { trigger: null, brightness: 0}});
         block34_peck2(side);
     })
 }
@@ -242,14 +242,14 @@ function block34_peck2(side) {
     var cue = "cue_" + side + "_" + par.cue_color;
     var key = "peck_" + side;
 
-    t.req("change-state", {addr: cue, data: { trigger: "timer", period: par.blink_period}});
+    t.req("change-state", {name: cue, data: { trigger: "timer", period: par.blink_period}});
     update_state({ phase: "awaiting-response-2"});
     t.await("keys", null, function(msg) { return msg.data[key]}, _exit);
 
     function _exit() {
         var next;
         var hopper = "feeder_" + side;
-        t.req("change-state", {addr: cue, data: { trigger: null, brightness: 0}});
+        t.req("change-state", {name: cue, data: { trigger: null, brightness: 0}});
         if (state.block == 3 && state.trial < par.block_trials)
             next = block3_peck1;
         else

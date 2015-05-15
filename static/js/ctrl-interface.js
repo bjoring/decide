@@ -34,15 +34,15 @@ sock.on("disconnect", function() {
 
 sock.on("state-changed", function(msg) {
     if (msg.data) {
-        if (!starboard.hasOwnProperty(msg.addr)) {
-            starboard[msg.addr] = {state: {}};
+        if (!starboard.hasOwnProperty(msg.name)) {
+            starboard[msg.name] = {state: {}};
         }
         d3.entries(msg.data).forEach(function(x) {
-            starboard[msg.addr].state[x.key] = x.value;
+            starboard[msg.name].state[x.key] = x.value;
         });
     }
     else {
-        delete starboard[msg.addr];
+        delete starboard[msg.name];
     }
 
     drawInterface();
@@ -195,7 +195,7 @@ function drawInterface() {
         .attr("height", yScale.rangeBand() * (2 / 3))
         .on("click", function(d) {
             sock.emit("change-state", {
-                addr: d.key,
+                name: d.key,
                 data: {
                     brightness: !(d.value.state.brightness)
                 }
@@ -249,7 +249,7 @@ function drawInterface() {
             var data = {};
             data[d.key] = true;
             sock.emit("change-state", {
-                addr: "keys",
+                name: "keys",
                 data: data
             });
         })
@@ -257,7 +257,7 @@ function drawInterface() {
             var data = {};
             data[d.key] = false;
             sock.emit("change-state", {
-                addr: "keys",
+                name: "keys",
                 data: data
             });
         })
@@ -291,7 +291,7 @@ function drawInterface() {
         .on("click", function(d) {
             // TODO: support changing the brightness to other values?
             sock.emit("change-state", {
-                addr: d.key,
+                name: d.key,
                 data: {
                     brightness: !d.value.state.brightness * 255,
                     clock_on: !d.value.state.clock_on,
@@ -338,7 +338,7 @@ function drawInterface() {
         .attr("height", yScale.rangeBand() / 2)
         .on("click", function(d) {
             sock.emit("change-state", {
-                addr: d.key,
+                name: d.key,
                 data: {
                     feeding: true
                 },

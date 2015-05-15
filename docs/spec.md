@@ -1,11 +1,11 @@
 
 This document specifies the protocols used by the *decide* operant control
-software.
+software to exchange data among processes and with users via websockets.
 
 -   Editor: Dan Meliza (dan at meliza.org)
 -   Version: 1.0
 -   State:  draft
--   URL: <http://meliza.org/specifications/decide>
+-   URL: <http://meliza.org/specifications/decide-ctrl/>
 
 ## Goals and framework
 
@@ -19,9 +19,7 @@ Automated operant behavioral experiments involve the following processes:
    addition, trials may be structured into blocks with varying experimental
    conditions.
 3. Logging of apparatus state changes, experiment events, and trial data.
-4. Automated monitoring of systems and animal behavior over long time windows to
-   detect equipment failure and ensure adequate food access.
-5. Interfaces to monitor and manipulate the apparatus and experimental progress,
+4. Interfaces to monitor and manipulate the apparatus and experimental progress,
    including starting and stopping experiments.
 
 In *decide*, these processes are implemented in programs that may be distributed
@@ -38,7 +36,7 @@ example, the experiment control program raises a food hopper to provide a
 reward), so there needs to be a system for sending requests (REQ) to specific
 parts of the system. This protocol describes these messages.
 
-## System and network architecture
+## System architecture
 
 Each embedded computer (`controller`) is connected to an array of physical
 devices. The current complement is 9 cue LEDs of various colors, 2 food hoppers,
@@ -50,25 +48,25 @@ monitor events and manipulate the apparatus.
 
 In addition, `decide-ctrl` may be configured to connect over a network to a host
 computer running a process (`decide-host`) that provides additional services,
-including logging, monitoring, and statistical analysis. External clients can
-connect to this computer to manipulate and inspect any of the connected
-controllers.
+including logging, monitoring, and statistical analysis. The protocol for this
+communication is described in a separate document at
+<http://meliza.org/specifications/decide-host/> connect to this computer to
+manipulate and inspect any of the connected controllers.
 
 ## Messages
 
 The protocols described here are intended to be as independent of the wire
-protocol as possible.
-
-The current implementation uses [socket.io](http://socket.io), with a single
-bi-directional channel in which messages consist of a string identifying the
-message type (whether PUB or REQ) followed by a javascript object `payload`.
+protocol as possible, but the current implementation uses
+[socket.io](http://socket.io), with a single bi-directional channel in which
+messages consist of a string identifying the message type (whether PUB or REQ)
+followed by a javascript object `payload`.
 
 ### PUB messages
 
 PUB messages are sent asynchronously and do not require a response. The payload
 must include the following fields:
 
-- `addr`: the address of the *source* of the message
+- `name`: the identifier of the *source* of the message
 - `time`: a timestamp indicating when the event was created. Value is the number
   of milliseconds since the epoch
 
@@ -77,7 +75,7 @@ Messages may have additional fields depending on the message type. Defined PUB t
 1. `state-changed`: indicates that the internal state of a component has
    changed. The message must contain a `data` field whose value is a dictionary
    giving the values that changed (and only those values). This message type is
-   also used to indicate when certain clients connect and disconnect.
+   also used to indicate when clients connect and disconnect.
 2. `trial-data`: carries trial data (i.e., experimental data for analysis). The
    message must contain a `data` field with the data to be logged. Usually this
    will be stored in a separate file from event data.
@@ -88,13 +86,13 @@ Messages may have additional fields depending on the message type. Defined PUB t
 
 ### REQ messages
 
-REQ messages use an asynchronous request-reply pattern. They differ from PUB messages in two respects: first, the sender of the message should expect a response; second, the messages are addressed *to* specific recipients based on the `addr` field. See next section for more information on addressing. Defined REQ types:
+REQ messages use an asynchronous request-reply pattern. They differ from PUB messages in two respects: first, the sender of the message should expect a response; second, the messages are addressed *to* specific recipients based on the `name` field. See next section for more information on addressing. Defined REQ types:
 
 1. `change-state`: requests a modification to the state of the component
-   specified by `addr`. Message must contain a `data` field with updates to the
+   specified by `name`. Message must contain a `data` field with updates to the
    state vector. Changes to the state that result from the request must be sent
    via a `state-changed` PUB message.
-2. `reset-state`: requests the component specified by `addr` to return to its
+2. `reset-state`: requests the component specified by `name` to return to its
    default state if possible. Any data field in the message is ignored. Changes
    to the state that result from the request, however, must be sent via a
    `state-changed` PUB message.
@@ -108,52 +106,15 @@ REQ messages use an asynchronous request-reply pattern. They differ from PUB mes
 5. `get-params`: requests the addressed component to return its parameters.
    Replies are as for `get-state`.
 6. `route`: requests the controller to start routing REQ messages to the
-   client's socket. For this message type, the `addr` field is ignored. The
-   message must contain a `ret_addr` field specifying the requested address for
-   the client in the controller's routing table. Only one address may be
-   registered for any socket.
+   client's socket. For this message type, the `name` field specifies the
+   requested address for the client in the controller's routing table. Only one
+   address may be registered for any socket.
 7. `unroute`: requests the controller to stop routing REQ messages to the client.
    The broker must map the client's request to the previously requested address.
    The broker must respond with `ok` for success and `err` for
    failure.
 
 For all REQ message types, the recipient must respond with `ok` if the request was received and was properly addressed. Additional data may follow `ok` depending on the message type. If the request was badly formed or referred to an invalid address, the recipient must reply with `err`, followed by a string describing the nature of the problem.
-
-### Controller-Host Communication
-
-The protocol is not only intended to support independent operation of controller computers, but also to allow multiple controllers to be managed by a single host computer.  Use of a host computer allows trial and event data to be aggregated, stored, and monitored centrally, and allows the establishment of a secure gateway to a private network where the controllers operate.
-
-In this scheme, `controller` refers to the embedded computer(s) directly managing the apparatus, and `host` refers to the computer that acts as a gateway and aggregator. The communication protocol between host and controller is essentially the same as between the controller and its other clients, with the following restrictions:
-
-1. The controller initiates communication with the host by opening a connection
-   to a well-known endpoint on the host. (For security reasons, this endpoint
-   should be only available on the private subnet shared by the host and
-   controllers).
-2. The controller may send an REQ `route` message in order to register in the
-   host's routing table. The address used by the controller in this message must
-   be the controller's unqualified hostname.
-3. For all routed controllers, the host must forward any REQ messages addressed
-   to the controller, first removing the prefix for the controller. Replies from
-   the controller must be returned to the sender of the REQ message.
-4. For all routed controllers, the host must monitor the status of the
-   connection (using a mechanism that depends on the wire protocol). Controllers
-   must only be removed from the routing table upon receipt of an `unroute`
-   message or after the connection is lost and cannot be reestablished within a
-   predefined interval.
-5. The address of any PUB messages originating from a controller must be
-   prefixed by the controller with its (unqualified) hostname. Controllers are
-   not required to send a `route` message prior to emitting PUB messages.
-
-The REQ channel between host and controller is bidirectional. The controller may
-emit REQs addressed to other routable clients connected to the host, and the
-host may emit REQs, typically forwarded from other clients. The PUB channel is
-unidirectional; the host must not forward PUB messages from one client to
-another.
-
-The host must also provide a second endpoint for connections from external
-clients, which may include other processes running on the host. Clients
-connected to the external endpoint may send REQ messages, which will be routed.
-The host must forward PUB messages from internal clients to external clients.
 
 ### Addressing
 
@@ -216,7 +177,3 @@ state.
 
 The broker should log `change-state` REQs from web clients, so that there's a
 record of manual intervention.
-
-Normal operation for a controller connected to a host is to forward all PUB
-messages for logging on the host. If controller dies, host should notify a
-human. If host dies, controller needs to start saving log messages.

@@ -55,7 +55,7 @@ function register_req(sock) {
     req_msg.forEach( function(req) {
         sock.on(req, function(msg, rep) {
             rep = rep || function() {};
-            apparatus.req(req, msg.addr, msg.data, function(err, data) {
+            apparatus.req(req, msg.name, msg.data, function(err, data) {
                 if (err)
                     rep("err", err);
                 else
@@ -76,7 +76,7 @@ io.on("connection", function(socket) {
     // forward pub from clients to other clients and apparatus components
     socket.on("state-changed", function(msg) {
         logger.debug("PUB from", client_addr, msg);
-        apparatus.pub.emit("state-changed", msg.addr, msg.data);
+        apparatus.pub.emit("state-changed", msg.name, msg.data);
         socket.broadcast.emit("state-changed", msg);
     });
 
@@ -88,17 +88,17 @@ io.on("connection", function(socket) {
         if (client_key) {
             rep("err", "socket is already registered as " + client_key);
         }
-        else if (apparatus.is_registered(msg.ret_addr)) {
-            rep("err", "address " + msg.ret_addr + " already taken");
+        else if (apparatus.is_registered(msg.name)) {
+            rep("err", "address " + msg.name + " already taken");
         }
         else {
-            client_key = msg.ret_addr;
+            client_key = msg.name;
             function proxy() {
                 return {
                     req: function(req, data, rep) {
                         // internal reqs get packaged into messages
                         logger.debug("req to socket:", req, data);
-                        socket.emit(req, _.extend({addr: msg.ret_addr}, data), function(reply, result) {
+                        socket.emit(req, _.extend({name: msg.name}, data), function(reply, result) {
                             if (reply == "err")
                                 rep(result);
                             else
@@ -145,7 +145,7 @@ io.on("connection", function(socket) {
 // socket.io connection to host
 
 // the controller's job is to route messages to and from the host socket
-function controller(params, addr, pub) {
+function controller(params, name, pub) {
 
     var par = {
         host: null
@@ -170,14 +170,14 @@ function controller(params, addr, pub) {
                 process.exit(-1);
             }
             state.server = host_params.addr;
-            pub.emit("state-changed", addr, {server: state.server});
+            pub.emit("state-changed", name, {server: state.server});
         })
     }
 
     // forward PUB messages from the apparatus to connected clients and host
-    pub.on("state-changed", function(addr, data, time) {
+    pub.on("state-changed", function(name, data, time) {
         var msg = {
-            addr: addr,
+            name: name,
             time: time || Date.now(),
             data: data
         };
@@ -202,14 +202,13 @@ function controller(params, addr, pub) {
                 rep("invalid or unsupported REQ type");
         },
         forward: function(msg_t, msg) {
-            msg.addr = state.hostname + "." + msg.addr;
             if (conn) conn(msg_t, msg);
         },
         disconnect: function() {
             if (conn) conn.close();
         }
     };
-    pub.emit("state-changed", addr, state);
+    pub.emit("state-changed", name, state);
     return me;
 }
 

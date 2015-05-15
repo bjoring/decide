@@ -90,12 +90,12 @@ t.connect(name, function(socket) {
     sock.on("state-changed", function(data) { logger.debug("pub to gng: state-changed", data)})
 
     // query hopper duty cycle - assume both hoppers the same
-    t.req("get-params", {addr: "feeder_left"}, function(err, results) {
+    t.req("get-params", {name: "feeder_left"}, function(err, results) {
         par.max_hopper_duty = results.duty;
     })
 
     // update user and subject information:
-    t.req("change-state", {addr: "experiment", data: par});
+    t.req("change-state", {name: "experiment", data: par});
 
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
@@ -138,7 +138,7 @@ function present_stim() {
     // if the stimulus is an array, play the sounds in sequence
     var playlist = (typeof stim.name === "object") ? stim.name : [stim.name];
     function play_stims(stim, rest) {
-        t.req("change-state", {addr: "aplayer", data: {playing: true,
+        t.req("change-state", {name: "aplayer", data: {playing: true,
                                                        stimulus: stim + ".wav",
                                                        root: stimset.root}});
         t.await("aplayer", null, function(msg) { return msg && !msg.data.playing }, function() {
@@ -200,7 +200,7 @@ function await_response() {
                             rtime: rtime
                            });
         _.map(stim.cue_resp || [], function(cue) {
-            t.req("change-state", {addr: "cue_" + cue, data: {brightness: 0}})
+            t.req("change-state", {name: "cue_" + cue, data: {brightness: 0}})
         });
         if (resp.correct ||
             (pecked == "timeout" && !par.correct_timeout) ||
@@ -222,7 +222,7 @@ function feed() {
     var hopper = random_hopper();
     update_state({phase: "feeding", "last-feed": Date.now()})
     _.delay(t.req, par.feed_delay,
-            "change-state", {addr: hopper, data: { feeding: true, interval: par.feed_duration}})
+            "change-state", {name: hopper, data: { feeding: true, interval: par.feed_duration}})
     t.await(hopper, null, function(msg) { return msg.data.feeding == false },
             _.partial(intertrial, par.feed_duration * (1/par.max_hopper_duty - 1)));
 }
@@ -230,9 +230,9 @@ function feed() {
 function lightsout() {
     var obj = "house_lights";
     update_state({phase: "lights-out"});
-    t.req("change-state", {addr: obj, data: {clock_on: false, brightness: 0}});
+    t.req("change-state", {name: obj, data: {clock_on: false, brightness: 0}});
     t.await(null, par.punish_duration, null, function() {
-        t.req("change-state", {addr: obj, data: {clock_on: true}});
+        t.req("change-state", {name: obj, data: {clock_on: true}});
         await_init();
     });
 }
@@ -250,6 +250,6 @@ function random_hopper() {
 // this is a utility function for setting a bunch of cues either on or off
 function set_cues(cuelist, value) {
     _.map(cuelist || [], function(cue) {
-        t.req("change-state", {addr: "cue_" + cue, data: {brightness: value}})
+        t.req("change-state", {name: "cue_" + cue, data: {brightness: value}})
     });
 }
