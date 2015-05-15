@@ -7,7 +7,7 @@ var logger = require("../lib/log");
 var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
-var host = require("../lib/host");
+var host_zmq = require("../lib/host");
 var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
 
@@ -165,14 +165,20 @@ function controller(params, name, pub) {
 
     if (!host_params.standalone) {
         var host_addr = "tcp://" + host_params.addr + ":" + host_params.port
-        var conn = host(host_addr, function(err) {
-            if (err) {
-                logger.error("error registering with host: %s", err);
-                process.exit(-1);
-            }
+        var conn = host_zmq();
+        conn.on("connect", function() {
+            logger.info("connected to decide-host at %s", host_addr);
             state.server = host_params.addr;
             pub.emit("state-changed", name, {server: state.server});
         })
+        conn.on("error", function(err) {
+            logger.error("error registering with host: %s", err);
+            process.exit(-1);
+        })
+        conn.on("disconnect", function() {
+            logger.warn("disconnected from decide-host at %s", host_addr)
+        })
+        conn.connect(host_addr);
     }
 
     // forward PUB messages from the apparatus to connected clients and host
@@ -182,7 +188,7 @@ function controller(params, name, pub) {
                 _.extend({name: name, time: time || Date.now()}, data);
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
-        if (conn) conn("state-changed", msg);
+        if (conn) conn.send("state-changed", msg);
     });
 
     var me = {
@@ -201,7 +207,7 @@ function controller(params, name, pub) {
                 rep("invalid or unsupported REQ type");
         },
         forward: function(msg_t, msg) {
-            if (conn) conn(msg_t, msg);
+            if (conn) conn.send(msg_t, msg);
         },
         disconnect: function() {
             if (conn) conn.close();
