@@ -10,6 +10,7 @@ var sockets = require("socket.io");
 var host_zmq = require("../lib/host");
 var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
+var jsonl = require("../lib/jsonl");
 
 var version = require('../package.json').version;
 var host_params = util.load_config("host-config.json");
@@ -51,21 +52,6 @@ app.use("/static", express.static(__dirname + "/../static"));
 // socket.io server
 var io = sockets(server);
 
-function register_req(sock) {
-    var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
-    req_msg.forEach( function(req) {
-        sock.on(req, function(msg, rep) {
-            rep = rep || function() {};
-            apparatus.req(req, msg, function(err, data) {
-                if (err)
-                    rep("err", err);
-                else
-                    rep("ok", data);
-            });
-        });
-    });
-}
-
 io.on("connection", function(socket) {
     var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
                        socket.request.connection.remoteAddress);
@@ -81,7 +67,20 @@ io.on("connection", function(socket) {
         socket.broadcast.emit("state-changed", msg);
     });
 
-    register_req(socket);
+    // forward reqs to apparatus
+    var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
+    req_msg.forEach( function(req) {
+        socket.on(req, function(msg, rep) {
+            rep = rep || function() {};
+            msg.client = client_addr;
+            apparatus.req(req, msg, function(err, data) {
+                if (err)
+                    rep("err", err);
+                else
+                    rep("ok", data);
+            });
+        });
+    });
 
     // routing requests are always handled by the controller/broker
     socket.on("route", function(msg, rep) {
@@ -99,12 +98,13 @@ io.on("connection", function(socket) {
                     req: function(req, data, rep) {
                         // internal reqs get packaged into messages
                         logger.debug("req to socket:", req, data);
-                        socket.emit(req, _.extend({name: msg.name}, data), function(reply, result) {
-                            if (reply == "err")
-                                rep(result);
-                            else
-                                rep(null, result);
-                        });
+                        socket.emit(req, _.extend({name: msg.name}, data),
+                                    function(reply, result) {
+                                        if (reply == "err")
+                                            rep(result);
+                                        else
+                                            rep(null, result);
+                                    });
                     }
                 };
             }
@@ -163,13 +163,23 @@ function controller(params, name, pub) {
         version: version
     }
 
+    function dropped_message_handler(msg_t, data) {
+        logger.debug("handling dropped %s", msg_t);
+        if (!backup_log) {
+            logger.warn("messages to host are getting dropped!")
+            logger.warn("backing up dropped messages to: %s", host_params.backup_log);
+            backup_log = jsonl(host_params.backup_log);
+            pub.state_changed(name, {LOST_MESSAGES: host_params.backup_log}, state);
+        }
+        backup_log(_.extend(data, {"type": msg_t}));
+    }
+
     if (!host_params.standalone) {
         var host_addr = "tcp://" + host_params.addr + ":" + host_params.port
         var conn = host_zmq();
         conn.on("connect", function() {
             logger.info("connected to decide-host at %s", host_addr);
-            state.server = host_params.addr;
-            pub.emit("state-changed", name, {server: state.server});
+            pub.state_changed(name, {server: host_params.addr}, state);
         })
         conn.on("error", function(err) {
             logger.error("error registering with host: %s", err);
@@ -177,6 +187,14 @@ function controller(params, name, pub) {
         })
         conn.on("disconnect", function() {
             logger.warn("disconnected from decide-host at %s", host_addr)
+            pub.state_changed(name, {server: state.server + " (disconnected)"}, state);
+        })
+        conn.on("dropped", dropped_message_handler)
+        conn.on("closed", function() {
+            logger.info("closed connection to decide-host");
+            var messages = conn.flush(function(x) {
+                return _.extend({"type": x.msg_t})});
+            if (backup_log) backup_log.close();
         })
         conn.connect(host_addr);
     }
@@ -203,9 +221,10 @@ function controller(params, name, pub) {
                 rep(null, meta);
             else if (msg == "get-params")
                 rep(null, par);
-            else
+           else
                 rep("invalid or unsupported REQ type");
         },
+        // provides a means to forward trial data to host
         forward: function(msg_t, msg) {
             if (conn) conn.send(msg_t, msg);
         },
@@ -213,7 +232,7 @@ function controller(params, name, pub) {
             if (conn) conn.close();
         }
     };
-    pub.emit("state-changed", name, state);
+    pub.state_changed(name, state);
     return me;
 }
 
