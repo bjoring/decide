@@ -33,20 +33,26 @@ sock.on("disconnect", function() {
 });
 
 sock.on("state-changed", function(msg) {
-    if (msg.data) {
-        if (!starboard.hasOwnProperty(msg.name)) {
-            starboard[msg.name] = {state: {}};
+    // strip out the non-data fields
+    var name = msg.name;
+    var time = msg.time;
+    delete msg.name;
+    delete msg.time;
+    var data = d3.entries(msg);
+    if (data.length > 0) {
+        if (!starboard.hasOwnProperty(name)) {
+            starboard[name] = {state: {}};
         }
-        d3.entries(msg.data).forEach(function(x) {
-            starboard[msg.name].state[x.key] = x.value;
+        data.forEach(function(x) {
+            starboard[name].state[x.key] = x.value;
         });
     }
     else {
-        delete starboard[msg.name];
+        delete starboard[name];
     }
 
     drawInterface();
-    d3.select("#last-update").text(function() { return new Date(msg.time).toLocaleTimeString();});
+    d3.select("#last-update").text(function() { return new Date(time).toLocaleTimeString();});
 });
 
 //sock.on("log", appendConsole);
@@ -196,9 +202,7 @@ function drawInterface() {
         .on("click", function(d) {
             sock.emit("change-state", {
                 name: d.key,
-                data: {
-                    brightness: !(d.value.state.brightness)
-                }
+                brightness: !(d.value.state.brightness)
             });
         })
         .append("title");
@@ -246,20 +250,14 @@ function drawInterface() {
         .attr("height", yScale.rangeBand())
         .on("mousedown", function(d) {
             // could get "keys" from d3.select(this.parentNode).datum().key;
-            var data = {};
+            var data = {name: "keys"};
             data[d.key] = true;
-            sock.emit("change-state", {
-                name: "keys",
-                data: data
-            });
+            sock.emit("change-state", data);
         })
         .on("mouseup", function(d) {
-            var data = {};
+            var data = {name: "keys"};
             data[d.key] = false;
-            sock.emit("change-state", {
-                name: "keys",
-                data: data
-            });
+            sock.emit("change-state", data);
         })
         .append("title");
 
@@ -292,11 +290,9 @@ function drawInterface() {
             // TODO: support changing the brightness to other values?
             sock.emit("change-state", {
                 name: d.key,
-                data: {
-                    brightness: !d.value.state.brightness * 255,
-                    clock_on: !d.value.state.clock_on,
-                    daytime: false
-                }
+                brightness: !d.value.state.brightness * 255,
+                clock_on: !d.value.state.clock_on,
+                daytime: false
             });
         })
         .append("title");
@@ -339,9 +335,7 @@ function drawInterface() {
         .on("click", function(d) {
             sock.emit("change-state", {
                 name: d.key,
-                data: {
-                    feeding: true
-                },
+                feeding: true
             });
         })
         .append("title");

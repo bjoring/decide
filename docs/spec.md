@@ -73,11 +73,10 @@ must include the following fields:
 Messages may have additional fields depending on the message type. Defined PUB types:
 
 1. `state-changed`: indicates that the internal state of a component has
-   changed. The message must contain a `data` field whose value is a dictionary
-   giving the values that changed (and only those values). This message type is
-   also used to indicate when clients connect and disconnect.
+   changed. The other fields of the message must give the values that changed,
+   and only those values.
 2. `trial-data`: carries trial data (i.e., experimental data for analysis). The
-   message must contain a `data` field with the data to be logged. Usually this
+   other fields in the message must contain the data to be logged. Usually this
    will be stored in a separate file from event data.
 3. `log`: emitted for operational messages. The message must contain the field
    `level` with the level of the log message (`error` for fatal errors,
@@ -89,13 +88,12 @@ Messages may have additional fields depending on the message type. Defined PUB t
 REQ messages use an asynchronous request-reply pattern. They differ from PUB messages in two respects: first, the sender of the message should expect a response; second, the messages are addressed *to* specific recipients based on the `name` field. See next section for more information on addressing. Defined REQ types:
 
 1. `change-state`: requests a modification to the state of the component
-   specified by `name`. Message must contain a `data` field with updates to the
-   state vector. Changes to the state that result from the request must be sent
-   via a `state-changed` PUB message.
+   specified by `name`. Message must contain fields that specify the components
+   of the state to change. Changes to the state that result from the request
+   must be sent via a `state-changed` PUB message.
 2. `reset-state`: requests the component specified by `name` to return to its
-   default state if possible. Any data field in the message is ignored. Changes
-   to the state that result from the request, however, must be sent via a
-   `state-changed` PUB message.
+   default state if possible. Changes to the state that result from the request,
+   however, must be sent via a `state-changed` PUB message.
 3. `get-state`: requests the current value of the state. The response is
    `ok` followed by a nested dictionary giving the state vector(s) of all
    requested components. See below for addressing scheme. This message can be

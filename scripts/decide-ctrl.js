@@ -34,7 +34,8 @@ app.get("/", function(req, res) {
 
 app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
     var cmd = "get-" + ((req.params[0] == "components") ? "meta" : req.params[0] );
-    apparatus.req(cmd, req.params[1] || "", null, function(err, rep) {
+
+    apparatus.req(cmd, {name: req.params[1] || ""}, function(err, rep) {
         if (err)
             res.send(500, {error: err});
         else
@@ -55,7 +56,7 @@ function register_req(sock) {
     req_msg.forEach( function(req) {
         sock.on(req, function(msg, rep) {
             rep = rep || function() {};
-            apparatus.req(req, msg.name, msg.data, function(err, data) {
+            apparatus.req(req, msg, function(err, data) {
                 if (err)
                     rep("err", err);
                 else
@@ -76,7 +77,7 @@ io.on("connection", function(socket) {
     // forward pub from clients to other clients and apparatus components
     socket.on("state-changed", function(msg) {
         logger.debug("PUB from", client_addr, msg);
-        apparatus.pub.emit("state-changed", msg.name, msg.data);
+        apparatus.pub.emit("state-changed", msg);
         socket.broadcast.emit("state-changed", msg);
     });
 
@@ -135,7 +136,7 @@ io.on("connection", function(socket) {
             client_key = null;
             // reset the apparatus; TODO check if the client that disconnected
             // was actually running the experiment!
-            apparatus.req("reset-state", "", null, function() {})
+            apparatus.req("reset-state", {name: ""}, function() {})
         }
         logger.info("disconnect from:", client_addr);
     });
@@ -175,12 +176,10 @@ function controller(params, name, pub) {
     }
 
     // forward PUB messages from the apparatus to connected clients and host
+    // accept both "packaged" and "unpackaged" messages
     pub.on("state-changed", function(name, data, time) {
-        var msg = {
-            name: name,
-            time: time || Date.now(),
-            data: data
-        };
+        var msg = (_.has(name, "name")) ? name :
+                _.extend({name: name, time: time || Date.now()}, data);
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
         if (conn) conn("state-changed", msg);
