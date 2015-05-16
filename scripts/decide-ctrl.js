@@ -197,7 +197,7 @@ function controller(params, name, pub) {
     // accept both "packaged" and "unpackaged" messages
     pub.on("state-changed", function(name, data, time) {
         var msg = (_.has(name, "name")) ? name :
-            _.extend({name: name, time: time || Date.now()}, data);
+            _.extend({name: name, time: time || util.now()}, data);
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
         if (conn) conn.send("state-changed", msg);

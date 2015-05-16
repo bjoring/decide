@@ -155,9 +155,9 @@ function present_stim() {
 function await_response() {
     var pecked = "timeout";
     var stim = state.stimulus;
-    update_state({phase: "awaiting-response", "last-trial": Date.now()});
+    update_state({phase: "awaiting-response", "last-trial": util.now()});
 
-    var resp_start = Date.now();
+    var resp_start = util.now();
     // turn off all cues not in cue_resp
     set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
     // turn on all cues not in cue_stim
@@ -221,7 +221,7 @@ function await_response() {
 
 function feed() {
     var hopper = random_hopper();
-    update_state({phase: "feeding", "last-feed": Date.now()})
+    update_state({phase: "feeding", "last-feed": util.now()})
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
     t.await(hopper, null, function(msg) { return msg.feeding == false },
@@ -239,7 +239,7 @@ function lightsout() {
 }
 
 function sleeping() {
-    update_state({phase: "sleeping", "last-feed": Date.now()});
+    update_state({phase: "sleeping", "last-feed": util.now()});
     t.await("house_lights", null, function(msg) { return msg.daytime }, await_init);
 }
 

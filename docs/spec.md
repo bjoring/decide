@@ -68,7 +68,7 @@ must include the following fields:
 
 - `name`: the identifier of the *source* of the message
 - `time`: a timestamp indicating when the event was created. Value is the number
-  of milliseconds since the epoch
+  of microseconds since the epoch
 
 Messages may have additional fields depending on the message type. Defined PUB types:
 

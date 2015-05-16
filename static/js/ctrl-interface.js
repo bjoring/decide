@@ -35,7 +35,7 @@ sock.on("disconnect", function() {
 sock.on("state-changed", function(msg) {
     // strip out the non-data fields
     var name = msg.name;
-    var time = msg.time;
+    var time = msg.time / 1000;
     delete msg.name;
     delete msg.time;
     var data = d3.entries(msg);
