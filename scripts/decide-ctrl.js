@@ -163,20 +163,10 @@ function controller(params, name, pub) {
         version: version
     }
 
-    function dropped_message_handler(msg_t, data) {
-        logger.debug("handling dropped %s", msg_t);
-        if (!backup_log) {
-            logger.warn("messages to host are getting dropped!")
-            logger.warn("backing up dropped messages to: %s", host_params.backup_log);
-            backup_log = jsonl(host_params.backup_log);
-            pub.state_changed(name, {LOST_MESSAGES: host_params.backup_log}, state);
-        }
-        backup_log(_.extend(data, {"type": msg_t}));
-    }
-
     if (!host_params.standalone) {
         var host_addr = "tcp://" + host_params.addr + ":" + host_params.port
         var conn = host_zmq();
+        var dropped = 0;
         conn.on("connect", function() {
             logger.info("connected to decide-host at %s", host_addr);
             pub.state_changed(name, {server: host_params.addr}, state);
@@ -189,12 +179,16 @@ function controller(params, name, pub) {
             logger.warn("disconnected from decide-host at %s", host_addr)
             pub.state_changed(name, {server: state.server + " (disconnected)"}, state);
         })
-        conn.on("dropped", dropped_message_handler)
+        conn.on("dropped", function() {
+            dropped += 1;
+            if (dropped % 1000 == 1) {
+                error("decide-host is dropping or not receiving data!");
+                // really this should go into a log
+                pub.state_changed(name, {warning: "dropped messages"}, state);
+            }
+        })
         conn.on("closed", function() {
             logger.info("closed connection to decide-host");
-            var messages = conn.flush(function(x) {
-                return _.extend({"type": x.msg_t})});
-            if (backup_log) backup_log.close();
         })
         conn.connect(host_addr);
     }
@@ -203,7 +197,7 @@ function controller(params, name, pub) {
     // accept both "packaged" and "unpackaged" messages
     pub.on("state-changed", function(name, data, time) {
         var msg = (_.has(name, "name")) ? name :
-                _.extend({name: name, time: time || Date.now()}, data);
+            _.extend({name: name, time: time || Date.now()}, data);
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
         if (conn) conn.send("state-changed", msg);
@@ -238,12 +232,12 @@ function controller(params, name, pub) {
 
 // *********************************
 // Error handling
-
 function error(msg) {
     logger.error(msg);
-    if (host_params.send_emails && apparatus.experiment && apparatus.experiment.user) {
-        util.mail("decide-ctrl", apparatus.experiment.user, msg.substr(0,30), msg);
-    }
+    var to = host_params.admins;
+    if (apparatus.experiment && apparatus.experiment.user)
+        to.push(apparatus.experiment.user);
+    util.mail("decide-ctrl", to, msg.substr(0,30), msg);
 }
 
 // start the controller

@@ -375,7 +375,8 @@ function drawInterface() {
     lines.text(function(d) { return d.key + ": "})
         .append("span")
         .attr("id", function(d) { return "state-" + d.key })
-        .attr("class", "success")
+        .attr("class", function(d) {return (["warning", "error"].some(function(x) { return x == d.key})) ?
+                             "error" : "success" })
         .text(function(d) { return d.value})
 
     lines.exit().remove();
