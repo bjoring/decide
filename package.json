@@ -14,10 +14,10 @@
     },
     "license": "BSD",
     "dependencies": {
+        "npm": ">= 1.1.2",
         "express": "4.4.5",
         "glob": "^4.0.3",
-        "nodemailer": "1.0.3",
-        "npm": ">= 1.1.2",
+        "smtp-connection": "^1.2.0",
         "queue-async": "1.0.7",
         "socket.io": "1.0.5",
         "suncalc": "^1.5.2",

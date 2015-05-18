@@ -237,7 +237,10 @@ function error(msg) {
     var to = host_params.admins;
     if (apparatus.experiment && apparatus.experiment.user)
         to.push(apparatus.experiment.user);
-    util.mail("decide-ctrl", to, os.hostname() + ": " + msg.substr(0,30), msg);
+    util.mail(os.hostname(), to,  + "decide-ctrl error: " + msg.substr(0,30), msg,
+              function(err, info) {
+                  if (err) logger.error("unable to send mail:", err);
+              });
 }
 
 // start the controller
