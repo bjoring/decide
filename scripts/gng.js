@@ -100,6 +100,7 @@ t.connect(name, function(socket) {
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject,
+                        experiment: stimset.experiment,
                         version: version, params: par, stimset: stimset.config.stimuli});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
@@ -108,7 +109,9 @@ t.connect(name, function(socket) {
 })
 
 function shutdown() {
-    t.trial_data(name, {comment: "stopping", subject: par.subject})
+    t.trial_data(name, {comment: "stopping",
+                        subject: par.subject,
+                        experiment: stimset.experiment})
     t.disconnect(process.exit);
 }
 
@@ -191,6 +194,7 @@ function await_response() {
         logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
         t.trial_data(name, {program: name,
                             subject: par.subject,
+                            experiment: stimset.experiment,
                             trial: state.trial,
                             correction: state.correction,
                             stimulus: stim.name,

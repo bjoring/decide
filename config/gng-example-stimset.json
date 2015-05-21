@@ -1,4 +1,5 @@
 {
+    "experiment": "gng-example",
     "parameters": {
         "correct_timeout": false,
         "rand_replace": true
