@@ -39,7 +39,7 @@ var par = {
     feed_delay: argv["feed-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
-    max_hopper_duty: 1
+    min_iti = 100
 };
 
 var state = {
@@ -88,11 +88,6 @@ t.connect(name, function(socket) {
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
     sock.on("state-changed", function(data) { logger.debug("pub to gng: state-changed", data)})
-
-    t.req("get-params", {name: "feeder_left"}, function(err, results) {
-        par.max_hopper_duty = results.max_duty;
-        logger.debug("max hopper duty:", results.max_duty);
-    })
 
     // update user and subject information:
     t.change_state("experiment", par);
@@ -229,7 +224,7 @@ function feed() {
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
     t.await(hopper, null, function(msg) { return msg.feeding == false },
-            _.partial(intertrial, par.feed_duration * (1/par.max_hopper_duty - 1)));
+            _.partial(intertrial, min_iti));
 }
 
 function lightsout() {

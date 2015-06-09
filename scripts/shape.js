@@ -27,7 +27,6 @@ var par = {
     cue_color: argv.color,
     feed_delay: argv["feed-delay"],
     hoppers: ["feeder_left", "feeder_right"],
-    max_hopper_duty: 1,
     blink_period: 300,
 };
 
@@ -69,11 +68,6 @@ t.connect(name, function(socket) {
     sock.on("change-state", function(data, rep) { rep("ok") }); // could throw an error
     sock.on("reset-state", function(data, rep) { rep("ok") });
     sock.on("state-changed", function(data) { logger.debug("pub to shape: state-changed", data)})
-
-    // query hopper duty cycle - assume both hoppers the same
-    t.req("get-params", {name: "feeder_left"}, function(err, results) {
-        par.max_hopper_duty = results.duty;
-    })
 
     // update user and subject information:
     t.change_state("experiment", par);
@@ -126,7 +120,7 @@ function block1_await() {
     var feed_duration = 5000;
     var blink_duration = 5000;
     var iti_var = 30000;
-    var iti_min = feed_duration * (1/par.max_hopper_duty - 1);
+    var iti_min = feed_duration;
     var pecked = "timeout";
     var cue = "cue_center_" + par.cue_color;
     var key = "peck_center"
@@ -176,7 +170,7 @@ function block1_await() {
 
 function block2_await() {
     var feed_duration = 4000;
-    var iti = feed_duration * (1 / par.max_hopper_duty - 1);
+    var iti = feed_duration * 0.5;
     var cue = "cue_center_" + par.cue_color;
     var key = "peck_center";
 
@@ -237,7 +231,7 @@ function block4_peck1() {
 
 function block34_peck2(side) {
     var feed_duration = (state.block == 3) ? 3000 : 2500;
-    var iti = feed_duration * (1 / par.max_hopper_duty - 1);
+    var iti = feed_duration * 0.5;
     var cue = "cue_" + side + "_" + par.cue_color;
     var key = "peck_" + side;
 
