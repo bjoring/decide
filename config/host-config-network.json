@@ -1,5 +1,5 @@
 {
-    "addr": "localhost",
+    "addr": "192.168.10.1",
     "port": 5555,
     "port_ctrl": 8000,
     "standalone": false,
