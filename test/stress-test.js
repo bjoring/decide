@@ -63,7 +63,7 @@ function send_message() {
     if (p < 0.6) {
         var msg = {addr: addr,
                    name: "stressor",
-                   time: Date.now(),
+                   time: util.now(),
                    species: "pony",
                    color: "pink",
                    weight: 12.13912375123,
@@ -75,7 +75,7 @@ function send_message() {
                    name: "stressmaker",
                    program: "stressmaker",
                    experiment: "stress-test",
-                   time: Date.now(),
+                   time: util.now(),
                    subject: "bef9a524-10cf-4cb2-8f6d-d1eeed3d3725",
                    trial: 0,
                    correction: 0,
