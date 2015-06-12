@@ -39,7 +39,7 @@ var par = {
     feed_delay: argv["feed-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left", "feeder_right"],
-    min_iti = 100
+    min_iti: 100
 };
 
 var state = {
@@ -224,7 +224,7 @@ function feed() {
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
     t.await(hopper, null, function(msg) { return msg.feeding == false },
-            _.partial(intertrial, min_iti));
+            _.partial(intertrial, par.min_iti));
 }
 
 function lightsout() {
