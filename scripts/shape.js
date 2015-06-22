@@ -10,12 +10,13 @@ var version = require('../package.json').version;
 
 var argv = require("yargs")
     .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")
-    .describe("F", "skip immediately to final block")
+    .describe("F", "skip immediately to holding pattern(block 4)")
+    .describe("B", "skip immediately to specific block (1-4)")
     .describe("color", "set cue color: red, green, blue")
     .describe("no-notify", "if set, don't an email when the bird completes block 4")
     .describe("trials", "set the number of trials per block in blocks 2-3")
     .describe("feed-delay", "time (in ms) to wait between response and feeding")
-    .default({color: "green", trials: 100, "feed-delay": 0})
+    .default({color: "green", trials: 100, "feed-delay": 0, "B": 1})
     .boolean(['F'])
     .demand(2)
     .argv;
@@ -49,6 +50,20 @@ var meta = {
 var sock;
 var update_state = t.state_changer(name, state);
 
+var start;
+if (argv.F || argv.B == 4)
+    start = block4_peck1;
+else if (argv.B == 1)
+    start = block1_await;
+else if (argv.B == 2)
+    start = block2_await;
+else if (argv.B == 3)
+    start = block3_peck1;
+else {
+    logger.error("invalid starting block number (choose 1-4)");
+    process.exit(-1);
+}
+
 t.connect(name, function(socket) {
 
     sock = socket;
@@ -81,10 +96,8 @@ t.connect(name, function(socket) {
                         params: par});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
-    if (argv.F)
-        block4_peck1();
-    else
-        block1_await();
+
+    start()
 });
 
 function shutdown() {
