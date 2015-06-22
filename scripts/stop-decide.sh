@@ -1,9 +1,15 @@
 #!/bin/bash
+set -o pipefail
 PID=$(curl -s http://localhost:8000/state/experiment | jq '.pid?')
-if [ -n $PID ]; then
+STATUS=$?
+
+if [ -n "$PID" -a "$PID" != "null" ]; then
     echo killing experiment process $PID
     kill $PID
     sleep 1
 fi
-echo killing main process
-killall node
+
+if [ $STATUS -eq 0 ]; then
+    echo killing main process
+    killall node
+fi
