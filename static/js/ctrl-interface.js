@@ -405,7 +405,7 @@ function drawInterface() {
         .attr("id", function(d) { return "state-" + d.key })
         .attr("class", "success")
         .text(function(d) { return (/^last-/.test(d.key)) ?
-                     new Date(d.value).toLocaleTimeString() :
+                     new Date(d.value / 1000).toLocaleTimeString() :
                      d.value });
 }
 
