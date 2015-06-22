@@ -30,6 +30,7 @@ var argv = require("yargs")
 var par = {
     subject: argv._[0],         // sets the subject number
     user: argv._[1],
+    active: true,
     response_window: argv["response-window"],
     feed_duration: argv["feed-duration"],
     punish_duration: argv["lightsout-duration"],
@@ -187,8 +188,7 @@ function await_response() {
         else if (rand < p_punish)
             conseq = "punish";
         logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
-        t.trial_data(name, {program: name,
-                            subject: par.subject,
+        t.trial_data(name, {subject: par.subject,
                             experiment: stimset.experiment,
                             trial: state.trial,
                             correction: state.correction,

@@ -19,7 +19,8 @@ var argv = require("yargs")
 
 var par = {
     subject: argv._[0],
-    user: argv._[1]
+    user: argv._[1],
+    active: false
 };
 
 var state = {};

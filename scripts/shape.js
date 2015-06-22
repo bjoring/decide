@@ -23,6 +23,7 @@ var argv = require("yargs")
 var par = {
     subject: argv._[0],         // sets the subject number
     user: argv._[1],
+    active: true,
     block_trials: argv.trials,  // number of trials in blocks 2+
     cue_color: argv.color,
     feed_delay: argv["feed-delay"],
@@ -157,8 +158,7 @@ function block1_await() {
             logger.debug("trial iti:", iti);
             next_state = _.partial(intertrial, iti, block1_await);
         }
-        t.trial_data(name, {program: name,
-                            subject: par.subject,
+        t.trial_data(name, {subject: par.subject,
                             block: state.block,
                             trial: state.trial,
                             response: pecked,
