@@ -142,6 +142,9 @@ function block1_await() {
     // state setup
     if (state.block < 1) {
         logger.info("entering block 1")
+        t.trial_data(name, {comment: "new-block",
+                            subject: par.subject,
+                            experiment: "block-1"});
     }
     t.change_state(cue, { trigger: "timer", period: par.blink_period});
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
@@ -190,6 +193,9 @@ function block2_await() {
     if (state.block < 2) {
         logger.info("entering block 2")
         state.trial = 0;
+        t.trial_data(name, {comment: "new-block",
+                            subject: par.subject,
+                            experiment: "block-2"});
     }
     t.change_state(cue, { trigger: "timer", period: par.blink_period});
     update_state({ block: 2, trial: state.trial + 1, phase: "awaiting-response"});
@@ -220,6 +226,9 @@ function block3_peck1() {
     if (state.block < 3) {
         logger.info("entering block 3")
         state.trial = 0;
+        t.trial_data(name, {comment: "new-block",
+                            subject: par.subject,
+                            experiment: "block-3"});
     }
     t.change_state(cue, { trigger: "timer", period: par.blink_period})
     update_state({ block: 3, trial: state.trial + 1, phase: "awaiting-response-1"});
@@ -236,6 +245,9 @@ function block4_peck1() {
     if (state.block < 4) {
         logger.info("entering block 4")
         state.trial = 0;
+        t.trial_data(name, {comment: "new-block",
+                            subject: par.subject,
+                            experiment: "block-4"});
     }
     update_state({ block: 4, trial: state.trial + 1, phase: "awaiting-response-1"});
 
