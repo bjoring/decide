@@ -55,6 +55,7 @@ var stimset = new util.StimSet(argv._[2]); //what does this do?
 // update parameters with stimset values
 _.extend(par, stimset.config.parameters); //how does this work?
 
+
 t.connect(name, function(socket) {
 
     sock = socket;
