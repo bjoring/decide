@@ -18,8 +18,8 @@ var argv = require("yargs")
     .argv;
 
 var par = {
-    subject: argv._[0],
-    user: argv._[1],
+    subject: util.check_subject(argv._[0]), // sets the subject number
+    user: util.check_email(argv._[1]),
     active: false
 };
 

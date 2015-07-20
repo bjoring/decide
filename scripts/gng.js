@@ -28,8 +28,8 @@ var argv = require("yargs")
 
 /* Parameters */
 var par = {
-    subject: argv._[0],         // sets the subject number
-    user: argv._[1],
+    subject: util.check_subject(argv._[0]), // sets the subject number
+    user: util.check_email(argv._[1]),
     active: true,
     response_window: argv["response-window"],
     feed_duration: argv["feed-duration"],
