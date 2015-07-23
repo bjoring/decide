@@ -10,11 +10,11 @@ var version = require('../package.json').version;
 var argv = require("yargs")
     .usage("Run a preference experiment.\nUsage: $0 [options] subject_id user@host.com stims.json")
 	.describe("response-window", "response window duration (in ms)")
-    .describe("feed-duration", "default feeding duration for correct responses (in ms)")
+    .describe("feed-duration", "default feeding duration(in ms)")
     .describe("replace", "randomize trials with replacement")
-    .describe("feed-delay", "time (in ms) to wait between response and feeding")
+    .describe("feed-delay", "time (in ms) to wait between choice and feeding")
     .default({"response-window": 2000, "feed-duration": 4000, replace: false, "feed-delay": 0})
-	.demand(3) //demands 3 args: subject_id, user@host, and stims.json
+	.demand(3) //demands 3 args: subject_id, user@host, and stims.json 
     .argv;
 
 //parameters
@@ -37,6 +37,7 @@ var state = {
     stimulus: null,
     "last-feed": null,
     "last-trial": null,
+	//after _.extend, paramaters in the json are added here
 };
 	
 var meta = {
@@ -51,9 +52,10 @@ var sock;
 var update_state = t.state_changer(name, state);	
 
 // Parse stimset
-var stimset = new util.StimSet(argv._[2]); //what does this do?
-// update parameters with stimset values
-_.extend(par, stimset.config.parameters); //how does this work?
+var stimset = new util.StimSetPref(argv._[2]); 
+
+// update parameters with stimset values 
+_.extend(par, stimset.config.parameters); 
 
 
 t.connect(name, function(socket) {
@@ -83,8 +85,8 @@ t.connect(name, function(socket) {
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject,
-                        experiment: stimset.experiment,
-                        version: version, params: par, stimset: stimset.config.stimuli});
+                        experiment: stimset.config.experiment,
+                        version: version, params: par, stimset: stimset.stimuli});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
     // initial state;
@@ -94,7 +96,7 @@ t.connect(name, function(socket) {
 function shutdown() {
     t.trial_data(name, {comment: "stopping", 
 						subject: par.subject
-						experiment: stimset.experiment})
+						experiment: stimset.config.experiment})
     t.disconnect(process.exit);
 }
 
@@ -105,7 +107,7 @@ process.on("SIGTERM", shutdown);
 function await_init() {
     update_state({trial: state.trial + 1,
                   phase: "awaiting-trial-init"});
-    t.await("keys", null, function(msg) { return msg && msg[par.init_key]}, await_response);
+    t.await("keys", null, function(msg) { return msg && msg[par.init_key]}, await_choice);
 }
 
 function intertrial(duration) {
@@ -114,37 +116,66 @@ function intertrial(duration) {
     _.delay(await_init, duration); //is _.delay(next_state, duration); in shape
 }
 
-function await_response() {
+function await_choice() {
     var pecked = "timeout";
     update_state({phase: "awaiting-choice", "last-trial": util.now()});
-
 	var resp_start = util.now();
-    // turn off all cues not in cue_resp
-    set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
-    // turn on all cues not in cue_stim
-    set_cues(_.difference(stim.cue_resp, stim.cue_stim), 1);
-    t.await("keys", par.response_window, _test, present_stim_feed);
+	
+    // turn on all response cues
+    set_cues(stimset.config.cue_options, 1); //change this turn on all possible responses
+	
+    t.await("keys", par.response_window, _test, present_stim);
     function _test(msg) { //see which key was pecked
         if (!msg) return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
-        _.find(stim.responses, function(val, key) {
-            if (msg[key]) { //does this depend on which one is correct? what is msg?
+        _.find(stimset.config.choices, function(val, key) {
+            if (msg[key]) { 
                 pecked = key;
                 return true;
             }
         });
         return pecked;
     }
+	
+	function _exit(time) {
+		
+		var stim = stimset.next(par.rand_replace, pecked); //stim is A 4th
+	    logger.debug("next stim:", stim)
+	    update_state({phase: "presenting-stimulus", stimulus: stim })
+		
+	    //var resp = stim.responses[pecked];
+	    logger.debug("response:", pecked);//, resp);
+	    var rtime = (pecked == "timeout") ? null : time - resp_start;
+	
+		//turn cues off
+	    set_cues(stimset.config.cue_options, 0);
+		// _.map(stim.cue_opt || [], function(cue) {
+// 	        t.change_state("cue_" + cue, {brightness: 0})
+// 		}
 
+	    t.trial_data(name, {program: name,
+	                        subject: par.subject,
+	                        trial: state.trial,
+	                        result: "feed"
+	                        experiment: stimset.config.experiment,
+	                        stimulus: stim.name,
+							category: stimset.config.choices.[pecked].category, //or should i move category into the stimuli?
+	                        response: pecked,
+							rtime: rtime,
+							});
+		if (pecked == "timeout")
+			await_init();
+		else 
+			present_stim(pecked); 										
+		}
+					
+					
 }
-function present_stim() {
-	var stim = state.stimulus; //how is state.stimulus chosen?
-	var stim = stimset.next(par.rand_replace);
 
-    logger.debug("next stim:", stim)
-    update_state({phase: "presenting-stimulus", stimulus: stim })
-    set_cues(stim.cue_stim, 1); //do i need this?
+function present_stim(pecked) {
+	
+	var stim = state.stimulus //still A 4th
 
     // if the stimulus is an array, play the sounds in sequence
     var playlist = (typeof stim.name === "object") ? stim.name : [stim.name];
@@ -152,40 +183,17 @@ function present_stim() {
     function play_stims(stim, rest) {
         t.change_state("aplayer", {playing: true,
                                    stimulus: stim + ".wav",
-                                   root: stimset.root});
+                                   root: stimset.config.root});
         t.await("aplayer", null, function(msg) { return msg && !msg.playing }, function() {
             if (rest.length > 0)
                 _.delay(play_stims, par.inter_stimulus_interval, _.first(rest), _.rest(rest));
             else
-                _exit;
+				feed();
         })
     }
     play_stims(_.first(playlist), _.rest(playlist));
 	
-	function _exit(time) {
-	    var resp = stim.responses[pecked];
-	    logger.debug("response:", pecked, resp);
-	    var rtime = (pecked == "timeout") ? null : time - resp_start;
 	
-		//turn cues off
-	    _.map(stim.cue_resp || [], function(cue) {
-	        t.change_state("cue_" + cue, {brightness: 0})
-		}
-	
-    
-		next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next); //this is from shape? is this necessary
-	    t.trial_data(name, {program: name,
-	                        subject: par.subject,
-	                        trial: state.trial,
-	                        result: "feed"
-	                        experiment: stimset.experiment,
-	                        stimulus: stim.name,
-	                        category: stim.category,
-	                        response: pecked,
-							rtime: rtime,
-							});
-	    feed();
-	}
 } 
 
 function feed() {
