@@ -4,7 +4,7 @@ var t = require("../lib/client");           // bank of apparatus manipulation fu
 var logger = require("../lib/log");
 var util = require("../lib/util");
 
-var name = "preference"
+var name = "preference";
 var version = require('../package.json').version;
 
 var argv = require("yargs")
@@ -95,7 +95,7 @@ t.connect(name, function(socket) {
 
 function shutdown() {
     t.trial_data(name, {comment: "stopping", 
-						subject: par.subject
+						subject: par.subject,
 						experiment: stimset.config.experiment})
     t.disconnect(process.exit);
 }
@@ -123,59 +123,62 @@ function await_choice() {
 	
     // turn on all response cues
     set_cues(stimset.config.cue_options, 1); //change this turn on all possible responses
+    t.await("keys", par.response_window, _test, _exit);
 	
-    t.await("keys", par.response_window, _test, present_stim);
     function _test(msg) { //see which key was pecked
-        if (!msg) return true;
+        if (!msg)
+			return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
         _.find(stimset.config.choices, function(val, key) {
-            if (msg[key]) { 
+            if (msg[key] == true) { 
                 pecked = key;
                 return true;
             }
         });
-        return pecked;
+	
+        return false;
     }
 	
 	function _exit(time) {
-		
-		var stim = stimset.next(par.rand_replace, pecked); //stim is A 4th
-	    logger.debug("next stim:", stim)
-	    update_state({phase: "presenting-stimulus", stimulus: stim })
-		
-	    //var resp = stim.responses[pecked];
-	    logger.debug("response:", pecked);//, resp);
-	    var rtime = (pecked == "timeout") ? null : time - resp_start;
-	
-		//turn cues off
-	    set_cues(stimset.config.cue_options, 0);
-		// _.map(stim.cue_opt || [], function(cue) {
-// 	        t.change_state("cue_" + cue, {brightness: 0})
-// 		}
+		if (pecked === "timeout") {
+			set_cues(stimset.config.cue_options, 0);
+			intertrial(par.min_iti);
+		} else {
+			var stim = stimset.next(par.rand_replace, pecked); //stim is A 4th			
+			logger.debug("next stim:", stim)
+			update_state({
+				phase: "presenting-stimulus",
+				stimulus: stim
+			})
 
-	    t.trial_data(name, {program: name,
-	                        subject: par.subject,
-	                        trial: state.trial,
-	                        result: "feed"
-	                        experiment: stimset.config.experiment,
-	                        stimulus: stim.name,
-							category: stimset.config.choices.[pecked].category, //or should i move category into the stimuli?
-	                        response: pecked,
-							rtime: rtime,
-							});
-		if (pecked == "timeout")
-			await_init();
-		else 
-			present_stim(pecked); 										
+			//var resp = stim.responses[pecked];
+			logger.debug("response:", pecked); //, resp);
+			var rtime = time - resp_start;
+
+			//turn cues off
+			set_cues(stimset.config.cue_options, 0);
+
+			t.trial_data(name, {
+				program: name,
+				subject: par.subject,
+				trial: state.trial,
+				result: "feed",
+				experiment: stimset.config.experiment,
+				stimulus: stim.name,
+				category: stimset.config.choices[pecked].category, //or should i move category into the stimuli?
+				response: pecked,
+				rtime: rtime,
+			});
+			present_stim(pecked);
 		}
-					
-					
+	}
 }
+
 
 function present_stim(pecked) {
 	
-	var stim = state.stimulus //still A 4th
+	var stim = state.stimulus; //still A 4th
 
     // if the stimulus is an array, play the sounds in sequence
     var playlist = (typeof stim.name === "object") ? stim.name : [stim.name];
@@ -183,7 +186,7 @@ function present_stim(pecked) {
     function play_stims(stim, rest) {
         t.change_state("aplayer", {playing: true,
                                    stimulus: stim + ".wav",
-                                   root: stimset.config.root});
+									root: stimset.config.root}); //could also be stimulus_root
         t.await("aplayer", null, function(msg) { return msg && !msg.playing }, function() {
             if (rest.length > 0)
                 _.delay(play_stims, par.inter_stimulus_interval, _.first(rest), _.rest(rest));
@@ -201,6 +204,7 @@ function feed() {
     update_state({phase: "feeding", "last-feed": util.now()})
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
+		console.log("i fed")
     t.await(hopper, null, function(msg) { return msg.feeding == false },
             _.partial(intertrial, par.min_iti));
 }
