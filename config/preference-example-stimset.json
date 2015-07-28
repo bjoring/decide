@@ -1,0 +1,38 @@
+{
+    "experiment": "CD-preference",
+    "parameters": {
+        "rand_replace": true
+    },
+    
+	"cue_options": ["right_blue", "left_blue"],
+	"root": "/stimuli/CDstimuli/",
+	
+	"choices": {
+		"peck_right": {
+			"category": "consonant",
+			"stimuli": [
+				{
+					"name": "A 5th",
+					"frequency": 1
+				},
+				{
+					"name": "A 4th",
+					"frequency": 1
+				}
+			]
+		},
+		"peck_left": {
+			"category": "dissonant",
+			"stimuli": [
+				{
+					"name": "A 2m",
+					"frequency": 1
+				},
+				{
+					"name": "A 7M",
+					"frequency": 1
+				}
+			]
+		}
+	}
+}
