@@ -166,13 +166,12 @@ function await_response() {
         if (!msg) return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
-        _.find(stim.responses, function(val, key) {
+        return _.find(stim.responses, function(val, key) {
             if (msg[key]) {
                 pecked = key;
                 return true;
             }
         });
-        return pecked;
     }
 
     function _exit(time) {

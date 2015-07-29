@@ -129,7 +129,7 @@ function await_choice() {
             return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
-        _.find(stimset.config.choices, function(val, key) {
+        return _.find(stimset.config.choices, function(val, key) {
             if (msg[key] == true) {
                 pecked = key;
                 return true;
