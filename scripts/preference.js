@@ -2,6 +2,7 @@
 
 var os = require("os");
 var _ = require("underscore");
+var pp = require("path")
 var t = require("../lib/client");           // bank of apparatus manipulation functions
 var logger = require("../lib/log");
 var util = require("../lib/util");
@@ -52,8 +53,50 @@ var meta = {
 var sock;
 var update_state = t.state_changer(name, state);
 
+// a class for parsing stimset file and providing random picks. The format of
+// the stimset file is specialized for preference tasks; there are lists of
+// stimuli nested under responses
+function StimSetPref(path) {
+    var config = this.config = util.load_json(path);
+    this.root = config.stimulus_root;
+    this.experiment = config.experiment || pp.basename(path, ".json");
+    this.resp_cues = _.map(config.responses, function(x) { return x.resp_cue });
+
+    function stimlist(val) {
+        // creates frequency copies of each stimulus.
+        return _.chain(val.stimuli)
+            .map(function(stim) {
+                var x = _.extend(stim, {category: val.category})
+                return _.times(stim.frequency, _.constant(x))})
+            .flatten()
+            .shuffle()
+            .value();
+    }
+
+    this.generate = function() {
+        this.stimuli = _.mapObject(config.responses, stimlist);
+        this.index = _.mapObject(config.responses, function(x) { return 0 });
+    }
+
+    this.next = function(replace, pecked) {
+        var n = _.keys(this.stimuli[pecked]).length;
+        if (replace) {
+            return this.stimuli[pecked][Math.floor(Math.random() * n)];
+        }
+        else if (this.index[pecked] >= n){
+            this.stimuli[pecked] = _.shuffle(this.stimuli[pecked]);
+            this.index[pecked] = 0;
+        }
+        return this.stimuli[pecked][this.index[pecked]++]
+    }
+
+    this.generate();
+}
+
+
 // Parse stimset
-var stimset = new util.StimSetPref(argv._[2]);
+var stimset = new StimSetPref(argv._[2]);
+logger.info("stimulus set", stimset.stimuli)
 // update parameters with stimset values
 _.extend(par, stimset.config.parameters);
 
@@ -84,8 +127,8 @@ t.connect(name, function(socket) {
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject,
-                        experiment: stimset.config.experiment,
-                        version: version, params: par, stimset: stimset.stimuli});
+                        experiment: stimset.experiment,
+                        version: version, params: par, stimset: stimset.config.stimuli});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
     // initial state;
@@ -95,7 +138,7 @@ t.connect(name, function(socket) {
 function shutdown() {
     t.trial_data(name, {comment: "stopping",
                         subject: par.subject,
-                        experiment: stimset.config.experiment})
+                        experiment: stimset.experiment})
     // disconnect will reset apparatus to base state
     t.disconnect(process.exit);
 }
@@ -121,7 +164,7 @@ function await_choice() {
     var resp_start = util.now();
 
     // turn on all response cues
-    set_cues(stimset.config.cue_options, 1); //change this turn on all possible responses
+    t.set_cues(stimset.resp_cues, 1); //change this turn on all possible responses
     t.await("keys", par.response_window, _test, _exit);
 
     function _test(msg) { //see which key was pecked
@@ -129,7 +172,7 @@ function await_choice() {
             return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
-        return _.find(stimset.config.choices, function(val, key) {
+        return _.find(stimset.config.responses, function(val, key) {
             if (msg[key] == true) {
                 pecked = key;
                 return true;
@@ -140,22 +183,26 @@ function await_choice() {
     function _exit(time) {
         logger.debug("response:", pecked);
         //turn cues off
-        set_cues(stimset.config.cue_options, 0);
+        t.set_cues(stimset.resp_cues, 0);
         if (pecked === "timeout") {
-            set_cues(stimset.config.cue_options, 0);
+            t.trial_data(name, {  subject: par.subject,
+                                  experiment: stimset.experiment,
+                                  trial: state.trial,
+                                  result: "none",
+                                  response: pecked,
+                                  })
             intertrial(par.min_iti);
         }
         else {
             var stim = stimset.next(par.rand_replace, pecked);
             logger.debug("next stim:", stim)
             var rtime = time - resp_start;
-
             t.trial_data(name, {  subject: par.subject,
-                                  experiment: stimset.config.experiment,
+                                  experiment: stimset.experiment,
                                   trial: state.trial,
                                   result: "feed",
                                   stimulus: stim.name,
-                                  category: stimset.config.choices[pecked].category, //or should i move category into the stimuli?
+                                  category: stim.category,
                                   response: pecked,
                                   rtime: rtime,
                                   });
@@ -166,29 +213,13 @@ function await_choice() {
 
 
 function present_stim(stim) {
-
     update_state({ phase: "presenting-stimulus", stimulus: stim });
-
-    // if the stimulus is an array, play the sounds in sequence
-    var playlist = (typeof stim.name === "object") ? stim.name : [stim.name];
-
-    function play_stims(stim, rest) {
-        t.change_state("aplayer", {playing: true,
-                                   stimulus: stim + ".wav",
-                                   root: stimset.config.root}); //could also be stimulus_root
-        t.await("aplayer", null, function(msg) { return msg && !msg.playing }, function() {
-            if (rest.length > 0)
-                _.delay(play_stims, par.inter_stimulus_interval, _.first(rest), _.rest(rest));
-            else
-                feed();
-        })
-    }
-    play_stims(_.first(playlist), _.rest(playlist));
+    t.play_stims(stim.name, par.inter_stimulus_interval, stimset.root, feed);
 }
 
 function feed() {
-    var hopper = random_hopper()
-    update_state({phase: "feeding", "last-feed": util.now()})
+    var hopper = util.random_item(par.hoppers);
+    update_state({phase: "feeding", "last-feed": util.now()});
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
     t.await(hopper, null, function(msg) { return msg.feeding == false },
@@ -198,16 +229,4 @@ function feed() {
 function sleeping() {
     update_state({phase: "sleeping", "last-feed": util.now()});
     t.await("house_lights", null, function(msg) { return msg.daytime }, await_init);
-}
-
-// this is a utility function for setting a bunch of cues either on or off
-function set_cues(cuelist, value) {
-    _.map(cuelist || [], function(cue) {
-        t.change_state("cue_" + cue, {brightness: value})
-    });
-}
-
-function random_hopper() {
-    var i = Math.floor(Math.random() * par.hoppers.length);
-    return par.hoppers[i];
 }

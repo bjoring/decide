@@ -1,7 +1,7 @@
 {
     "name": "decide",
     "preferGlobal": false,
-    "version": "2.0.3",
+    "version": "2.1.0-SNAPSHOT",
     "author": "Meliza Lab (http://meliza.org/starboard)",
     "description": "operant control system",
     "contributors": [
@@ -38,7 +38,8 @@
         "decide-ctrl": "scripts/decide-ctrl.js",
         "lights": "scripts/lights.js",
         "shape": "scripts/shape.js",
-        "gng": "scripts/gng.js"
+        "gng": "scripts/gng.js",
+        "preference": "scripts/preference.js"
     },
     "homepage": "http://meliza.org/starboard"
 }

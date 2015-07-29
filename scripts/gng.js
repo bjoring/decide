@@ -2,7 +2,7 @@
 
 var os = require("os");
 var _ = require("underscore");
-var path = require("path")
+var pp = require("path")
 var t = require("../lib/client");           // bank of apparatus manipulation functions
 var logger = require("../lib/log");
 var util = require("../lib/util");
@@ -64,8 +64,52 @@ var meta = {
 var sock;
 var update_state = t.state_changer(name, state);
 
+// a class for parsing stimset file and providing random picks
+function StimSet(path) {
+    this.config = util.load_json(path);
+    this.root = this.config.stimulus_root;
+    this.experiment = this.config.experiment || pp.basename(path, ".json");
+
+    function check_probs(resp, key) {
+        var tot = (resp.p_punish || 0) + (resp.p_reward || 0);
+        //console.log(key + ": p(tot)=" + tot)
+        if (tot > 1.0)
+            throw "stimset response consequence probabilities must sum to <= 1.0";
+    }
+
+    // validate the probabilities in the stimset
+    _.each(this.config.stimuli, function(stim) {
+        _.each(stim.responses, check_probs)
+    });
+
+    var index;
+    this.generate = function() {
+        this.stimuli = _.chain(this.config.stimuli)
+            .map(function(stim) { return _.times(stim.frequency, _.constant(stim))})
+            .flatten()
+            .shuffle()
+            .value();
+        index = 0;
+    }
+
+    this.next = function(replace) {
+        var n = _.keys(this.stimuli).length;
+        if (replace) {
+            return this.stimuli[Math.floor(Math.random() * n)];
+        }
+        else if (index >= n){
+            this.stimuli = _.shuffle(this.stimuli);
+            index = 0;
+        }
+        return this.stimuli[index++]
+    }
+
+    this.generate();
+
+}
+
 // Parse stimset
-var stimset = new util.StimSet(argv._[2]);
+var stimset = new StimSet(argv._[2]);
 // update parameters with stimset values
 _.extend(par, stimset.config.parameters);
 
@@ -104,6 +148,7 @@ t.connect(name, function(socket) {
     await_init();
 })
 
+
 function shutdown() {
     t.trial_data(name, {comment: "stopping",
                         subject: par.subject,
@@ -132,23 +177,8 @@ function present_stim() {
 
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
-    // TODO cue lights during stimulus presentation
-    set_cues(stim.cue_stim, 1);
-
-    // if the stimulus is an array, play the sounds in sequence
-    var playlist = (typeof stim.name === "object") ? stim.name : [stim.name];
-    function play_stims(stim, rest) {
-        t.change_state("aplayer", {playing: true,
-                                   stimulus: stim + ".wav",
-                                   root: stimset.root});
-        t.await("aplayer", null, function(msg) { return msg && !msg.playing }, function() {
-            if (rest.length > 0)
-                _.delay(play_stims, par.inter_stimulus_interval, _.first(rest), _.rest(rest));
-            else
-                await_response();
-        })
-    }
-    play_stims(_.first(playlist), _.rest(playlist));
+    t.set_cues(stim.cue_stim, 1);
+    t.play_stims(stim.name, par.inter_stimulus_interval, stimset.root, await_response);
 }
 
 function await_response() {
@@ -158,9 +188,9 @@ function await_response() {
 
     var resp_start = util.now();
     // turn off all cues not in cue_resp
-    set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
+    t.set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
     // turn on all cues not in cue_stim
-    set_cues(_.difference(stim.cue_resp, stim.cue_stim), 1);
+    t.set_cues(_.difference(stim.cue_resp, stim.cue_stim), 1);
     t.await("keys", par.response_window, _test, _exit);
     function _test(msg) {
         if (!msg) return true;
@@ -218,7 +248,7 @@ function await_response() {
 }
 
 function feed() {
-    var hopper = random_hopper();
+    var hopper = util.random_item(par.hoppers);
     update_state({phase: "feeding", "last-feed": util.now()})
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
@@ -239,16 +269,4 @@ function lightsout() {
 function sleeping() {
     update_state({phase: "sleeping", "last-feed": util.now()});
     t.await("house_lights", null, function(msg) { return msg.daytime }, await_init);
-}
-
-function random_hopper() {
-    var i = Math.floor(Math.random() * par.hoppers.length);
-    return par.hoppers[i];
-}
-
-// this is a utility function for setting a bunch of cues either on or off
-function set_cues(cuelist, value) {
-    _.map(cuelist || [], function(cue) {
-        t.change_state("cue_" + cue, {brightness: value})
-    });
 }
