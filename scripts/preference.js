@@ -55,12 +55,12 @@ var update_state = t.state_changer(name, state);
 
 // a class for parsing stimset file and providing random picks. The format of
 // the stimset file is specialized for preference tasks; there are lists of
-// stimuli nested under responses
+// stimuli nested under "choices"
 function StimSetPref(path) {
     var config = this.config = util.load_json(path);
     this.root = config.stimulus_root;
     this.experiment = config.experiment || pp.basename(path, ".json");
-    this.resp_cues = _.map(config.responses, function(x) { return x.resp_cue });
+    this.resp_cues = _.map(config.choices, function(x) { return x.resp_cue });
 
     function stimlist(val) {
         // creates frequency copies of each stimulus.
@@ -74,8 +74,8 @@ function StimSetPref(path) {
     }
 
     this.generate = function() {
-        this.stimuli = _.mapObject(config.responses, stimlist);
-        this.index = _.mapObject(config.responses, function(x) { return 0 });
+        this.stimuli = _.mapObject(config.choices, stimlist);
+        this.index = _.mapObject(config.choices, function(x) { return 0 });
     }
 
     this.next = function(replace, pecked) {
@@ -96,7 +96,6 @@ function StimSetPref(path) {
 
 // Parse stimset
 var stimset = new StimSetPref(argv._[2]);
-logger.info("stimulus set", stimset.stimuli)
 // update parameters with stimset values
 _.extend(par, stimset.config.parameters);
 
@@ -172,7 +171,7 @@ function await_choice() {
             return true;
         // test against each defined response - only set pecked if true, because
         // we'll get a false event on the key off
-        return _.find(stimset.config.responses, function(val, key) {
+        return _.find(stimset.config.choices, function(val, key) {
             if (msg[key] == true) {
                 pecked = key;
                 return true;

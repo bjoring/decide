@@ -7,7 +7,7 @@
     "cue_options": ["right_blue", "left_blue"],
     "stimulus_root": "stimuli/CDstimuli/",
 
-    "responses": {
+    "choices": {
         "peck_right": {
             "resp_cue": "right_blue",
             "category": "consonant",
