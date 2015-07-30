@@ -60,7 +60,7 @@ function StimSetPref(path) {
     var config = this.config = util.load_json(path);
     this.root = config.stimulus_root;
     this.experiment = config.experiment || pp.basename(path, ".json");
-    this.resp_cues = _.map(config.choices, function(x) { return x.resp_cue });
+    this.resp_cues = config.resp_cues;
 
     function stimlist(val) {
         // creates frequency copies of each stimulus.

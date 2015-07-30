@@ -4,12 +4,11 @@
         "rand_replace": true
     },
 
-    "cue_options": ["right_blue", "left_blue"],
+    "resp_cues": ["right_blue", "left_blue"],
     "stimulus_root": "stimuli/CDstimuli/",
 
     "choices": {
         "peck_right": {
-            "resp_cue": "right_blue",
             "category": "consonant",
             "stimuli": [
                 {
@@ -23,7 +22,6 @@
             ]
         },
         "peck_left": {
-            "resp_cue": "left_blue",
             "category": "dissonant",
             "stimuli": [
                 {
