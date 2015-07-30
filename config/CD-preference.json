@@ -1,0 +1,135 @@
+{
+    "experiment": "CD-preference",
+    "parameters": {
+        "rand_replace": true
+    },
+    
+	"resp_cues": ["right_blue", "left_blue"],
+	"stimulus_root": "/stimuli/CDstimuli/",
+	
+	"choices": {
+		"peck_right": {
+			"category": "consonant",
+			"stimuli": [
+				{
+					"name": "A_5th",
+					"frequency": 1
+				},
+				{
+					"name": "A_4th",
+					"frequency": 1
+				},
+				{
+					"name": "B_5th",
+					"frequency": 1
+				},
+				{
+					"name": "B_4th",
+					"frequency": 1
+				},
+				{
+					"name": "C_5th",
+					"frequency": 1
+				},
+				{
+					"name": "C_4th",
+					"frequency": 1
+				},
+				{
+					"name": "D_5th",
+					"frequency": 1
+				},
+				{
+					"name": "D_4th",
+					"frequency": 1
+				},
+				{
+					"name": "E_5th",
+					"frequency": 1
+				},
+				{
+					"name": "E_4th",
+					"frequency": 1
+				},
+				{
+					"name": "F_5th",
+					"frequency": 1
+				},
+				{
+					"name": "F_4th",
+					"frequency": 1
+				},
+				{
+					"name": "G_5th",
+					"frequency": 1
+				},
+				{
+					"name": "G_4th",
+					"frequency": 1
+				}
+				
+			]
+		},
+		"peck_left": {
+			"category": "dissonant",
+			"stimuli": [
+				{
+					"name": "A_2m",
+					"frequency": 1
+				},
+				{
+					"name": "A_7M",
+					"frequency": 1
+				},
+				{
+					"name": "B_2m",
+					"frequency": 1
+				},
+				{
+					"name": "B_7M",
+					"frequency": 1
+				},
+				{
+					"name": "C_2m",
+					"frequency": 1
+				},
+				{
+					"name": "C_7M",
+					"frequency": 1
+				},
+				{
+					"name": "D_2m",
+					"frequency": 1
+				},
+				{
+					"name": "D_7M",
+					"frequency": 1
+				},
+				{
+					"name": "E_2m",
+					"frequency": 1
+				},
+				{
+					"name": "E_7M",
+					"frequency": 1
+				},
+				{
+					"name": "F_2m",
+					"frequency": 1
+				},
+				{
+					"name": "F_7M",
+					"frequency": 1
+				},
+				{
+					"name": "G_2m",
+					"frequency": 1
+				},
+				{
+					"name": "G_7M",
+					"frequency": 1
+				}
+			]
+		}
+	}
+}
