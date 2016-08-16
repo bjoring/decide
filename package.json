@@ -39,7 +39,7 @@
         "lights": "scripts/lights.js",
         "shape": "scripts/shape.js",
         "gng": "scripts/gng.js",
-        "preference": "scripts/preference.js"
+        "preftest": "scripts/preftest.js"
     },
     "homepage": "http://meliza.org/starboard"
 }
