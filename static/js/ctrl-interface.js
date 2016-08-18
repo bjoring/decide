@@ -333,9 +333,10 @@ function drawInterface() {
         .attr("width", xFeedScale.rangeBand())
         .attr("height", yScale.rangeBand() / 2)
         .on("click", function(d) {
+            var active = d.value.state.feeding;
             sock.emit("change-state", {
                 name: d.key,
-                feeding: true
+                feeding: !active
             });
         })
         .append("title");
