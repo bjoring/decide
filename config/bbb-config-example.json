@@ -1,6 +1,7 @@
 {
     "aplayer": {
-        "device": "plughw:0,0"
+        "device": "plughw:0,0",
+        "root": "stimuli"
     },
     "cape": {
         "bus_addr": "1-0054"
