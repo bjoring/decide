@@ -353,7 +353,7 @@ function drawInterface() {
     feeders.exit().remove();
 
     // TEXT
-    var text_data = ["controller", "experiment", "aplayer", "hopper"].map(function(k) {
+    var text_data = ["controller", "cape", "experiment", "aplayer", "hopper"].map(function(k) {
         return {key: k, value: starboard[k]};
     });
 
