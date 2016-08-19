@@ -106,7 +106,7 @@
     font-size:small;
 }
 
-#console {
+#status {
     display:inline-block;
     height:210px;
     width: 20%;
@@ -115,7 +115,14 @@
     top:0;
 }
 
-#console ul {
+#console {
+    width: 67%;
+    margin-left: 21%;
+    margin-right: auto;
+    font-size:small;
+}
+
+#status ul {
     padding-left: 0px;
     margin-top: 15px;
     margin-left: 5px;
@@ -124,12 +131,32 @@
     font-weight: bold;
 }
 
-#console ul ul {
+#status ul ul {
     padding-left: 0px;
     margin: 2px 5px 2px 15px;
     list-style-type: none;
     font-weight: normal;
 }
+
+#stimulus-control ul {
+    padding-left: 0px;
+    margin: 2px 5px 2px 15px;
+    list-style-type: none;
+    font-weight: normal;
+}
+
+#stimulus-list {
+    -webkit-column-count: 4; /* Chrome, Safari, Opera */
+    -moz-column-count: 4; /* Firefox */
+    column-count: 4;
+}
+
+#stimulus-list li span:hover {
+    color: blue;
+    cursor: pointer;
+    cursor: hand;
+}
+
 
 #appconsole {
     display:inline-block;

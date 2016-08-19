@@ -40,14 +40,16 @@
         "mode": "pulse-hold",
         "pulse_duty": 73,
         "pulse_dur": 100,
-        "hold_duty": 10
+        "hold_duty": 10,
+        "default_interval": 4000
     },
     "feeder_right": {
         "device": "starboard:hopper:right",
         "mode": "pulse-hold",
         "pulse_duty": 73,
         "pulse_dur": 100,
-        "hold_duty": 10
+        "hold_duty": 10,
+        "default_interval": 4000
     },
     "house_lights": {
         "clock_interval": 600000,
