@@ -53,8 +53,9 @@ app.use("/static", express.static(__dirname + "/../static"));
 var io = sockets(server);
 
 io.on("connection", function(socket) {
-    var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
-                       socket.request.connection.remoteAddress);
+    var client_addr = (socket.handshake.headers['x-real-ip'] ||
+                       socket.conn.remoteAddress);
+    logger.debug("header:", socket.handshake.headers);
     logger.info("connection from:", client_addr);
 
     // key used to route to client - needed for unrouting due to disconnect
