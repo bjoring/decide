@@ -1,0 +1,24 @@
+{
+    "experiment": "airpuff-example",
+    "parameters": {
+        "correct_timeout": false,
+        "rand_replace": true
+    },
+    "stimulus_root": "stimuli",
+    "stimuli": [
+        {
+            "name": "st15_ac3",
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"escaped": {"p_punish": 1.0, "correct": false},
+                          "timeout": {"correct": true}}
+        },
+        {
+            "name": ["st15_ac4", "st15_ac8"],
+            "frequency": 1,
+            "category": "S-",
+            "responses": {"escaped": {"correct": true},
+                          "timeout": {"p_punish": 1.0,"correct": false}}
+        }
+    ]
+}

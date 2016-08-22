@@ -333,9 +333,10 @@ function drawInterface() {
         .attr("width", xFeedScale.rangeBand())
         .attr("height", yScale.rangeBand() / 2)
         .on("click", function(d) {
+            var active = d.value.state.feeding;
             sock.emit("change-state", {
                 name: d.key,
-                feeding: true
+                feeding: !active
             });
         })
         .append("title");
@@ -352,7 +353,7 @@ function drawInterface() {
     feeders.exit().remove();
 
     // TEXT
-    var text_data = ["controller", "experiment", "aplayer", "hopper"].map(function(k) {
+    var text_data = ["controller", "cape", "experiment", "aplayer", "hopper"].map(function(k) {
         return {key: k, value: starboard[k]};
     });
 
@@ -360,7 +361,8 @@ function drawInterface() {
         .data(text_data, function(d) { return d.key });
 
     components.enter()
-        .append("li");
+        .append("li")
+        .attr("id", function(d) { return "component-" + d.key });
     components
         .text(function(d) { return d.value.name || d.key })
         .append("ul")
@@ -387,7 +389,8 @@ function drawInterface() {
               function(d) { return d.key;});
 
     expt.enter()
-        .append("li");
+        .append("li")
+        .attr("id", function(d) { return "component-" + d.key });
     expt
         .text(function(d) { return d.key })
         .append("ul")
@@ -407,7 +410,29 @@ function drawInterface() {
         .text(function(d) { return (/^last-/.test(d.key)) ?
                      new Date(d.value / 1000).toLocaleTimeString() :
                      d.value });
+
+    d3.select("#stimulus-root").text(function() { return starboard.aplayer.stimuli && starboard.aplayer.stimuli.root });
+    var stims = d3.select("#stimulus-list").selectAll("li").
+        data(starboard.aplayer.stimuli ? starboard.aplayer.stimuli.files : []);
+
+    stims.enter()
+        .append("li")
+        .append("span")
+        .attr("class", "info")
+        .on("click", function(d) {
+            if (starboard.aplayer.state.playing) return;
+            sock.emit("change-state", {
+                name: "aplayer",
+                playing: true,
+                stimulus: d,
+                root: starboard.aplayer.stimuli.root
+            });
+        })
+        .text(function(d) { return d })
+    stims.exit().remove();
 }
+
+
 
 /*function appendConsole(data, console) {
   var target = "#"+console;

@@ -30,7 +30,7 @@ server.on("listening", function() {
 })
 
 app.get("/", function(req, res) {
-    res.sendfile("controller.html", {root: __dirname + "/../static/"});
+    res.sendFile("controller.html", {root: __dirname + "/../static/"});
 });
 
 app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
@@ -53,8 +53,9 @@ app.use("/static", express.static(__dirname + "/../static"));
 var io = sockets(server);
 
 io.on("connection", function(socket) {
-    var client_addr = (socket.handshake.headers['x-forwarded-for'] ||
-                       socket.request.connection.remoteAddress);
+    var client_addr = (socket.handshake.headers['x-real-ip'] ||
+                       socket.conn.remoteAddress);
+    logger.debug("header:", socket.handshake.headers);
     logger.info("connection from:", client_addr);
 
     // key used to route to client - needed for unrouting due to disconnect
@@ -237,11 +238,11 @@ function error(msg) {
     var to = host_params.admins;
     if (apparatus.experiment && apparatus.experiment.user)
         to.push(apparatus.experiment.user);
-    util.mail(os.hostname(), to, "decide-ctrl error: " + msg, 
+    util.mail(os.hostname(), to, "decide-ctrl error: " + msg,
               "A serious error has occurred on " + os.hostname() + ":\n\n" +msg,
               function(err, info) {
                   if (err) logger.error("unable to send mail:", err);
-		  else logger.info("sent error email");
+                  else logger.info("sent error email");
               });
 }
 

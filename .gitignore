@@ -1,6 +1,6 @@
-/node_modules/
 *.jsonl
-/.DS_Store
+.DS_Store
+/node_modules/
 /attic/
 /config/bbb-config.json
 /config/host-config.json
