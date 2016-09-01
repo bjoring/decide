@@ -19,7 +19,7 @@ var argv = require("yargs")
     .describe("replace", "randomize trials with replacement")
     .describe("correct-timeout", "correction trials for incorrect failure to respond ")
     .describe("perch-delay", "time (in ms) to wait between perch and stimulus")
-    .default({"escape-window": 2000, "puff-duration": 5000,
+    .default({"escape-window": 2000, "puff-duration": 500,
               "lightsout-duration": 5000, "max-corrections": 10,
               "perch-delay": 1000,
               replace: false, "correct-timeout": false})
@@ -40,7 +40,7 @@ var par = {
     perch_delay: argv["perch-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left"],
-    min_iti: 2000
+    min_iti: 8000
 };
 
 var state = {
