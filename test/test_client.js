@@ -1,7 +1,6 @@
 
 var io = require('socket.io-client');
-var reqc = io.connect("http://localhost:8000/REQ");
-var pubc = io.connect("http://localhost:8000/PUB");
+var reqc = io.connect("http://localhost:8000/");
 
 reqc.on("connect", function() {
   reqc.emit("hugz", "", console.log);

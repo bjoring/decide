@@ -18,11 +18,19 @@
         <h3>Starboard Control Panel</h3>
       </div>
       <svg id="interface" />
-      <div id="console">
+      <div id="status">
         <ul id="component-list"></ul>
         <ul id="experiment-status"></ul>
         <ul><li>last update: <span id="last-update"></span></li></ul>
       </div>
+      <div id="console">
+        <div id="stimulus-control">
+          <h3>stimulus control</h3>
+          <p><b>root: </b> <span id="stimulus-root" /></p>
+          <p><b>files:</b></p>
+          <ul id="stimulus-list">
+          </ul>
+        </div>
     </div>
 
     <script src="/static/js/jquery-1.9.1.min.js"></script>
