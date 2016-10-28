@@ -40,7 +40,7 @@ var par = {
     perch_delay: argv["perch-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left"],
-    min_iti: 8000
+    min_iti: 45000
 };
 
 var state = {
