@@ -19,7 +19,7 @@ var argv = require("yargs")
     .describe("replace", "randomize trials with replacement")
     .describe("correct-timeout", "correction trials for incorrect failure to respond ")
     .describe("perch-delay", "time (in ms) to wait between perch and stimulus")
-    .default({"escape-window": 2000, "puff-duration": 5000,
+    .default({"escape-window": 2000, "puff-duration": 500,
               "lightsout-duration": 5000, "max-corrections": 10,
               "perch-delay": 1000,
               replace: false, "correct-timeout": false})
@@ -40,7 +40,7 @@ var par = {
     perch_delay: argv["perch-delay"],
     init_key: "peck_center",
     hoppers: ["feeder_left"],
-    min_iti: 2000
+    min_iti: 45000
 };
 
 var state = {
@@ -168,16 +168,16 @@ process.on("SIGTERM", shutdown);
 
 function await_init() { //perched) {
     update_state({phase: "awaiting-trial-init"});
-    if (!perch_occupied) {
+    //if (!perch_occupied) {
 	logger.debug("not occupied, awaiting occupation");
 	t.await("keys", null, function(msg) {
 		logger.debug("in await waiting occupate");
 		return msg && msg[par.init_key]}, await_occupy); 
-    }
-    else {
-	logger.debug("occupied, starting trial...");
-	await_occupy();
-    }
+    }//
+    //else {
+//	logger.debug("occupied, starting trial...");
+//	await_occupy();
+  //  }
 }
 
 function await_occupy() {
@@ -277,7 +277,8 @@ function await_response() {
 	    update_state({correction: state.correction + 1});
 	
 	if (conseq == "punish" && decision == "escaped")
-            lightsout();
+            //lightsout();
+		intertrial(par.min_iti);
 	else if (conseq == "punish" && decision == "timeout")
 	    puff();
         else {
