@@ -135,19 +135,19 @@ t.connect(name, function(socket) {
     sock.on("reset-state", function(data, rep) { rep("ok") });
     sock.on("state-changed", function(data) { logger.debug("pub to airpuff: state-changed", data)});
     sock.on("state-changed", function(data) {
-	    if (data.name == "keys" && _.has(data, "peck_center")) {
-		perch_occupied = data.peck_center
-		    logger.debug("perch occupied is", perch_occupied)
-		    }
-	})
-	// update user and subject information:
-	t.change_state("experiment", par);
-    
+            if (data.name == "keys" && _.has(data, "peck_center")) {
+                perch_occupied = data.peck_center
+                    logger.debug("perch occupied is", perch_occupied)
+                    }
+        })
+        // update user and subject information:
+        t.change_state("experiment", par);
+
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject,
-		experiment: stimset.experiment,
-		version: version, params: par, stimset: stimset.config.stimuli});
+                experiment: stimset.experiment,
+                version: version, params: par, stimset: stimset.config.stimuli});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
     // initial state;
@@ -168,46 +168,46 @@ process.on("SIGTERM", shutdown);
 
 function await_init() { //perched) {
     update_state({phase: "awaiting-trial-init"});
-    if (!perch_occupied) {
-	logger.debug("not occupied, awaiting occupation");
-	t.await("keys", null, function(msg) {
-		logger.debug("in await waiting occupate");
-		return msg && msg[par.init_key]}, await_occupy); 
-    }
+    //if (!perch_occupied) {
+        logger.debug("not occupied, awaiting occupation");
+        t.await("keys", null, function(msg) {
+                logger.debug("in await waiting occupate");
+                return msg && msg[par.init_key]}, await_occupy);
+    // }
     // else {
-    //	logger.debug("occupied, starting trial...");
-    //await_occupy();
-    //}
+    //  logger.debug("occupied, starting trial...");
+    // await_occupy();
+    // }
 }
 
 function await_occupy() {
     var waited_long_enough = false;
     update_state({trial: state.trial, phase: "awaiting-occupancy"});
     t.await("keys", par.perch_delay, _test, _exit);
-    
+
     function _test(msg) {
-	if (msg && !msg[par.init_key]) //if there's a message and center_peck is false
-	    waited_long_enough = false; //the bird left
-	else if (msg == null) {//if there's no message, it timed out
-	    waited_long_enough = true; //good, bird is still there
-	    logger.debug("waited_long_enough is", waited_long_enough);
-	}
-	else
-	    logger.debug("logic error on message:", msg);
-	return true;
+        if (msg && !msg[par.init_key]) //if there's a message and center_peck is false
+            waited_long_enough = false; //the bird left
+        else if (msg == null) {//if there's no message, it timed out
+            waited_long_enough = true; //good, bird is still there
+            logger.debug("waited_long_enough is", waited_long_enough);
+        }
+        else
+            logger.debug("logic error on message:", msg);
+        return true;
     }
-    
+
 
     function _exit() {
-	if (waited_long_enough) {//if waited_long_enough is true, then go to present stim
-	    update_state({trial: state.trial + 1,});	    
-	    present_stim();
-	}
-	else
-	    await_init();
+        if (waited_long_enough) {//if waited_long_enough is true, then go to present stim
+            update_state({trial: state.trial + 1,});
+            present_stim();
+        }
+        else
+            await_init();
     }
 }
-    
+
 
 function intertrial(duration) {
     logger.debug("ITI: %d ms", duration);
@@ -229,29 +229,29 @@ function await_response() {
     var stim = state.stimulus;
     update_state({phase: "awaiting-response", "last-trial": util.now()});
 
-    if (!perch_occupied) { 
-	logger.debug("bird left during stimulus");
-	decision = "escaped";
-	_exit();
-    } 
-    else {
-	logger.debug("bird still on perch after stimulus");
-	t.await("keys", par.escape_window, _test, _exit);
+    if (!perch_occupied) {
+        logger.debug("bird left during stimulus");
+        decision = "escaped";
+        _exit();
     }
-    
+    else {
+        logger.debug("bird still on perch after stimulus");
+        t.await("keys", par.escape_window, _test, _exit);
+    }
+
     function _test(msg) {
-	if (msg && !msg[par.init_key]) { //center peck becomes false
-	    decision = "escaped";
-	}
-	//else timeout occurred	
-	return true;
-    }    
+        if (msg && !msg[par.init_key]) { //center peck becomes false
+            decision = "escaped";
+        }
+        //else timeout occurred
+        return true;
+    }
 
     function _exit(time) {
         var conseq = "none";
         var resp = stim.responses[decision];
         logger.debug("response:", decision, resp);
-	// need to calculate reaction time relative to start of stimulus - TODO
+        // need to calculate reaction time relative to start of stimulus - TODO
         //var rtime = (decision == "timeout") ? null : time - resp_start;
         var rand = Math.random();
         var p_punish = 0 + (resp.p_punish || 0);
@@ -267,32 +267,33 @@ function await_response() {
                             response: decision,
                             correct: resp.correct,
                             result: conseq
-		    //rtime: rtime
-		    });
-	if (resp.correct ||
-	    (decision == "timeout" && !par.correct_timeout) ||
-	    (state.correction >= par.max_corrections))
-	    update_state({correction: 0});
-	else
-	    update_state({correction: state.correction + 1});
-	
-	if (conseq == "punish" && decision == "escaped")
-            lightsout();
-	else if (conseq == "punish" && decision == "timeout")
-	    puff();
+                    //rtime: rtime
+                    });
+        if (resp.correct ||
+            (decision == "timeout" && !par.correct_timeout) ||
+            (state.correction >= par.max_corrections))
+            update_state({correction: 0});
+        else
+            update_state({correction: state.correction + 1});
+
+        if (conseq == "punish" && decision == "escaped")
+            //lightsout();
+                intertrial(par.min_iti);
+        else if (conseq == "punish" && decision == "timeout")
+            puff();
         else {
-	    logger.debug("no consequences happened", conseq);	
-	    intertrial(par.min_iti);
-	}    
+            logger.debug("no consequences happened", conseq);
+            intertrial(par.min_iti);
+        }
     }
 }
 
-function puff() { 
+function puff() {
     update_state({phase: "puffing"});///, "last-puff": util.now()})
     _.delay(t.change_state, par.feed_delay,
             "feeder_left", { feeding: true, interval: par.puff_duration});
     t.await("feeder_left", null, function(msg) { return msg.feeding == false },
-	    _.partial(intertrial, par.min_iti));
+            _.partial(intertrial, par.min_iti));
 }
 
 function lightsout() {
@@ -300,9 +301,9 @@ function lightsout() {
     update_state({phase: "lights-out"});
     t.change_state(obj, {clock_on: false, brightness: 0});
     _.delay(_exit, par.punish_duration);
-    function _exit() {  
-	t.change_state(obj, {clock_on: true});
-	intertrial(par.min_iti);
+    function _exit() {
+        t.change_state(obj, {clock_on: true});
+        intertrial(par.min_iti);
     }
 }
 
