@@ -173,11 +173,11 @@ function await_init() { //perched) {
 	t.await("keys", null, function(msg) {
 		logger.debug("in await waiting occupate");
 		return msg && msg[par.init_key]}, await_occupy); 
-    }//
-    //else {
-//	logger.debug("occupied, starting trial...");
-//	await_occupy();
-  //  }
+    //}
+    // else {
+    //	logger.debug("occupied, starting trial...");
+    //await_occupy();
+    //}
 }
 
 function await_occupy() {
