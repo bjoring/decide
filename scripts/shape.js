@@ -28,7 +28,7 @@ const par = {
     block_trials: argv.trials,  // number of trials in blocks 2+
     cue_color: argv.color,
     feed_delay: argv["feed-delay"],
-    hoppers: ["feeder_left", "feeder_right"],
+    feeders: ["feeder_left", "feeder_right"],
     blink_period: 300,
 };
 
@@ -101,7 +101,7 @@ t.connect(name, function(socket) {
     t.get_feeders((err, feeders) => {
         if (!err) {
             logger.info("available feeders: ", feeders)
-            par.hoppers = feeders;
+            par.feeders = feeders;
         }
     });
 
@@ -124,11 +124,11 @@ function intertrial(duration, next_state) {
     _.delay(next_state, duration);
 }
 
-function feed(hopper, duration, next_state) {
+function feed(feeder, duration, next_state) {
     update_state({phase: "feeding"})
     _.delay(t.change_state, par.feed_delay,
-            hopper, { feeding: true, interval: duration})
-    t.await(hopper, null, function(msg) { return msg.feeding == false }, next_state)
+            feeder, { feeding: true, interval: duration})
+    t.await(feeder, null, function(msg) { return msg.feeding == false }, next_state)
 }
 
 function sleeping(next_state) {
@@ -169,7 +169,7 @@ function block1_await() {
 
     function _exit() {
         let next_state;
-        const hopper = random_hopper();
+        const feeder = random_feeder();
         t.change_state(cue, { trigger: null, brightness: 0})
         if (pecked != "timeout") {
             next_state = block2_await;
@@ -188,7 +188,7 @@ function block1_await() {
                             response: pecked,
                             result: "feed"
                            })
-        feed(hopper, feed_duration, next_state);
+        feed(feeder, feed_duration, next_state);
     }
 }
 
@@ -213,7 +213,7 @@ function block2_await() {
     t.await("keys", null, function(msg) { return msg.peck_center }, _exit);
 
     function _exit() {
-        const hopper = random_hopper();
+        const feeder = random_feeder();
         t.change_state(cue, { trigger: null, brightness: 0})
         const next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
         const delay_next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
@@ -223,7 +223,7 @@ function block2_await() {
                             trial: state.trial,
                             response: key,
                             result: "feed"});
-        feed(hopper, feed_duration, delay_next);
+        feed(feeder, feed_duration, delay_next);
     }
 }
 
@@ -274,7 +274,7 @@ function block34_peck2(side) {
 
     function _exit() {
         let next;
-        const hopper = pick_hopper(side);
+        const feeder = pick_feeder(side);
         t.change_state(cue, { trigger: null, brightness: 0})
         if (state.block == 3 && state.trial < par.block_trials)
             next = block3_peck1;
@@ -296,22 +296,22 @@ function block34_peck2(side) {
                             trial: state.trial,
                             response: key,
                             result: "feed"});
-        feed(hopper, feed_duration, next);
+        feed(feeder, feed_duration, next);
     }
 }
 
-function random_hopper() {
+function random_feeder() {
     const r = Math.random();
-    const i = Math.floor(r * par.hoppers.length);
-    logger.debug("random hopper:", r, par.hoppers[i]);
-    return par.hoppers[i];
+    const i = Math.floor(r * par.feeders.length);
+    logger.debug("random feeder:", r, par.feeders[i]);
+    return par.feeders[i];
 }
 
 
-function pick_hopper(side) {
+function pick_feeder(side) {
     const name = "feeder_" + side;
-    if (_.has(par.hoppers, name))
+    if (_.has(par.feeders, name))
         return name;
     else
-        return random_hopper();
+        return random_feeder();
 }

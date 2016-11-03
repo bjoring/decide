@@ -1,6 +1,5 @@
 {
-    "addr": "192.168.10.1",
-    "port": 5555,
+    "addr": "http://192.168.2.1:8080/decide-host/api/",
     "port_ctrl": 8000,
     "standalone": false,
     "admins": ["dmeliza@gmail.com"],
