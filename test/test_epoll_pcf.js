@@ -21,9 +21,8 @@ function check_keys(err, data) {
 
 const trigger = new GPIO(48);
 trigger.active_low(1);
-trigger.set_edge("rising");
 
-const poller = trigger.new_poller(check_keys)
+const poller = trigger.new_poller("rising", check_keys)
 check_keys();
 
 // Create a new Epoll. The callback is the interrupt handler.
