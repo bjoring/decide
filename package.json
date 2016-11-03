@@ -15,11 +15,10 @@
   "license": "BSD",
   "dependencies": {
     "bindings": "~1.2.1",
-    "bson-objectid": "~1.1.4",
-    "epoll": "^2.0.6",
+    "epoll": "^2.0.7",
     "express": "~4.14.0",
     "glob": "~7.0.5",
-    "microtime": "~2.1.1",
+    "microtime": "^2.1.8",
     "queue-async": "~1.2.1",
     "request": "^2.88.0",
     "semver": "^5.6.0",

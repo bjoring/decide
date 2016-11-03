@@ -1,7 +1,7 @@
 [
     {
         "name": "aplayer",
-        "driver": "sound_jstim",
+        "driver": "sound_aplayer",
         "params": {
             "req": "ipc:///tmp/org.meliza.jill/default/jstimserver/req",
             "pub": "ipc:///tmp/org.meliza.jill/default/jstimserver/pub"
@@ -110,9 +110,9 @@
         "params": {
             "device": "/sys/class/gpio/gpiochip496",
             "keymap": {
-                "peck_left": 13,
+                "peck_left": 15,
                 "peck_center": 14,
-                "peck_right": 15
+                "peck_right": 13
             }
         }
     }
