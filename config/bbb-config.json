@@ -1,7 +1,7 @@
 [
     {
         "name": "aplayer",
-        "driver": "sound_aplayer",
+        "driver": "sound_jstim",
         "params": {
             "req": "ipc:///tmp/org.meliza.jill/default/jstimserver/req",
             "pub": "ipc:///tmp/org.meliza.jill/default/jstimserver/pub"
