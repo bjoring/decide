@@ -212,7 +212,8 @@ function await_occupy() {
 function intertrial(duration) {
     logger.debug("ITI: %d ms", duration);
     update_state({phase: "intertrial"});
-    _.delay(await_init, duration);
+    next_state = (state.daytime) ? await_init() : sleeping();
+    _.delay(next_state, duration);
 }
 
 function present_stim() {
@@ -293,7 +294,7 @@ function puff() {
     _.delay(t.change_state, par.feed_delay,
             "feeder_left", { feeding: true, interval: par.puff_duration});
     t.await("feeder_left", null, function(msg) { return msg.feeding == false },
-            _.partial(intertrial, par.min_iti));
+            _.partial(intertrial, par.min_iti);
 }
 
 function lightsout() {
