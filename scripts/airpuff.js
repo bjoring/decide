@@ -294,7 +294,7 @@ function puff() {
     _.delay(t.change_state, par.feed_delay,
             "feeder_left", { feeding: true, interval: par.puff_duration});
     t.await("feeder_left", null, function(msg) { return msg.feeding == false },
-	    _.partial(intertrial, par.min_iti);
+	    _.partial(intertrial, par.min_iti));
 }
 
 function lightsout() {
