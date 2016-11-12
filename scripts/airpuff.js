@@ -212,7 +212,7 @@ function await_occupy() {
 function intertrial(duration) {
     logger.debug("ITI: %d ms", duration);
     update_state({phase: "intertrial"});
-    next_state = (state.daytime) ? await_init() : sleeping();
+    next_state = (state.daytime) ? await_init : sleeping;
     _.delay(next_state, duration);
 }
 
