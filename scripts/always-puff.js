@@ -168,16 +168,16 @@ process.on("SIGTERM", shutdown);
 
 function await_init() { //perched) {
     update_state({phase: "awaiting-trial-init"});
-    //if (!perch_occupied) {
+    if (!perch_occupied) {
 	logger.debug("not occupied, awaiting occupation");
 	t.await("keys", null, function(msg) {
 		logger.debug("in await waiting occupate");
 		return msg && msg[par.init_key]}, await_occupy); 
-    //}
-    // else {
-    //	logger.debug("occupied, starting trial...");
-    //await_occupy();
-    //}
+    }
+     else {
+    	logger.debug("occupied, starting trial...");
+    await_occupy();
+    }
 }
 
 function await_occupy() {
@@ -251,8 +251,9 @@ function await_response() {
     }    
 
     function _exit(time) {
+	/*
         var conseq = "none";
-        var resp = stim.responses[decision];
+	var resp = stim.responses[decision];
         logger.debug("response:", decision, resp);
 	// need to calculate reaction time relative to start of stimulus - TODO
         //var rtime = (decision == "timeout") ? null : time - resp_start;
@@ -272,7 +273,7 @@ function await_response() {
                             result: conseq
 		    //rtime: rtime
 		    });
-	/*
+	
 	if (resp.correct ||
 	    (decision == "timeout" && !par.correct_timeout) ||
 	    (state.correction >= par.max_corrections))
