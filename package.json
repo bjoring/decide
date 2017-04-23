@@ -1,7 +1,7 @@
 {
     "name": "decide",
     "preferGlobal": false,
-    "version": "2.2.0-SNAPSHOT",
+    "version": "2.2.0",
     "author": "Meliza Lab (http://meliza.org/starboard)",
     "description": "operant control system",
     "contributors": [
