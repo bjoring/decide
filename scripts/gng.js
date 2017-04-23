@@ -3,6 +3,7 @@
 var os = require("os");
 var _ = require("underscore");
 var pp = require("path")
+var fs = require("fs");
 var t = require("../lib/client");           // bank of apparatus manipulation functions
 var logger = require("../lib/log");
 var util = require("../lib/util");
@@ -69,18 +70,37 @@ function StimSet(path) {
     this.config = util.load_json(path);
     this.root = this.config.stimulus_root;
     this.experiment = this.config.experiment || pp.basename(path, ".json");
+    var root = this.root;
 
-    function check_probs(resp, key) {
-        var tot = (resp.p_punish || 0) + (resp.p_reward || 0);
-        //console.log(key + ": p(tot)=" + tot)
-        if (tot > 1.0)
-            throw "stimset response consequence probabilities must sum to <= 1.0";
+    function check_probs(stim) {
+        // return false if consequence probabilities don't add up to 1 or less
+        return _.every(stim.responses, function(resp, key) {
+            var tot = (resp.p_punish || 0) + (resp.p_reward || 0);
+            if (tot > 1.0)
+                logger.error("%s: consequence probabilities sum to > 1.0", stim.name);
+            return (tot <= 1.0)
+        });
     }
 
-    // validate the probabilities in the stimset
-    _.each(this.config.stimuli, function(stim) {
-        _.each(stim.responses, check_probs)
-    });
+    function check_files(stim) {
+        var stimnames = (typeof stim.name === "object") ? stim.name : [stim.name];
+        return _.every(stimnames, function(name) {
+            var loc = pp.join(root, name + ".wav");
+            try {
+                fs.accessSync(loc, fs.R_OK);
+                return true;
+            }
+            catch (err) {
+                logger.error("%s does not exist in %s", stim.name, root);
+                return false;
+            }
+        });
+    }
+
+    this.is_valid = function() {
+        return (_.every(this.config.stimuli, check_files) &&
+                _.every(this.config.stimuli, check_probs))
+    }
 
     var index;
     this.generate = function() {
@@ -110,6 +130,9 @@ function StimSet(path) {
 
 // Parse stimset
 var stimset = new StimSet(argv._[2]);
+if (!stimset.is_valid()) {
+    process.exit(-1);
+}
 // update parameters with stimset values
 _.extend(par, stimset.config.parameters);
 
