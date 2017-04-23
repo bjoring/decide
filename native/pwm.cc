@@ -9,6 +9,7 @@
  * Copyright (C) 2015 C Daniel Meliza <dan || meliza.org>
  */
 #include <string>
+#include <unistd.h>
 
 // node headers
 #include <node.h>
