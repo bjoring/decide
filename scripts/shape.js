@@ -276,7 +276,7 @@ function block34_peck2(side) {
         if (state.block == 4 && state.trial == par.block_trials && !argv.F) {
             logger.info("shape completed!")
             if (!argv["no-notify"])
-                util.mail(name, par.user, "shape completed for " + par.subject,
+                util.mail(os.hostname(), par.user, "shape completed for " + par.subject,
                           "Subject " + par.subject + " completed shaping. Trials will continue to run.",
                          _.partial(logger.info, "sent email to", par.user))
         }
