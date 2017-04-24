@@ -220,7 +220,7 @@ function block2_await() {
 }
 
 function block3_peck1() {
-    var side = ["left", "right"][Math.floor(Math.random() * 2)];
+    var side = "left"; //["left", "right"][Math.floor(Math.random() * 2)];
     var cue = "cue_center_" + par.cue_color;
 
     if (state.block < 3) {
@@ -240,7 +240,7 @@ function block3_peck1() {
 }
 
 function block4_peck1() {
-    var side = ["left", "right"][Math.floor(Math.random() * 2)];
+    var side = "left"; // ["left", "right"][Math.floor(Math.random() * 2)];
 
     if (state.block < 4) {
         logger.info("entering block 4")

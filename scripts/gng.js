@@ -86,18 +86,16 @@ function StimSet(path) {
         var stimnames = (typeof stim.name === "object") ? stim.name : [stim.name];
         return _.every(stimnames, function(name) {
             var loc = pp.join(root, name + ".wav");
-            try {
-                fs.accessSync(loc, fs.R_OK);
+            logger.debug("checking for %s", loc);
+            if (fs.existsSync(loc))
                 return true;
-            }
-            catch (err) {
-                logger.error("%s does not exist in %s", stim.name, root);
-                return false;
-            }
+            logger.error("%s does not exist in %s", stim.name, root);
+            return false;
         });
     }
 
     this.is_valid = function() {
+        logger.info("validating config file '%s' ", path);
         return (_.every(this.config.stimuli, check_files) &&
                 _.every(this.config.stimuli, check_probs))
     }
