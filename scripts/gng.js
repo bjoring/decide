@@ -70,7 +70,6 @@ function StimSet(path) {
     this.config = util.load_json(path);
     this.root = this.config.stimulus_root;
     this.experiment = this.config.experiment || pp.basename(path, ".json");
-    var root = this.root;
 
     function check_probs(stim) {
         // return false if consequence probabilities don't add up to 1 or less
@@ -82,6 +81,7 @@ function StimSet(path) {
         });
     }
 
+    var root = this.root;
     function check_files(stim) {
         var stimnames = (typeof stim.name === "object") ? stim.name : [stim.name];
         return _.every(stimnames, function(name) {
