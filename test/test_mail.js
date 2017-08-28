@@ -6,4 +6,4 @@ var argv = require("yargs")
     .demand(1)
     .argv;
 
-util.mail(os.hostname(), "argv._[0]", "test message from decide", "hello world!", console.log)
+util.mail(os.hostname(), argv._[0], "test message from decide", "hello world!", console.log)
