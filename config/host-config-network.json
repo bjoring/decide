@@ -8,5 +8,6 @@
     "log_local_events": false,
     "send_emails": true,
     "heartbeat_interval": 3600000,
-    "mail_transport": { "host": "192.168.10.1", "port": 25}
+    "mail_transport": { "host": "192.168.10.1", "port": 25,
+                        "tls": {"rejectUnauthorized": false}}
 }
