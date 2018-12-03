@@ -7,6 +7,7 @@ var logger = require("../lib/log");
 var express = require("express");
 var http = require("http");
 var sockets = require("socket.io");
+var stoppable = require("stoppable");
 var host_zmq = require("../lib/host");
 var apparatus = require("../lib/apparatus");
 var util = require("../lib/util");
@@ -22,7 +23,7 @@ logger.info("this is decide-ctrl, version", version);
 // HTTP server
 var app = express();
 app.enable('trust proxy');
-var server = http.Server(app);
+var server = stoppable(http.Server(app), 1000);
 server.listen(host_params.port_ctrl);
 server.on("listening", function() {
     var addr = server.address();
@@ -253,8 +254,13 @@ var kontrol = apparatus.register("controller", controller, bbb_params.controller
 apparatus.init(bbb_params);
 
 function shutdown() {
-    kontrol.disconnect();
-    process.exit(0);
+    logger.debug("shutting down on user interrupt");
+    apparatus.shutdown();
+    server.stop(function() {
+        logger.info("finished processing all HTTP requests");
+        logger.info("it's safe to kill this process with -9 now if it hangs");
+    });
+
 }
 
 process.on("SIGINT", shutdown);

@@ -1,45 +1,47 @@
 {
-    "name": "decide",
-    "preferGlobal": false,
-    "version": "2.2.1",
-    "author": "Meliza Lab (http://meliza.org/starboard)",
-    "description": "operant control system",
-    "contributors": [
-        "Tyler Robbins <tdr5wc -at- virginia.edu",
-        "Dan Meliza <cdm8j -at- virginia.edu>"
-    ],
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/melizalab/decide.git"
-    },
-    "license": "BSD",
-    "dependencies": {
-        "express": "~4.14.0",
-        "glob": "~7.0.5",
-        "smtp-connection": "~2.11.0",
-        "queue-async": "~1.2.1",
-        "socket.io": "~1.4.8",
-        "socket.io-client": "~1.4.8",
-        "suncalc": "~1.7.0",
-        "underscore": "~1.8.3",
-        "winston": "~2.2.0",
-        "yargs": "~5.0.0",
-        "zmq": "~2.15.3",
-        "bindings": "~1.2.1",
-        "bson-objectid": "~1.1.4",
-        "microtime": "~2.1.1"
-    },
-    "devDependencies": {},
-    "optionalDependencies": {},
-    "engines": {
-        "node": "0.10"
-    },
-    "bin": {
-        "decide-ctrl": "scripts/decide-ctrl.js",
-        "lights": "scripts/lights.js",
-        "shape": "scripts/shape.js",
-        "gng": "scripts/gng.js",
-        "preftest": "scripts/preftest.js"
-    },
-    "homepage": "http://meliza.org/starboard"
+  "name": "decide",
+  "preferGlobal": false,
+  "version": "2.2.1",
+  "author": "Meliza Lab (http://meliza.org/starboard)",
+  "description": "operant control system",
+  "contributors": [
+    "Tyler Robbins <tdr5wc -at- virginia.edu",
+    "Dan Meliza <cdm8j -at- virginia.edu>"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/melizalab/decide.git"
+  },
+  "license": "BSD",
+  "dependencies": {
+    "bindings": "~1.2.1",
+    "bson-objectid": "~1.1.4",
+    "evdev": "~0.2.5",
+    "express": "~4.14.0",
+    "glob": "~7.0.5",
+    "microtime": "~2.1.1",
+    "queue-async": "~1.2.1",
+    "smtp-connection": "~2.11.0",
+    "socket.io": "~1.4.8",
+    "socket.io-client": "~1.4.8",
+    "stoppable": "~1.1.0",
+    "suncalc": "~1.7.0",
+    "underscore": "~1.8.3",
+    "winston": "~2.2.0",
+    "yargs": "~5.0.0",
+    "zmq": "~2.15.3"
+  },
+  "devDependencies": {},
+  "optionalDependencies": {},
+  "engines": {
+    "node": "0.10"
+  },
+  "bin": {
+    "decide-ctrl": "scripts/decide-ctrl.js",
+    "lights": "scripts/lights.js",
+    "shape": "scripts/shape.js",
+    "gng": "scripts/gng.js",
+    "preftest": "scripts/preftest.js"
+  },
+  "homepage": "http://meliza.org/starboard"
 }
