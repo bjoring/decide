@@ -353,9 +353,11 @@ function drawInterface() {
     feeders.exit().remove();
 
     // TEXT
-    var text_data = ["controller", "cape", "experiment", "aplayer", "hopper"].map(function(k) {
-        return {key: k, value: starboard[k]};
-    });
+    var text_data = ["controller", "cape", "experiment", "aplayer", "hopper"].reduce(function(result, k) {
+        if (starboard[k])
+            result.push({key: k, value: starboard[k]});
+        return result;
+    }, []);
 
     var components = d3.select("#component-list").selectAll("li")
         .data(text_data, function(d) { return d.key });
@@ -364,7 +366,8 @@ function drawInterface() {
         .append("li")
         .attr("id", function(d) { return "component-" + d.key });
     components
-        .text(function(d) { return d.value.name || d.key })
+        .text(function(d) {
+            return d.value.name || d.key })
         .append("ul")
     components.exit().remove();
 
