@@ -1,7 +1,7 @@
 {
   "name": "decide",
   "preferGlobal": false,
-  "version": "2.2.1",
+  "version": "3.0.0",
   "author": "Meliza Lab (http://meliza.org/starboard)",
   "description": "operant control system",
   "contributors": [
@@ -24,11 +24,13 @@
     "smtp-connection": "~2.11.0",
     "socket.io": "~1.4.8",
     "socket.io-client": "~1.4.8",
+    "speaker": "~0.4.1",
     "stoppable": "~1.1.0",
     "suncalc": "~1.7.0",
     "underscore": "~1.8.3",
     "winston": "~2.2.0",
     "yargs": "~5.0.0",
+    "wav": "~1.0.2",
     "zmq": "~2.15.3"
   },
   "devDependencies": {},
@@ -43,5 +45,5 @@
     "gng": "scripts/gng.js",
     "preftest": "scripts/preftest.js"
   },
-  "homepage": "http://meliza.org/starboard"
+  "homepage": "https://meliza.org/starboard"
 }
