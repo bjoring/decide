@@ -1,17 +1,17 @@
 #!/usr/bin/env node
 
-var os = require("os");
-var _ = require("underscore");
-var pp = require("path")
-var fs = require("fs");
-var t = require("../lib/client");           // bank of apparatus manipulation functions
-var logger = require("../lib/log");
-var util = require("../lib/util");
+const os = require("os");
+const _ = require("underscore");
+const pp = require("path")
+const fs = require("fs");
+const t = require("../lib/client");           // bank of apparatus manipulation functions
+const logger = require("../lib/log");
+const util = require("../lib/util");
 
-var name = "gng";
-var version = require('../package.json').version;
+const name = "gng";
+const version = require('../package.json').version;
 
-var argv = require("yargs")
+const argv = require("yargs")
     .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com stims.json")
 .describe("response-window", "response window duration (in ms)")
     .describe("feed-duration", "default feeding duration for correct responses (in ms)")
@@ -28,7 +28,7 @@ var argv = require("yargs")
     .argv;
 
 /* Parameters */
-var par = {
+const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
     user: util.check_email(argv._[1]),
     active: true,
@@ -44,7 +44,7 @@ var par = {
     min_iti: 100
 };
 
-var state = {
+const state = {
     trial: 0,
     phase: null,
     correction: 0,
@@ -53,7 +53,7 @@ var state = {
     "last-trial": null,
 };
 
-var meta = {
+const meta = {
     type: "experiment",
     variables: {
         trial: "integer",
@@ -62,8 +62,8 @@ var meta = {
     }
 };
 
-var sock;
-var update_state = t.state_changer(name, state);
+let sock;
+const update_state = t.state_changer(name, state);
 
 // a class for parsing stimset file and providing random picks
 function StimSet(path) {
@@ -74,14 +74,14 @@ function StimSet(path) {
     function check_probs(stim) {
         // return false if consequence probabilities don't add up to 1 or less
         return _.every(stim.responses, function(resp, key) {
-            var tot = (resp.p_punish || 0) + (resp.p_reward || 0);
+            const tot = (resp.p_punish || 0) + (resp.p_reward || 0);
             if (tot > 1.0)
                 logger.error("%s: consequence probabilities sum to > 1.0", stim.name);
             return (tot <= 1.0)
         });
     }
 
-    var root = this.root;
+    let root = this.root;
     function check_files(stim) {
         var stimnames = (typeof stim.name === "object") ? stim.name : [stim.name];
         return _.every(stimnames, function(name) {
@@ -127,7 +127,7 @@ function StimSet(path) {
 }
 
 // Parse stimset
-var stimset = new StimSet(argv._[2]);
+const stimset = new StimSet(argv._[2]);
 if (!stimset.is_valid()) {
     process.exit(-1);
 }
@@ -194,7 +194,7 @@ function intertrial(duration) {
 }
 
 function present_stim() {
-    var stim = (state.correction) ? state.stimulus : stimset.next(par.rand_replace);
+    const stim = (state.correction) ? state.stimulus : stimset.next(par.rand_replace);
 
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
@@ -203,11 +203,11 @@ function present_stim() {
 }
 
 function await_response() {
-    var pecked = "timeout";
-    var stim = state.stimulus;
+    let pecked = "timeout";
+    const stim = state.stimulus;
     update_state({phase: "awaiting-response", "last-trial": util.now()});
 
-    var resp_start = util.now();
+    const resp_start = util.now();
     // turn off all cues not in cue_resp
     t.set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
     // turn on all cues not in cue_stim
@@ -226,13 +226,13 @@ function await_response() {
     }
 
     function _exit(time) {
-        var conseq = "none";
-        var resp = stim.responses[pecked];
+        let conseq = "none";
+        const resp = stim.responses[pecked];
         logger.debug("response:", pecked, resp);
-        var rtime = (pecked == "timeout") ? null : time - resp_start;
-        var rand = Math.random();
-        var p_feed = 0 + (resp.p_reward || 0);
-        var p_punish = p_feed + (resp.p_punish || 0);
+        const rtime = (pecked == "timeout") ? null : time - resp_start;
+        const rand = Math.random();
+        const p_feed = 0 + (resp.p_reward || 0);
+        const p_punish = p_feed + (resp.p_punish || 0);
         if (rand < p_feed)
             conseq = "feed";
         else if (rand < p_punish)
@@ -269,7 +269,7 @@ function await_response() {
 }
 
 function feed() {
-    var hopper = util.random_item(par.hoppers);
+    const hopper = util.random_item(par.hoppers);
     update_state({phase: "feeding", "last-feed": util.now()})
     _.delay(t.change_state, par.feed_delay,
             hopper, { feeding: true, interval: par.feed_duration})
@@ -278,7 +278,7 @@ function feed() {
 }
 
 function lightsout() {
-    var obj = "house_lights";
+    const obj = "house_lights";
     update_state({phase: "lights-out"});
     t.change_state(obj, {clock_on: false, brightness: 0});
     t.await(null, par.punish_duration, null, function() {

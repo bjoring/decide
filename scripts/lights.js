@@ -1,38 +1,38 @@
 #!/usr/bin/env node
-var os = require("os");
-var t = require("../lib/client");
-var logger = require("../lib/log");
-var util = require("../lib/util");
+const os = require("os");
+const t = require("../lib/client");
+const logger = require("../lib/log");
+const util = require("../lib/util");
 
 // Experiments need to manage their own state. They manipulate the state of the
 // apparatus and pass messages to connected clients and the host server using the protocol
 // defined in docs/spec.md. Implementing the protocol means the program needs to
 // respond to certain types of messages requesting information about the state.
 
-var name = "lights";
-var version = require('../package.json').version;
+const name = "lights";
+const version = require('../package.json').version;
 
-var argv = require("yargs")
+const argv = require("yargs")
     .usage("Set light level according to sun position.\nUsage: $0 subject_id user@host.com")
     .demand(2)
     .argv;
 
-var par = {
+const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
     user: util.check_email(argv._[1]),
     active: false
 };
 
-var state = {};
+const state = {};
 
-var meta = {
+const meta = {
     type: "experiment",
     variables: {
         day: [true, false]
     }
 };
 
-var sock;
+let sock;
 
 // connect to the controller and register callbacks
 t.connect(name, function(socket) {

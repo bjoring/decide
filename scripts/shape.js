@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-var os = require("os");
-var _ = require("underscore");
-var t = require("../lib/client");           // bank of apparatus manipulation functions
-var logger = require("../lib/log");
-var util = require("../lib/util");
+const os = require("os");
+const _ = require("underscore");
+const t = require("../lib/client");           // bank of apparatus manipulation functions
+const logger = require("../lib/log");
+const util = require("../lib/util");
 
-var name = "shape";
-var version = require('../package.json').version;
+const name = "shape";
+const version = require('../package.json').version;
 
-var argv = require("yargs")
+const argv = require("yargs")
     .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")
     .describe("F", "skip immediately to holding pattern(block 4)")
     .describe("B", "skip immediately to specific block (1-4)")
@@ -21,7 +21,7 @@ var argv = require("yargs")
     .demand(2)
     .argv;
 
-var par = {
+const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
     user: util.check_email(argv._[1]),
     active: true,
@@ -32,13 +32,13 @@ var par = {
     blink_period: 300,
 };
 
-var state = {
+const state = {
     trial: 0,                   // trial number
     block: 0,                   // shape paradigm block
     phase: null                 // trial phase
 }
 
-var meta = {
+const meta = {
     type: "experiment",
     variables: {
         trial: "integer",
@@ -47,10 +47,10 @@ var meta = {
     }
 }
 
-var sock;
-var update_state = t.state_changer(name, state);
+let sock;
+const update_state = t.state_changer(name, state);
 
-var start;
+let start;
 if (argv.F || argv.B == 4)
     start = block4_peck1;
 else if (argv.B == 1)
@@ -131,13 +131,13 @@ function sleeping(next_state) {
 function block1_await() {
 
     // all units in ms
-    var feed_duration = 5000;
-    var blink_duration = 5000;
-    var iti_var = 30000;
-    var iti_min = feed_duration;
-    var pecked = "timeout";
-    var cue = "cue_center_" + par.cue_color;
-    var key = "peck_center"
+    const feed_duration = 5000;
+    const blink_duration = 5000;
+    const iti_const = 30000;
+    const iti_min = feed_duration;
+    let pecked = "timeout";
+    const cue = "cue_center_" + par.cue_color;
+    const key = "peck_center"
 
     // state setup
     if (state.block < 1) {
@@ -160,8 +160,8 @@ function block1_await() {
     }
 
     function _exit() {
-        var next_state;
-        var hopper = random_hopper();
+        let next_state;
+        const hopper = random_hopper();
         t.change_state(cue, { trigger: null, brightness: 0})
         if (pecked != "timeout") {
             next_state = block2_await;
@@ -170,7 +170,7 @@ function block1_await() {
             next_state = _.partial(sleeping, block2_await);
         }
         else {
-            var iti = Math.random() * iti_var + iti_min;
+            const iti = Math.random() * iti_var + iti_min;
             logger.debug("trial iti:", iti);
             next_state = _.partial(intertrial, iti, block1_await);
         }
@@ -185,10 +185,10 @@ function block1_await() {
 }
 
 function block2_await() {
-    var feed_duration = 4000;
-    var iti = feed_duration * 0.5;
-    var cue = "cue_center_" + par.cue_color;
-    var key = "peck_center";
+    const feed_duration = 4000;
+    const iti = feed_duration * 0.5;
+    const cue = "cue_center_" + par.cue_color;
+    const key = "peck_center";
 
     if (state.block < 2) {
         logger.info("entering block 2")
@@ -205,23 +205,23 @@ function block2_await() {
     t.await("keys", null, function(msg) { return msg.peck_center }, _exit);
 
     function _exit() {
-        var hopper = random_hopper();
+        const hopper = random_hopper();
         t.change_state(cue, { trigger: null, brightness: 0})
-        var next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
-        next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
+        const next = (state.trial < par.block_trials) ? block2_await : block3_peck1;
+        const delay_next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);
         t.trial_data(name, {program: name,
                             subject: par.subject,
                             block: state.block,
                             trial: state.trial,
                             response: key,
                             result: "feed"});
-        feed(hopper, feed_duration, next);
+        feed(hopper, feed_duration, delay_next);
     }
 }
 
 function block3_peck1() {
-    var side = "left"; //["left", "right"][Math.floor(Math.random() * 2)];
-    var cue = "cue_center_" + par.cue_color;
+    const side = "left"; //["left", "right"][Math.floor(Math.random() * 2)];
+    const cue = "cue_center_" + par.cue_color;
 
     if (state.block < 3) {
         logger.info("entering block 3")
@@ -240,7 +240,7 @@ function block3_peck1() {
 }
 
 function block4_peck1() {
-    var side = "left"; // ["left", "right"][Math.floor(Math.random() * 2)];
+    const side = "left"; // ["left", "right"][Math.floor(Math.random() * 2)];
 
     if (state.block < 4) {
         logger.info("entering block 4")
@@ -255,18 +255,18 @@ function block4_peck1() {
 }
 
 function block34_peck2(side) {
-    var feed_duration = (state.block == 3) ? 3000 : 2500;
-    var iti = feed_duration * 0.5;
-    var cue = "cue_" + side + "_" + par.cue_color;
-    var key = "peck_" + side;
+    const feed_duration = (state.block == 3) ? 3000 : 2500;
+    const iti = feed_duration * 0.5;
+    const cue = "cue_" + side + "_" + par.cue_color;
+    const key = "peck_" + side;
 
     t.change_state(cue, { trigger: "timer", period: par.blink_period})
     update_state({ phase: "awaiting-response-2"});
     t.await("keys", null, function(msg) { return msg[key]}, _exit);
 
     function _exit() {
-        var next;
-        var hopper = "feeder_" + side;
+        let next;
+        const hopper = "feeder_" + side;
         t.change_state(cue, { trigger: null, brightness: 0})
         if (state.block == 3 && state.trial < par.block_trials)
             next = block3_peck1;
@@ -293,8 +293,8 @@ function block34_peck2(side) {
 }
 
 function random_hopper() {
-    var r = Math.random();
-    var i = Math.floor(r * par.hoppers.length);
+    const r = Math.random();
+    const i = Math.floor(r * par.hoppers.length);
     logger.debug("random hopper:", r, par.hoppers[i]);
     return par.hoppers[i];
 }

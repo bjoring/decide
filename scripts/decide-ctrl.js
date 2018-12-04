@@ -1,32 +1,32 @@
 #!/usr/bin/env node
 // this is the controller process for the device - it's intended to be integrated as
 // a component of the apparatus, but it relays messages to and from other clients
-var _ = require("underscore");
-var os = require("os");
-var logger = require("../lib/log");
-var express = require("express");
-var http = require("http");
-var sockets = require("socket.io");
-var stoppable = require("stoppable");
-var host_zmq = require("../lib/host");
-var apparatus = require("../lib/apparatus");
-var util = require("../lib/util");
-var jsonl = require("../lib/jsonl");
+const _ = require("underscore");
+const os = require("os");
+const logger = require("../lib/log");
+const express = require("express");
+const http = require("http");
+const sockets = require("socket.io");
+const stoppable = require("stoppable");
+const host_zmq = require("../lib/host");
+const apparatus = require("../lib/apparatus");
+const util = require("../lib/util");
+const jsonl = require("../lib/jsonl");
 
-var version = require('../package.json').version;
-var host_params = util.load_config("host-config.json");
-var bbb_params = util.load_config("bbb-config.json");
+const version = require('../package.json').version;
+const host_params = util.load_config("host-config.json");
+const bbb_params = util.load_config("bbb-config.json");
 
 logger.info("this is decide-ctrl, version", version);
 
 // *********************************
 // HTTP server
-var app = express();
+const app = express();
 app.enable('trust proxy');
-var server = stoppable(http.Server(app), 1000);
+const server = stoppable(http.Server(app), 1000);
 server.listen(host_params.port_ctrl);
 server.on("listening", function() {
-    var addr = server.address();
+    const addr = server.address();
     logger.info("server listening on %s port %s", addr.address, addr.port);
 })
 
@@ -35,7 +35,7 @@ app.get("/", function(req, res) {
 });
 
 app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
-    var cmd = "get-" + ((req.params[0] == "components") ? "meta" : req.params[0] );
+    const cmd = "get-" + ((req.params[0] == "components") ? "meta" : req.params[0] );
 
     apparatus.req(cmd, {name: req.params[1] || ""}, function(err, rep) {
         if (err)
@@ -51,16 +51,16 @@ app.use("/static", express.static(__dirname + "/../static"));
 
 // *********************************
 // socket.io server
-var io = sockets(server);
+const io = sockets(server);
 
 io.on("connection", function(socket) {
-    var client_addr = (socket.handshake.headers['x-real-ip'] ||
+    const client_addr = (socket.handshake.headers['x-real-ip'] ||
                        socket.conn.remoteAddress);
     logger.debug("header:", socket.handshake.headers);
     logger.info("connection from:", client_addr);
 
     // key used to route to client - needed for unrouting due to disconnect
-    var client_key = null;
+    let client_key = null;
 
     // forward pub from clients to other clients and apparatus components
     socket.on("state-changed", function(msg) {
@@ -70,7 +70,7 @@ io.on("connection", function(socket) {
     });
 
     // forward reqs to apparatus
-    var req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
+    const req_msg = ["change-state", "reset-state", "get-state", "get-meta", "get-params"];
     req_msg.forEach( function(req) {
         socket.on(req, function(msg, rep) {
             rep = rep || function() {};
@@ -150,25 +150,27 @@ io.on("connection", function(socket) {
 // the controller's job is to route messages to and from the host socket
 function controller(params, name, pub) {
 
-    var par = {
+    const par = {
         host: null
     };
     util.update(par, params);
 
-    var meta = {
+    const meta = {
         type: "controller"
     };
 
-    var state = {
+    const state = {
         hostname: os.hostname(),
         server: null,
         version: version
     }
 
+    let conn;
+
     if (!host_params.standalone) {
-        var host_addr = "tcp://" + host_params.addr + ":" + host_params.port
-        var conn = host_zmq();
-        var dropped = 0;
+        const host_addr = "tcp://" + host_params.addr + ":" + host_params.port
+        conn = host_zmq();
+        let dropped = 0;
         conn.on("connect", function() {
             logger.info("connected to decide-host at %s", host_addr);
             pub.state_changed(name, {server: host_params.addr}, state);
@@ -198,14 +200,14 @@ function controller(params, name, pub) {
     // forward PUB messages from the apparatus to connected clients and host
     // accept both "packaged" and "unpackaged" messages
     pub.on("state-changed", function(name, data, time) {
-        var msg = (_.has(name, "name")) ? name :
+        const msg = (_.has(name, "name")) ? name :
             _.extend({name: name, time: time || util.now()}, data);
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
         if (conn) conn.send("state-changed", msg);
     });
 
-    var me = {
+    const me = {
         // REQ messages from the apparatus
         req: function(msg, data, rep) {
             logger.debug("req to controller: ", msg, data);
@@ -236,7 +238,7 @@ function controller(params, name, pub) {
 // Error handling
 function error(msg) {
     logger.error(msg);
-    var to = host_params.admins;
+    const to = host_params.admins;
     if (apparatus.experiment && apparatus.experiment.user)
         to.push(apparatus.experiment.user);
     util.mail(os.hostname(), to, "decide-ctrl error: " + msg,
@@ -248,13 +250,14 @@ function error(msg) {
 }
 
 // start the controller
-var kontrol = apparatus.register("controller", controller, bbb_params.controller);
+const kontrol = apparatus.register("controller", controller, bbb_params.controller);
 
 // initialize the apparatus
 apparatus.init(bbb_params);
 
 function shutdown() {
     logger.debug("shutting down on user interrupt");
+    // TODO: nicely tell experiment clients to shut down
     apparatus.shutdown();
     server.stop(function() {
         logger.info("finished processing all HTTP requests");
