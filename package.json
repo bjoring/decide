@@ -19,6 +19,7 @@
     "evdev": "~0.2.5",
     "express": "~4.14.0",
     "glob": "~7.0.5",
+    "i2c": "^0.2.3",
     "microtime": "~2.1.1",
     "queue-async": "~1.2.1",
     "smtp-connection": "~2.11.0",
@@ -28,9 +29,9 @@
     "stoppable": "~1.1.0",
     "suncalc": "~1.7.0",
     "underscore": "~1.8.3",
+    "wav": "~1.0.2",
     "winston": "~2.2.0",
     "yargs": "~5.0.0",
-    "wav": "~1.0.2",
     "zmq": "~2.15.3"
   },
   "devDependencies": {},
