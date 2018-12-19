@@ -16,6 +16,7 @@
   "dependencies": {
     "bindings": "~1.2.1",
     "bson-objectid": "~1.1.4",
+    "epoll": "^2.0.6",
     "evdev": "~0.2.5",
     "express": "~4.14.0",
     "glob": "~7.0.5",
