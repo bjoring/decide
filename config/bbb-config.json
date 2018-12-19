@@ -23,63 +23,63 @@
         "name": "cue_left_blue",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:left:blue"
+            "device": "peckboard:left:blue"
         }
     },
     {
         "name": "cue_left_green",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:left:green"
+            "device": "peckboard:left:green"
         }
     },
     {
         "name": "cue_left_red",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:left:red"
+            "device": "peckboard:left:red"
         }
     },
     {
         "name": "cue_center_blue",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:center:blue"
+            "device": "peckboard:center:blue"
         }
     },
     {
         "name": "cue_center_green",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:center:green"
+            "device": "peckboard:center:green"
         }
     },
     {
         "name": "cue_center_red",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:center:red"
+            "device": "peckboard:center:red"
         }
     },
     {
         "name": "cue_right_blue",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:right:blue"
+            "device": "peckboard:right:blue"
         }
     },
     {
         "name": "cue_right_green",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:right:green"
+            "device": "peckboard:right:green"
         }
     },
     {
         "name": "cue_right_red",
         "driver": "cue_leds",
         "params": {
-            "device": "starboard:right:red"
+            "device": "peckboard:right:red"
         }
     },
     {
@@ -122,18 +122,14 @@
     },
     {
         "name": "keys",
-        "driver": "key_evdev",
+        "driver": "key_peckboard",
         "params": {
-            "device": "/dev/input/by-path/platform-sbd-keys-event",
-            "keymap": ["hopper_up", "peck_left", "peck_center", "peck_right"]
-        }
-    },
-    {
-        "name": "hopper",
-        "driver": "key_evdev",
-        "params": {
-            "device": "/dev/input/by-path/platform-sbd-hopdet-event",
-            "keymap": ["up"]
+            "device": "/sys/class/gpio/gpiochip496",
+            "keymap": {
+                "peck_left": 13,
+                "peck_center": 14,
+                "peck_right": 15
+            }
         }
     }
 ]
