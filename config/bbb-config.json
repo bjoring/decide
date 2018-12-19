@@ -1,10 +1,10 @@
 [
     {
         "name": "aplayer",
-        "driver": "sound_dummy",
+        "driver": "sound_jstim",
         "params": {
-            "device": "plughw:1,0",
-            "root": "stimuli"
+            "req": "ipc:///tmp/org.meliza.jill/default/jstimserver/req",
+            "pub": "ipc:///tmp/org.meliza.jill/default/jstimserver/pub"
         }
     },
     {
