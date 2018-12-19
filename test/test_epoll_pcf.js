@@ -4,18 +4,18 @@ var GPIO = require("../lib/gpio");
 const _ = require('underscore');
 const fs = require('fs');
 
-//const trigfd = fs.openSync('/sys/class/gpio/gpio48/value', 'r');
 const keys = {
-    "R": fs.openSync('/sys/class/gpio/gpio509/value', 'r'),
-    "C": fs.openSync('/sys/class/gpio/gpio510/value', 'r'),
-    "L": fs.openSync('/sys/class/gpio/gpio511/value', 'r')
+    "R": new GPIO(509),
+    "C": new GPIO(510),
+    "L": new GPIO(511)
 };
 const buffer = Buffer.alloc(1);
 
 function check_keys(err, data) {
-    _.each(keys, function(value, key) {
-        fs.readSync(value, buffer, 0, 1, 0);
-        console.log(key, ":", buffer.toString());
+    _.each(keys, function(gpio, key) {
+        gpio.read((err, state) => {
+            console.log(key, ":", state);
+        })
     });
 };
 
