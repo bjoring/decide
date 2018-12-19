@@ -73,7 +73,7 @@ function drawInterface() {
         return x.value.type == 'feeder';
     }));
     var numPecks = d3.sum(data.map(function(x) {
-        return (x.value.type == "key") ? Object.keys(x.value.variables).length - 1 : 0;
+        return (x.value.type == "key") ? Object.keys(x.value.variables).length : 0;
     }));
 
     var xLedScale = d3.scale.ordinal()

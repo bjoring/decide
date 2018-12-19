@@ -1,7 +1,7 @@
 [
     {
         "name": "aplayer",
-        "driver": "sound_alsa",
+        "driver": "sound_dummy",
         "params": {
             "device": "plughw:1,0",
             "root": "stimuli"
@@ -11,7 +11,7 @@
         "name": "cape",
         "driver": "eeprom",
         "params": {
-            "bus_addr": "1-0054"
+            "bus_addr": "2-0054"
         }
     },
     {
@@ -83,22 +83,10 @@
         }
     },
     {
-        "name": "feeder_left",
+        "name": "feeder_motor",
         "driver": "feeder_leds",
         "params": {
             "device": "starboard:hopper:left",
-            "mode": "pulse-hold",
-            "pulse_duty": 73,
-            "pulse_dur": 100,
-            "hold_duty": 10,
-            "default_interval": 4000
-        }
-    },
-    {
-        "name": "feeder_right",
-        "driver": "feeder_leds",
-        "params": {
-            "device": "starboard:hopper:right",
             "mode": "pulse-hold",
             "pulse_duty": 73,
             "pulse_dur": 100,
