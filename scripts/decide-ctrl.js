@@ -2,6 +2,7 @@
 // this is the controller process for the device - it's intended to be integrated as
 // a component of the apparatus, but it relays messages to and from other clients
 const _ = require("underscore");
+const {format} = require("util");
 const os = require("os");
 const logger = require("../lib/log");
 const express = require("express");
@@ -133,7 +134,7 @@ io.on("connection", function(socket) {
 
     socket.on("disconnect", function() {
         if (client_key) {
-            error("client " + client_key + " disconnected unexpectedly")
+            notify("client " + client_key + " disconnected unexpectedly")
             apparatus.unregister(client_key);
             client_key = null;
             // reset the apparatus; TODO check if the client that disconnected
@@ -177,7 +178,7 @@ function controller(params, name, pub) {
         })
         conn.on("error", function(err) {
             logger.error("error registering with host: %s", err);
-            process.exit(-1);
+            shutdown();
         })
         conn.on("disconnect", function() {
             logger.warn("disconnected from decide-host at %s", host_addr)
@@ -186,7 +187,7 @@ function controller(params, name, pub) {
         conn.on("dropped", function() {
             dropped += 1;
             if (dropped % 1000 == 1) {
-                error("decide-host is dropping or not receiving data!");
+                notify("decide-host is dropping or not receiving data!");
                 // really this should go into a log
                 pub.state_changed(name, {warning: "dropped messages"}, state);
             }
@@ -205,6 +206,12 @@ function controller(params, name, pub) {
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
         if (conn) conn.send("state-changed", msg);
+    });
+
+    // Warning messages are passed on to the experimenter.
+    pub.on("warning", function(name, err, time) {
+        const msg = format("warning from '%s': %s", name, err);
+        notify(msg);
     });
 
     const me = {
@@ -235,16 +242,19 @@ function controller(params, name, pub) {
 }
 
 // *********************************
-// Error handling
-function error(msg) {
-    logger.error(msg);
+// This function is used to notify the user that something serious has happened.
+// It will try to send email. It does not shut the process down, because even
+// though the experiment may be compromised, the experiment process may be
+// providing food and managing lights, so we don't want to quit.
+function notify(msg) {
+    logger.warn(msg);
     const to = host_params.admins;
     if (apparatus.experiment && apparatus.experiment.user)
         to.push(apparatus.experiment.user);
-    util.mail(os.hostname(), to, "decide-ctrl error: " + msg,
-              "A serious error has occurred on " + os.hostname() + ":\n\n" +msg,
+    util.mail(os.hostname(), to, "decide-ctrl warning: " + msg,
+              "A serious problem has occurred on " + os.hostname() + ":\n\n" +msg,
               function(err, info) {
-                  if (err) logger.error("unable to send mail:", err);
+                  if (err) logger.warn("unable to send mail:", err);
                   else logger.info("sent error email");
               });
 }
@@ -256,7 +266,7 @@ const kontrol = apparatus.register("controller", controller, bbb_params.controll
 apparatus.init(bbb_params);
 
 function shutdown() {
-    logger.debug("shutting down on user interrupt");
+    logger.debug("shutting down because of error or interrupt");
     // TODO: nicely tell experiment clients to shut down
     apparatus.shutdown();
     server.stop(function() {
