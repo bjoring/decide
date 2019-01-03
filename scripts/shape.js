@@ -133,7 +133,7 @@ function block1_await() {
     // all units in ms
     const feed_duration = 5000;
     const blink_duration = 5000;
-    const iti_const = 30000;
+    const iti_var = 30000;
     const iti_min = feed_duration;
     let pecked = "timeout";
     const cue = "cue_center_" + par.cue_color;

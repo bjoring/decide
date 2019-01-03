@@ -4,12 +4,14 @@
 const _ = require("underscore");
 const {format} = require("util");
 const os = require("os");
-const logger = require("../lib/log");
 const express = require("express");
 const http = require("http");
 const sockets = require("socket.io");
 const stoppable = require("stoppable");
-const host_zmq = require("../lib/host");
+const request = require("request");
+const semver = require("semver");
+
+const logger = require("../lib/log");
 const apparatus = require("../lib/apparatus");
 const util = require("../lib/util");
 const jsonl = require("../lib/jsonl");
@@ -129,7 +131,7 @@ io.on("connection", function(socket) {
 
     socket.on("trial-data", function(msg) {
         logger.log("pub", "trial-data", msg);
-        kontrol.forward("trial-data", msg);
+        host.forward("trial-data", msg);
     })
 
     socket.on("disconnect", function() {
@@ -148,8 +150,11 @@ io.on("connection", function(socket) {
 // *********************************
 // socket.io connection to host
 
-// the controller's job is to route messages to and from the host socket
-function controller(params, name, pub) {
+// the host proxy's job is to route messages to and from the host socket
+function host_proxy(params, name, pub) {
+
+    // current implementation is stateless, so we're 'connected' all the time
+    const connected = !host_params.standalone;
 
     const par = {
         host: null
@@ -157,7 +162,7 @@ function controller(params, name, pub) {
     util.update(par, params);
 
     const meta = {
-        type: "controller"
+        type: "host"
     };
 
     const state = {
@@ -165,37 +170,49 @@ function controller(params, name, pub) {
         server: null,
         version: version
     }
+    let dropped = 0;
 
-    let conn;
+    const conn = request.defaults({
+        baseUrl: host_params.addr,
+        json: true,
+        forever: true
+    });
 
-    if (!host_params.standalone) {
-        const host_addr = "tcp://" + host_params.addr + ":" + host_params.port
-        conn = host_zmq();
-        let dropped = 0;
-        conn.on("connect", function() {
-            logger.info("connected to decide-host at %s", host_addr);
-            pub.state_changed(name, {server: host_params.addr}, state);
-        })
-        conn.on("error", function(err) {
-            logger.error("error registering with host: %s", err);
-            shutdown();
-        })
-        conn.on("disconnect", function() {
-            logger.warn("disconnected from decide-host at %s", host_addr)
-            pub.state_changed(name, {server: state.server + " (disconnected)"}, state);
-        })
-        conn.on("dropped", function() {
-            dropped += 1;
-            if (dropped % 1000 == 1) {
-                notify("decide-host is dropping or not receiving data!");
-                // really this should go into a log
-                pub.state_changed(name, {warning: "dropped messages"}, state);
+    if (connected) {
+        // hit the api/info endpoint
+        conn.get("/info/", function(error, response, body) {
+            logger.debug("API query returned: ", body);
+            if (error)
+                logger.error("unable to connect to host: %s", error.code);
+            else if (response && response.statusCode != 200)
+                logger.error("unable to connect to host: status = %s", response.statusCode);
+            else if (!body.api_version)
+                logger.error("unexpected response to API query");
+            else if (!semver.satisfies(semver.coerce(body.api_version), "1.x"))
+                logger.error("Wrong API version: %s (needs to be 1.x)", body.api_version);
+            else {
+                logger.info("connected to %s (api: %s) at %s", body.host, body.api_version, host_params.addr);
+                pub.state_changed(name, {server: host_params.addr}, state);
             }
-        })
-        conn.on("closed", function() {
-            logger.info("closed connection to decide-host");
-        })
-        conn.connect(host_addr);
+            if (!state.server)
+                shutdown();
+        });
+    }
+    else
+        pub.state_changed(name, state);
+
+    function post(url, msg) {
+        if (!connected) return;
+        msg["addr"] = state.hostname;
+        msg["time"] /= 1e6;
+        conn.post({url: url, body: msg},
+                  function(e, r, body) {
+                      if (e || (r && r.statusCode != 201)) {
+                          dropped += 1
+                          if (dropped % 1000 == 1)
+                              notify(format("decide-host has dropped %d messages", dropped));
+                      }
+                  });
     }
 
     // forward PUB messages from the apparatus to connected clients and host
@@ -205,7 +222,7 @@ function controller(params, name, pub) {
             _.extend({name: name, time: time || util.now()}, data);
         logger.log("pub", "state-changed", msg);
         io.emit("state-changed", msg);
-        if (conn) conn.send("state-changed", msg);
+        post("/events/", msg);
     });
 
     // Warning messages are passed on to the experimenter.
@@ -231,13 +248,15 @@ function controller(params, name, pub) {
         },
         // provides a means to forward trial data to host
         forward: function(msg_t, msg) {
-            if (conn) conn.send(msg_t, msg);
+            if (msg_t == "trial-data")
+                post("/trials/", msg);
+            else
+                throw "unknown message type: " + msg_t;
         },
         disconnect: function() {
-            if (conn) conn.close();
+            //if (conn) conn.close();
         }
     };
-    pub.state_changed(name, state);
     return me;
 }
 
@@ -252,7 +271,7 @@ function notify(msg) {
     if (apparatus.experiment && apparatus.experiment.user)
         to.push(apparatus.experiment.user);
     util.mail(os.hostname(), to, "decide-ctrl warning: " + msg,
-              "A serious problem has occurred on " + os.hostname() + ":\n\n" +msg,
+              "A serious problem has occurred on " + os.hostname() + ":\n\n" + msg,
               function(err, info) {
                   if (err) logger.warn("unable to send mail:", err);
                   else logger.info("sent error email");
@@ -260,7 +279,7 @@ function notify(msg) {
 }
 
 // start the controller
-const kontrol = apparatus.register("controller", controller, bbb_params.controller);
+const host = apparatus.register("host", host_proxy);
 
 // initialize the apparatus
 apparatus.init(bbb_params);

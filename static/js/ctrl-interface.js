@@ -353,7 +353,7 @@ function drawInterface() {
     feeders.exit().remove();
 
     // TEXT
-    var text_data = ["controller", "cape", "experiment", "aplayer", "hopper"].reduce(function(result, k) {
+    var text_data = ["host", "cape", "experiment", "aplayer", "hopper"].reduce(function(result, k) {
         if (starboard[k])
             result.push({key: k, value: starboard[k]});
         return result;
