@@ -97,6 +97,14 @@ t.connect(name, function(socket) {
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
 
+    // update feeder list
+    t.get_feeders((err, feeders) => {
+        if (!err) {
+            logger.info("available feeders: ", feeders)
+            par.hoppers = feeders;
+        }
+    });
+
     start()
 });
 
@@ -220,7 +228,7 @@ function block2_await() {
 }
 
 function block3_peck1() {
-    const side = "left"; //["left", "right"][Math.floor(Math.random() * 2)];
+    const side = ["left", "right"][Math.floor(Math.random() * 2)];
     const cue = "cue_center_" + par.cue_color;
 
     if (state.block < 3) {
@@ -240,7 +248,7 @@ function block3_peck1() {
 }
 
 function block4_peck1() {
-    const side = "left"; // ["left", "right"][Math.floor(Math.random() * 2)];
+    const side = ["left", "right"][Math.floor(Math.random() * 2)];
 
     if (state.block < 4) {
         logger.info("entering block 4")
@@ -266,7 +274,7 @@ function block34_peck2(side) {
 
     function _exit() {
         let next;
-        const hopper = "feeder_" + side;
+        const hopper = pick_hopper(side);
         t.change_state(cue, { trigger: null, brightness: 0})
         if (state.block == 3 && state.trial < par.block_trials)
             next = block3_peck1;
@@ -297,4 +305,13 @@ function random_hopper() {
     const i = Math.floor(r * par.hoppers.length);
     logger.debug("random hopper:", r, par.hoppers[i]);
     return par.hoppers[i];
+}
+
+
+function pick_hopper(side) {
+    const name = "feeder_" + side;
+    if (_.has(par.hoppers, name))
+        return name;
+    else
+        return random_hopper();
 }

@@ -1,4 +1,3 @@
-
 var io = require('socket.io-client');
 var reqc = io.connect("http://localhost:8000/");
 

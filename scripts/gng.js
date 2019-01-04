@@ -165,6 +165,15 @@ t.connect(name, function(socket) {
                         version: version, params: par, stimset: stimset.config.stimuli});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
+
+    // update feeder list
+    t.get_feeders((err, feeders) => {
+        if (!err) {
+            logger.info("available feeders: ", feeders)
+            par.hoppers = feeders;
+        }
+    });
+
     // initial state;
     await_init();
 })
