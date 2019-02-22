@@ -42,7 +42,7 @@ app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
 
     apparatus.req(cmd, {name: req.params[1] || ""}, function(err, rep) {
         if (err)
-            res.send(500, {error: err});
+            res.status(500).send({error: err});
         else
             res.send(rep);
     });
