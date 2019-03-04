@@ -3,6 +3,13 @@
 
 This document gives basic usage information for the `decide` experiment programs. You will need to ssh to the BBB and run the programs using shell commands. You will also need to have started `decide-ctrl.js`, as described in the [previous document](install.md).
 
+## Direct HTTP interface
+
+You can modify state variables in the system directly using HTTP PUT requests. For example, using [httpie](https://httpie.org/), you can turn on the left cue as follows:
+
+    http --json PUT http://localhost:8000/state/cue_left_red brightness=1
+
+
 ## Lights
 
 The simplest experiment program sets the house lights to follow solar ephemera. Lights turn on when the sun rises, increase and decrease in intensity through the day, and turn off when the sun sets. The solar position is calculated based on the latitude and longitude defined in the `config/bbb-config.json` file under `house_lights`. You can also set fixed start and stop times by setting `ephemera` in this file to `false`.

@@ -5,6 +5,7 @@ const _ = require("underscore");
 const {format} = require("util");
 const os = require("os");
 const express = require("express");
+const bodyParser = require('body-parser');
 const http = require("http");
 const sockets = require("socket.io");
 const stoppable = require("stoppable");
@@ -47,6 +48,18 @@ app.get(/^\/(state|components|params)\/(\w*)$/, function(req, res) {
             res.send(rep);
     });
 });
+
+app.use(bodyParser.json());
+app.put(/^\/state\/(\w+)$/, function(req, res) {
+    req.body["name"] = req.params[0];
+    apparatus.req("change-state", req.body, function(err, rep) {
+        if (err)
+            res.status(500).send({error: err});
+        else
+            res.send(rep);
+    });
+});
+
 
 // all other static content resides in /static
 app.use("/static", express.static(__dirname + "/../static"));

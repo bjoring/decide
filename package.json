@@ -15,6 +15,7 @@
   "license": "BSD",
   "dependencies": {
     "bindings": "~1.2.1",
+    "body-parser": "^1.18.3",
     "epoll": "^2.0.7",
     "express": "~4.14.0",
     "glob": "~7.0.5",
