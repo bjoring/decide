@@ -18,7 +18,7 @@ const argv = require("yargs")
     .describe("trials", "set the number of trials per block in blocks 2-3")
     .describe("feed-delay", "time (in ms) to wait between response and feeding")
     .describe("feed-duration", "time (in ms) to run feed motor")
-    .default({color: "red", position: "left", trials: 100, "feed-delay": 0, "B": 0, "feed-duration": 500})
+    .default({color: "blue", position: "left", trials: 100, "feed-delay": 0, "B": 0, "feed-duration": 500})
     .boolean(['F'])
     .demand(2)
     .argv;
@@ -33,7 +33,7 @@ const par = {
     feed_duration: argv["feed-duration"],
     feed_delay: argv["feed-delay"],
     feeders: ["feeder_motor"],
-    blink_period: 300,
+    blink_period: 5000,
 };
 
 const state = {
@@ -154,7 +154,7 @@ function feed(feeder, duration, next_state) {
 
 function block0_await() {
 	const iti_var = 30000;
-	const iti_min = 10*par.feed_duration;
+	const iti_min = 60*par.feed_duration;
 
 	if (state.block < 0) {
 		logger.info("entering block 0")
@@ -184,7 +184,7 @@ function block1_await() {
     // all units in ms
     const blink_duration = 5000;
     const iti_var = 30000;
-    const iti_min = 10*par.feed_duration;
+    const iti_min = 60*par.feed_duration;
     let pecked = "timeout";
     const cue = "cue_" + par.cue_position + "_" + par.cue_color;
     const key = "peck_" + par.cue_position;
@@ -198,7 +198,8 @@ function block1_await() {
                             experiment: "block-1"});
     }
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
-    t.change_state(cue, { trigger: "timer", period: par.blink_period});
+    
+    t.change_state(cue, { trigger: null, brightness: 1});
     
     t.await("keys", blink_duration, _test, _exit);
 
@@ -241,7 +242,7 @@ function block2_await() {
                             experiment: "block-2"});
     }
     update_state({ block: 2, trial: state.trial + 1, phase: "awaiting-response"});
-    t.change_state(cue, { trigger: "timer", period: par.blink_period});
+    t.change_state(cue, { trigger: null, brightness: 1});
     
     t.await("keys", null, function(msg) { return msg[key] }, _exit);
 
@@ -274,7 +275,7 @@ function block3_peck1() {
                             subject: par.subject,
                             experiment: "block-3"});
     }
-    t.change_state(cue, { trigger: "timer", period: par.blink_period})
+    t.change_state(cue, { trigger: null, brightness: 1})
     update_state({ block: 3, trial: state.trial + 1, phase: "awaiting-response-1"});
 
     t.await("keys", null, function(msg) { return msg[key]}, function() {
@@ -302,7 +303,8 @@ function block34_peck2(key) {
     const iti = par.feed_duration;
     const cue = "cue_" + par.cue_position + "_" + par.cue_color;
 
-    t.change_state(cue, { trigger: "timer", period: par.blink_period})
+    t.change_state(cue, { trigger: null, brightness: 1})
+
     update_state({ phase: "awaiting-response-2"});
     t.await("keys", null, function(msg) { return msg[key]}, _exit);
 
