@@ -1,5 +1,5 @@
 {
-    "experiment": "ar-gng-phase1",
+    "experiment": "ar-gng-phase2",
     "parameters": {
         "correct_timeout": false,
         "rand_replace": true,

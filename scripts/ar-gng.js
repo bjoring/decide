@@ -11,6 +11,8 @@ const util = require("../lib/util");
 const name = "gng";
 const version = require('../package.json').version;
 
+let stim_prop;
+
 const argv = require("yargs")
     .usage("Run an auditory restoration GNG task.\nUsage: $0 [options] subject_id user@host.com stims.json")
 .describe("response-window", "response window duration (in ms)")
@@ -167,6 +169,11 @@ t.connect(name, function(socket) {
         }
     });
 
+    //get stimulus metadata
+    t.req("get-meta", {name: "aplayer"}, function(data, rep) {
+        stim_prop = rep.stimuli.properties;
+    });
+
     // initial state;
     await_init();
 })
@@ -196,7 +203,8 @@ function intertrial(duration) {
 }
 
 function await_present() {
-	const iti = Math.random() * 2000 + 1000;
+	const delay_start = util.now();
+	const iti = Math.random() * 500 + 1000;
 	let pecked = null;
 	update_state({phase: "awaiting-stimulus"});
 	t.await("keys", iti, _test, _exit);
@@ -209,18 +217,20 @@ function await_present() {
         }
     }
 
-	function _exit() {
+	function _exit(time) {
+		const rtime = (pecked == "timeout") ? null : time - delay_start;
 		if (pecked == "early") {
 			t.trial_data(name, {subject: par.subject,
                     experiment: stimset.experiment,
                     block: par.block,
                     trial: state.trial,
                     stimulus: "pre-stimulus",
-                    category: "none",
+                    position: 0,
+                    oddball: null,
                     response: pecked,
                     correct: false,
                     result: "trial-restart",
-                    rtime: -1
+                    rtime: rtime
                    });
 			await_init();
 		} else {
@@ -232,17 +242,58 @@ function await_present() {
 function present_stim() {
 
     const stim = (state.correction) ? state.stimulus : stimset.next(par.rand_replace);
-    const playlist = (par.block > 1) ? [stim.name] : stim.name;
+    const isi = 100;
+
     let pecked = "timeout";
+    let oddball = false;
+    let position = 1;
     const resp_start = util.now();
 
     if (par.block <= 1) {
-    	logger.debug("next stim:", stim);
-    	update_state({phase: "presenting-stimulus", stimulus: stim });
-    	t.change_state("aplayer", {playing: true, stimulus: playlist, root: stimset.root});
-    	t.await("keys", 3000, _test, _exit);
+    	logger.debug("next stim:", stim.name);
+    	const stim_dur = stim_prop[stim.name].duration;
+		update_state({phase: "presenting-stimulus", stimulus: stim.name });
+	    t.change_state("aplayer", {playing: true, stimulus: stim.name, root: stimset.root});
+	    t.await("keys", (stim_dur*1000)+1000, _test, _exit);
     } else  if (par.block == 2) {
-    	
+    	logger.debug("next stim:", stim);
+    	const a_stim = _.first(stim.name);
+    	const b_stim = _.last(stim.name);
+    	const a_stim_dur = stim_prop[a_stim].duration;
+    	const b_stim_dur = stim_prop[b_stim].duration;
+    	const next_stim = _.partial(_next_b_stim, b_stim, b_stim_dur);
+		update_state({phase: "presenting-stimulus-a", stimulus: a_stim });
+	    t.change_state("aplayer", {playing: true, stimulus: a_stim, root: stimset.root});
+	    t.await("keys", (a_stim_dur*1000)+isi, _test, next_stim);
+    }
+
+    function _next_b_stim(b_stim, b_stim_dur) {
+    	t.req("get-state", {name: "aplayer"}, function(data, rep) {
+	        if (rep.playing && pecked == par.resp_key) {
+	        	const early_stop = util.now();
+	        	t.change_state("aplayer", {playing: false});
+	        	const rtime = early_stop - resp_start;
+		    	t.trial_data(name, {subject: par.subject,
+                    experiment: stimset.experiment,
+                    block: par.block,
+                    trial: state.trial,
+                    stimulus: stim.name,
+                    position: position,
+                    oddball: oddball,
+                    response: pecked,
+                    correct: false,
+                    result: "trial-restart",
+                    rtime: rtime
+                });
+	        	await_init();
+	        } else {
+	        	oddball = true;
+	        	position += 1;
+	        	update_state({phase: "presenting-stimulus-b", stimulus: b_stim });
+			    t.change_state("aplayer", {playing: true, stimulus: b_stim, root: stimset.root});
+		    	t.await("keys", (b_stim_dur*1000)+1000, _test, _exit);
+	        }
+	    });
     }
 
     function _test(msg) {
@@ -254,15 +305,20 @@ function present_stim() {
     }
 
     function _exit(time) {
+    	t.req("get-state", {name: "aplayer"}, function(data, rep) {
+	        if (rep.playing) t.change_state("aplayer", {playing: false});
+	    });
     	const rtime = (pecked == "timeout") ? null : time - resp_start;
     	const correct = (pecked == "timeout") ? false : true;
     	const result = (pecked == "timeout") ? "trial-restart" : "feed";
+    	position = (pecked == "timeout") ? 0 : position;
     	t.trial_data(name, {subject: par.subject,
                     experiment: stimset.experiment,
                     block: par.block,
                     trial: state.trial,
                     stimulus: stim.name,
-                    category: stim.category,
+                    position: position,
+                    oddball: oddball,
                     response: pecked,
                     correct: correct,
                     result: result,
@@ -275,72 +331,6 @@ function present_stim() {
     		await_init();
     	}
     	
-    }
-}
-
-function await_response() {
-    let pecked = "timeout";
-    const stim = state.stimulus;
-    update_state({phase: "awaiting-response", "last-trial": util.now()});
-
-    const resp_start = util.now();
-    // turn off all cues not in cue_resp
-    t.set_cues(_.difference(stim.cue_stim, stim.cue_resp), 0);
-    // turn on all cues not in cue_stim
-    t.set_cues(_.difference(stim.cue_resp, stim.cue_stim), 1);
-    t.await("keys", par.response_window, _test, _exit);
-    function _test(msg) {
-        if (!msg) return true;
-        // test against each defined response - only set pecked if true, because
-        // we'll get a false event on the key off
-        return _.find(stim.responses, function(val, key) {
-            if (msg[key]) {
-                pecked = key;
-                return true;
-            }
-        });
-    }
-
-    function _exit(time) {
-        let conseq = "none";
-        const resp = stim.responses[pecked];
-        logger.debug("response:", pecked, resp);
-        const rtime = (pecked == "timeout") ? null : time - resp_start;
-        const rand = Math.random();
-        const p_feed = 0 + (resp.p_reward || 0);
-        const p_punish = p_feed + (resp.p_punish || 0);
-        if (rand < p_feed)
-            conseq = "feed";
-        else if (rand < p_punish)
-            conseq = "punish";
-        logger.debug("(p_feed, p_punish, x, result):", p_feed, p_punish, rand, conseq);
-        t.trial_data(name, {subject: par.subject,
-                            experiment: stimset.experiment,
-                            trial: state.trial,
-                            correction: state.correction,
-                            stimulus: stim.name,
-                            category: stim.category,
-                            response: pecked,
-                            correct: resp.correct,
-                            result: conseq,
-                            rtime: rtime
-                           });
-        _.map(stim.cue_resp || [], function(cue) {
-            t.change_state("cue_" + cue, {brightness: 0})
-        });
-        if (resp.correct ||
-            (pecked == "timeout" && !par.correct_timeout) ||
-            (state.correction >= par.max_corrections))
-            update_state({correction: 0});
-        else
-            update_state({correction: state.correction + 1});
-        if (conseq == "feed") {
-            feed();
-        }
-        else if (conseq == "punish")
-            lightsout();
-        else
-            await_init();
     }
 }
 
