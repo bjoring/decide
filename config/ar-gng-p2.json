@@ -8,7 +8,7 @@
     "stimulus_root": "stimuli",
     "stimuli": [
         {
-            "name": ["O90stim", "O127stim"],
+            "name": ["O86", "R250"],
             "frequency": 1,
             "category": "S+",
             "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
@@ -16,7 +16,7 @@
 
         },
         {
-            "name": ["O127stim", "O90stim"],
+            "name": ["R250", "O86"],
             "frequency": 1,
             "category": "S+",
             "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
@@ -24,7 +24,7 @@
 
         },
         {
-            "name": ["B54stim", "O90stim"],
+            "name": ["O86", "B54"],
             "frequency": 1,
             "category": "S+",
             "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
@@ -32,7 +32,7 @@
 
         },
         {
-            "name": ["O90stim", "B54stim"],
+            "name": ["B54", "O86"],
             "frequency": 1,
             "category": "S+",
             "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
@@ -40,7 +40,7 @@
 
         },
         {
-            "name": ["O127stim", "B54stim"],
+            "name": ["B54", "R250"],
             "frequency": 1,
             "category": "S+",
             "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
@@ -48,13 +48,56 @@
 
         },
         {
-            "name": ["B54stim", "O127stim"],
+            "name": ["R250", "B54"],
             "frequency": 1,
             "category": "S+",
             "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
                           "timeout": {"correct": false}}
 
-        }
+        },
+	{
+	    "name": ["B178", "O86"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["O86", "B178"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B178", "R250"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["R250", "B178"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B178", "B54"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B54", "B178"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	}
+
     ]
 
 }
