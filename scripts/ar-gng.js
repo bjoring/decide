@@ -268,12 +268,11 @@ function present_stim() {
     }
 
     function _next_b_stim(b_stim, b_stim_dur) {
-    	t.req("get-state", {name: "aplayer"}, function(data, rep) {
-	        if (rep.playing && pecked == par.resp_key) {
-	        	const early_stop = util.now();
-	        	t.change_state("aplayer", {playing: false});
-	        	const rtime = early_stop - resp_start;
-		    	t.trial_data(name, {subject: par.subject,
+	    if (pecked == par.resp_key) {
+		const early_stop = util.now();
+	        t.change_state("aplayer", {playing: false});
+	        const rtime = early_stop - resp_start;
+		t.trial_data(name, {subject: par.subject,
                     experiment: stimset.experiment,
                     block: par.block,
                     trial: state.trial,
@@ -285,16 +284,15 @@ function present_stim() {
                     result: "trial-restart",
                     rtime: rtime
                 });
-	        	await_init();
-	        } else {
-	        	oddball = true;
-	        	position += 1;
-	        	update_state({phase: "presenting-stimulus-b", stimulus: b_stim });
-			    t.change_state("aplayer", {playing: true, stimulus: b_stim, root: stimset.root});
-		    	t.await("keys", (b_stim_dur*1000)+1000, _test, _exit);
-	        }
-	    });
-    }
+	        await_init();
+	    } else {
+	        oddball = true;
+	        position += 1;
+	        update_state({phase: "presenting-stimulus-b", stimulus: b_stim });
+		t.change_state("aplayer", {playing: true, stimulus: b_stim, root: stimset.root});
+		t.await("keys", (b_stim_dur*1000)+1000, _test, _exit);
+	    }
+	}
 
     function _test(msg) {
     	if (!msg) return true;
@@ -305,9 +303,7 @@ function present_stim() {
     }
 
     function _exit(time) {
-    	t.req("get-state", {name: "aplayer"}, function(data, rep) {
-	        if (rep.playing) t.change_state("aplayer", {playing: false});
-	    });
+	t.change_state("aplayer", {playing: false});
     	const rtime = (pecked == "timeout") ? null : time - resp_start;
     	const correct = (pecked == "timeout") ? false : true;
     	const result = (pecked == "timeout") ? "trial-restart" : "feed";
