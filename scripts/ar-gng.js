@@ -253,6 +253,7 @@ function present_stim() {
     let a_stim_dur;
     let b_stim_dur;
     let bpos;
+    let b_start;
     const resp_start = util.now();
 
     if (par.block <= 1) {
@@ -279,33 +280,20 @@ function present_stim() {
 
     function _next_stim(time) {
 	    if (pecked == par.resp_key && (position < bpos || position > bpos+1)) {
-	        t.change_state("aplayer", {playing: false});
-	        const rtime = time - resp_start;
-		    t.trial_data(name, {subject: par.subject,
-                    experiment: stimset.experiment,
-                    block: par.block,
-                    trial: state.trial,
-                    stimulus: stim.name,
-                    position: position,
-                    oddball: oddball,
-                    response: pecked,
-                    correct: false,
-                    result: "trial-restart",
-                    rtime: rtime
-                });
-	        await_init();
+            pecked = "stimA";
+            _exit(time);
 	    } else if (pecked == par.resp_key && (position == bpos || position == bpos+1)) {
             _exit(time);
 	    } else {
             position += 1;
             if (position == bpos) {
                 oddball = true;
+                b_start = util.now();
                 update_state({phase: "presenting-stimulus-b", stimulus: b_stim });
                 t.change_state("aplayer", {playing: true, stimulus: b_stim, root: stimset.root});
                 if (position == par.block) t.await("keys", (b_stim_dur*1000)+1000, _test, _exit);
                 else t.await("keys", (b_stim_dur*1000)+isi, _test, _next_stim);
             } else {
-                oddball = false;
                 update_state({phase: "presenting-stimulus-a", stimulus: a_stim });
                 t.change_state("aplayer", {playing: true, stimulus: a_stim, root: stimset.root});
                 if (position == par.block) t.await("keys", (a_stim_dur*1000)+1000, _test, _exit);
@@ -323,11 +311,12 @@ function present_stim() {
     }
 
     function _exit(time) {
-        update_state({phase: "post-stimulus", stimulus: null})
+        update_state({phase: "post-stimulus", stimulus: null});
 	    t.change_state("aplayer", {playing: false});
-    	const rtime = (pecked == "timeout") ? null : time - resp_start;
-    	let correct = (pecked == "timeout") ? false : true;
-        let result = (pecked == "timeout") ? "trial-restart" : "feed";
+        pecked = (oddball == false && pecked == par.resp_key) ? "stimA" : pecked;
+    	const rtime = (pecked == par.resp_key && oddball == true) ? time - b_start : time - resp_start;
+    	let correct = (pecked == par.resp_key) ? true : false;
+        let result = (pecked == par.resp_key) ? "feed" : "trial-restart";
         correct = (oddball == false && pecked == "timeout") ? true : correct;
         result = (oddball == false && pecked == "timeout") ? "feed" : result;
     	position = (pecked == "timeout") ? 0 : position;
