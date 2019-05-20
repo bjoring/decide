@@ -5,7 +5,7 @@
         "rand_replace": true,
         "block": 3
     },
-    "stimulus_root": "stimuli",
+    "stimulus_root": "stimuli/180B",
     "stimuli": [
         {
             "name": ["B2", "R56"],
