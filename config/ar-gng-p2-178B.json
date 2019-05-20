@@ -1,0 +1,103 @@
+{
+    "experiment": "ar-gng-phase2",
+    "parameters": {
+        "correct_timeout": false,
+        "rand_replace": true,
+        "block": 2
+    },
+    "stimulus_root": "stimuli",
+    "stimuli": [
+        {
+            "name": ["B30", "B72"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B72", "B30"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B30", "B189"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B189", "B30"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B189", "B72"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B72", "B189"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+	{
+	    "name": ["O129", "B30"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B30", "O129"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["O129", "B72"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B72", "O129"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["O129", "B189"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B189", "O129"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	}
+
+    ]
+
+}

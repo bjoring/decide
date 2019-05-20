@@ -1,0 +1,103 @@
+{
+    "experiment": "ar-gng-phase4",
+    "parameters": {
+        "correct_timeout": false,
+        "rand_replace": true,
+        "block": 4
+    },
+    "stimulus_root": "stimuli",
+    "stimuli": [
+        {
+            "name": ["B2", "R56"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["R56", "B2"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B2", "R180"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["R180", "B2"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["R180", "R56"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["R56", "R180"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+	{
+	    "name": ["R253", "B2"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B2", "R253"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["R253", "R56"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["R56", "R253"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["R253", "R180"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["R180", "R253"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	}
+
+    ]
+
+}

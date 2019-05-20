@@ -1,0 +1,103 @@
+{
+    "experiment": "ar-gng-phase4",
+    "parameters": {
+        "correct_timeout": false,
+        "rand_replace": true,
+        "block": 4
+    },
+    "stimulus_root": "stimuli",
+    "stimuli": [
+        {
+            "name": ["O86", "R250"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["R250", "O86"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["O86", "B54"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B54", "O86"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["B54", "R250"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+        {
+            "name": ["R250", "B54"],
+            "frequency": 1,
+            "category": "S+",
+            "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+                          "timeout": {"correct": false}}
+
+        },
+	{
+	    "name": ["B178", "O86"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["O86", "B178"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B178", "R250"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["R250", "B178"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B178", "B54"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	},
+	{
+	    "name": ["B54", "B178"],
+	    "frequency": 1,
+	    "category": "S+",
+	    "responses": {"peck_left": {"p_reward": 1.0, "correct": true},
+		          "timeout": {"correct": false}}
+	}
+
+    ]
+
+}
