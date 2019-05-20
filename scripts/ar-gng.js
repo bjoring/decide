@@ -261,7 +261,7 @@ function present_stim() {
     	const stim_dur = stim_prop[stim.name].duration;
 		update_state({phase: "presenting-stimulus", stimulus: stim.name });
 	    t.change_state("aplayer", {playing: true, stimulus: stim.name, root: stimset.root});
-	    t.await("keys", (stim_dur*1000)+1000, _test, _exit);
+	    t.await("keys", (stim_dur*1000)+par.response_window, _test, _exit);
     } else {
     	logger.debug("next stim:", stim.name);
     	a_stim = _.first(stim.name);
@@ -291,12 +291,12 @@ function present_stim() {
                 b_start = util.now();
                 update_state({phase: "presenting-stimulus-b", stimulus: b_stim });
                 t.change_state("aplayer", {playing: true, stimulus: b_stim, root: stimset.root});
-                if (position == par.block) t.await("keys", (b_stim_dur*1000)+1000, _test, _exit);
+                if (position == par.block) t.await("keys", (b_stim_dur*1000)+par.response_window, _test, _exit);
                 else t.await("keys", (b_stim_dur*1000)+isi, _test, _next_stim);
             } else {
                 update_state({phase: "presenting-stimulus-a", stimulus: a_stim });
                 t.change_state("aplayer", {playing: true, stimulus: a_stim, root: stimset.root});
-                if (position == par.block) t.await("keys", (a_stim_dur*1000)+1000, _test, _exit);
+                if (position == par.block) t.await("keys", (a_stim_dur*1000)+par.response_window, _test, _exit);
                 else t.await("keys", (a_stim_dur*1000)+isi, _test, _next_stim);
             }
         }
