@@ -313,13 +313,15 @@ function present_stim() {
     function _exit(time) {
         update_state({phase: "post-stimulus", stimulus: null});
 	    t.change_state("aplayer", {playing: false});
-        pecked = (oddball == false && pecked == par.resp_key) ? "stimA" : pecked;
-    	const rtime = (pecked == par.resp_key && oddball == true) ? time - b_start : time - resp_start;
-    	let correct = (pecked == par.resp_key) ? true : false;
-        let result = (pecked == par.resp_key) ? "feed" : "trial-restart";
-        correct = (oddball == false && pecked == "timeout") ? true : correct;
-        result = (oddball == false && pecked == "timeout") ? "feed" : result;
-    	position = (pecked == "timeout") ? 0 : position;
+        const rtime = (pecked == par.resp_key && oddball == true) ? time - b_start : time - resp_start;
+        let correct = false;
+        if (par.block > 1) {
+            pecked = (oddball == false && pecked == par.resp_key) ? "stimA" : pecked;
+            correct = (oddball == false && pecked == "timeout") ? true : correct;
+        	position = (pecked == "timeout") ? 0 : position;
+        };
+        correct = (pecked == par.resp_key) ? true : correct;
+        let result = (correct == true) ? "feed" : "trial-restart";
     	t.trial_data(name, {subject: par.subject,
                     experiment: stimset.experiment,
                     block: par.block,

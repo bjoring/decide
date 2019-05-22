@@ -20,13 +20,13 @@ p
 ip = ggplot(df,aes(x=ind,y=cumul))+geom_line()+geom_point()
 ip
 
-cortr = filter(df, correct==TRUE)
+cortr = filter(df, outcome=="peck_left.TRUE")
 rt = ggplot(cortr, aes(x=ind,y=rtime)) + geom_point() + geom_smooth(method='lm', se = TRUE)
 rt
 
 resp = ggplot(df, aes(date,fill=outcome)) + geom_histogram(bins = as.integer(diff(range(df$date)))+1)
 resp
 
-early = filter(df, outcome=="peck_left.FALSE")
+early = filter(df, outcome=="stimA.FALSE")
 ert = ggplot(early, aes(x=ind,y=rtime)) + geom_point() + geom_smooth(method='lm', se = TRUE)
 ert
