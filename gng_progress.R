@@ -15,18 +15,21 @@ df$response = as.factor(df$response)
 df$outcome = with(df, interaction(response,correct))
 
 p = ggplot(df,aes(x=date,y=cumul))+geom_line()+geom_point()+scale_x_datetime(date_labels="%D")
+p + xlab("Time of trials") + ylab("Cumulative correct trials") + title("Correct trials over time")
 p
 
-ip = ggplot(df,aes(x=ind,y=cumul))+geom_line()+geom_point()
-ip
+#ip = ggplot(df,aes(x=ind,y=cumul))+geom_line()+geom_point()
+#ip
 
 cortr = filter(df, outcome=="peck_left.TRUE")
 rt = ggplot(cortr, aes(x=ind,y=rtime)) + geom_point() + geom_smooth(method='lm', se = TRUE)
+rt + xlab("Trials") + ylab("Response time") + title("Response time of pecks after target stimulus")
 rt
 
 resp = ggplot(df, aes(date,fill=outcome)) + geom_histogram(bins = as.integer(diff(range(df$date)))+1)
+resp + xlab("Days") + ylab("Number of trials") + title("Summary of performance over time")
 resp
 
-early = filter(df, outcome=="stimA.FALSE")
-ert = ggplot(early, aes(x=ind,y=rtime)) + geom_point() + geom_smooth(method='lm', se = TRUE)
-ert
+#early = filter(df, outcome=="stimA.FALSE")
+#ert = ggplot(early, aes(x=ind,y=rtime)) + geom_point() + geom_smooth(method='lm', se = TRUE)
+#ert
