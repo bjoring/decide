@@ -275,20 +275,23 @@ function host_proxy(params, name, pub) {
 
 // *********************************
 // This function is used to notify the user that something serious has happened.
-// It will try to send email. It does not shut the process down, because even
-// though the experiment may be compromised, the experiment process may be
-// providing food and managing lights, so we don't want to quit.
+// It will try to send a slack message and then email the admin if that fails.
+// It does not shut the process down, because even though the experiment may be
+// compromised, the experiment process may be providing food and managing
+// lights, so we don't want to quit.
 function notify(msg) {
     logger.warn(msg);
-    const to = host_params.admins;
-    if (apparatus.experiment && apparatus.experiment.user)
-        to.push(apparatus.experiment.user);
-    util.mail(os.hostname(), to, "decide-ctrl warning: " + msg,
-              "A serious problem has occurred on " + os.hostname() + ":\n\n" + msg,
-              function(err, info) {
-                  if (err) logger.warn("unable to send mail:", err);
-                  else logger.info("sent error email");
-              });
+    util.slack(format("an error occurred on %s: %s", os.hostname(), msg),
+               apparatus.experimenter(),
+               function(err, info) {
+                   if (!err) return;
+                   const to = host_params.admins;
+                   util.mail(os.hostname(), to, "decide-ctrl error on " + os.hostname(), msg,
+                             function(err, info) {
+                                 if (err) logger.warn("unable to send mail:", err);
+                                 else logger.info("sent error email");
+                             });
+               });
 }
 
 // start the controller

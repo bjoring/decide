@@ -26,7 +26,7 @@ const argv = require("yargs")
 /* Parameters */
 const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     block: 0,
     active: true,
     response_window: argv["response-window"],
@@ -39,7 +39,7 @@ const par = {
 };
 
 const state = {
-	block: 1,
+        block: 1,
     trial: 0,
     phase: null,
     stimulus: null,
@@ -50,7 +50,7 @@ const state = {
 const meta = {
     type: "experiment",
     variables: {
-    	block: "integer",
+        block: "integer",
         trial: "integer",
         phase: "string",
     }
@@ -204,13 +204,13 @@ function intertrial() {
 }
 
 function await_present() {
-	const delay_start = util.now();
-	const iti = Math.random() * 500 + 1000;
-	let pecked = null;
-	update_state({phase: "awaiting-stimulus"});
-	t.await("keys", iti, _test, _exit);
+        const delay_start = util.now();
+        const iti = Math.random() * 500 + 1000;
+        let pecked = null;
+        update_state({phase: "awaiting-stimulus"});
+        t.await("keys", iti, _test, _exit);
 
-	function _test(msg) {
+        function _test(msg) {
         if (!msg) return true;
         if (msg[par.resp_key] == true) {
                 pecked = "early";
@@ -218,10 +218,10 @@ function await_present() {
         }
     }
 
-	function _exit(time) {
-		const rtime = (pecked == "timeout") ? null : time - delay_start;
-		if (pecked == "early") {
-			t.trial_data(name, {subject: par.subject,
+        function _exit(time) {
+                const rtime = (pecked == "timeout") ? null : time - delay_start;
+                if (pecked == "early") {
+                        t.trial_data(name, {subject: par.subject,
                     experiment: stimset.experiment,
                     block: par.block,
                     trial: state.trial,
@@ -233,11 +233,11 @@ function await_present() {
                     result: "trial-restart",
                     rtime: rtime
                    });
-			await_init();
-		} else {
-			present_stim();
-		}
-	}
+                        await_init();
+                } else {
+                        present_stim();
+                }
+        }
 }
 
 function present_stim() {
@@ -257,17 +257,17 @@ function present_stim() {
     const resp_start = util.now();
 
     if (par.block <= 1) {
-    	logger.debug("next stim:", stim.name);
-    	const stim_dur = stim_prop[stim.name].duration;
-		update_state({phase: "presenting-stimulus", stimulus: stim.name });
-	    t.change_state("aplayer", {playing: true, stimulus: stim.name, root: stimset.root});
-	    t.await("keys", (stim_dur*1000)+par.response_window, _test, _exit);
+        logger.debug("next stim:", stim.name);
+        const stim_dur = stim_prop[stim.name].duration;
+                update_state({phase: "presenting-stimulus", stimulus: stim.name });
+            t.change_state("aplayer", {playing: true, stimulus: stim.name, root: stimset.root});
+            t.await("keys", (stim_dur*1000)+par.response_window, _test, _exit);
     } else {
-    	logger.debug("next stim:", stim.name);
-    	a_stim = _.first(stim.name);
-    	b_stim = _.last(stim.name);
-    	a_stim_dur = stim_prop[a_stim].duration;
-    	b_stim_dur = stim_prop[b_stim].duration;
+        logger.debug("next stim:", stim.name);
+        a_stim = _.first(stim.name);
+        b_stim = _.last(stim.name);
+        a_stim_dur = stim_prop[a_stim].duration;
+        b_stim_dur = stim_prop[b_stim].duration;
         bpos = (par.block == 2) ? 2 : Math.floor((Math.random()*(par.block))+2);
         update_state({phase: "presenting-stimulus-a", stimulus: a_stim });
         t.change_state("aplayer", {playing: true, stimulus: a_stim, root: stimset.root});
@@ -279,12 +279,12 @@ function present_stim() {
     }
 
     function _next_stim(time) {
-	    if (pecked == par.resp_key && (position < bpos || position > bpos+1)) {
+            if (pecked == par.resp_key && (position < bpos || position > bpos+1)) {
             pecked = "stimA";
             _exit(time);
-	    } else if (pecked == par.resp_key && (position == bpos || position == bpos+1)) {
+            } else if (pecked == par.resp_key && (position == bpos || position == bpos+1)) {
             _exit(time);
-	    } else {
+            } else {
             position += 1;
             if (position == bpos) {
                 oddball = true;
@@ -300,29 +300,29 @@ function present_stim() {
                 else t.await("keys", (a_stim_dur*1000)+isi, _test, _next_stim);
             }
         }
-	}
+        }
 
     function _test(msg) {
-    	if (!msg) return true;
-    	if (msg[par.resp_key] == true) {
-    		pecked = par.resp_key;
-    		return true;
-    	}
+        if (!msg) return true;
+        if (msg[par.resp_key] == true) {
+                pecked = par.resp_key;
+                return true;
+        }
     }
 
     function _exit(time) {
         update_state({phase: "post-stimulus", stimulus: null});
-	    t.change_state("aplayer", {playing: false});
+            t.change_state("aplayer", {playing: false});
         const rtime = (pecked == par.resp_key && oddball == true) ? time - b_start : time - resp_start;
         let correct = false;
         if (par.block > 1) {
             pecked = (oddball == false && pecked == par.resp_key) ? "stimA" : pecked;
             correct = (oddball == false && pecked == "timeout") ? true : correct;
-        	position = (pecked == "timeout") ? 0 : position;
+                position = (pecked == "timeout") ? 0 : position;
         };
         correct = (pecked == par.resp_key) ? true : correct;
         let result = (correct == true) ? "feed" : "trial-restart";
-    	t.trial_data(name, {subject: par.subject,
+        t.trial_data(name, {subject: par.subject,
                     experiment: stimset.experiment,
                     block: par.block,
                     trial: state.trial,
@@ -334,14 +334,14 @@ function present_stim() {
                     result: result,
                     rtime: rtime
         });
-    	if (result == "feed") {
-    		const feeder = random_feeder();
-    		feed(feeder, par.feed_duration, await_init);
-    	} else {
-    		await_init();
-    	}
-    	
-    }   
+        if (result == "feed") {
+                const feeder = random_feeder();
+                feed(feeder, par.feed_duration, await_init);
+        } else {
+                await_init();
+        }
+
+    }
 }
 
 function feed(feeder, duration, next_state) {

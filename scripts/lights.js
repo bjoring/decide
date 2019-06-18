@@ -19,7 +19,7 @@ const argv = require("yargs")
 
 const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     active: false
 };
 

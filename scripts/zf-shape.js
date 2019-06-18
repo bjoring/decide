@@ -25,7 +25,7 @@ const argv = require("yargs")
 
 const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     active: true,
     block_trials: argv.trials,  // number of trials in blocks 2+
     cue_position: argv.position,
@@ -40,7 +40,7 @@ const state = {
     trial: 0,                   // trial number
     block: -1,                   // shape paradigm block
     phase: null,                 // trial phase
-    paused: false				//pause trials
+    paused: false                               //pause trials
 }
 
 const meta = {
@@ -60,7 +60,7 @@ let start;
 if (argv.F || argv.B == 4)
     start = block4_peck1;
 else if (argv.B == 0)
-	start = block0_await;
+        start = block0_await;
 else if (argv.B == 1)
     start = block1_await;
 else if (argv.B == 2)
@@ -89,13 +89,13 @@ t.connect(name, function(socket) {
         logger.debug("req to shape: get-meta");
         if (rep) rep("ok", meta);
     });
-    sock.on("change-state", function(data, rep) { 
-    	logger.debug("req to %s: change-state", name, data);
-    	if (data.paused !== undefined) {
-    		state.paused = data.paused;
-    		t.state_changed(name,state);
-    	}
-    	if (rep) rep("ok");
+    sock.on("change-state", function(data, rep) {
+        logger.debug("req to %s: change-state", name, data);
+        if (data.paused !== undefined) {
+                state.paused = data.paused;
+                t.state_changed(name,state);
+        }
+        if (rep) rep("ok");
     });
     sock.on("reset-state", function(data, rep) { rep("ok") });
     sock.on("state-changed", function(data) { logger.debug("pub to %s: state-changed", name, data)})
@@ -137,12 +137,12 @@ process.on("SIGTERM", shutdown);
 function intertrial(duration, next_state) {
     update_state({phase: "intertrial"});
     if (state.paused) {
-    	update_state({phase: "paused"})
-    	logger.debug("training is paused");
-    	_.delay(intertrial, 10000, duration, next_state);
+        update_state({phase: "paused"})
+        logger.debug("training is paused");
+        _.delay(intertrial, 10000, duration, next_state);
     }
     else
-    	_.delay(next_state, duration);
+        _.delay(next_state, duration);
 }
 
 function feed(feeder, duration, next_state) {
@@ -153,23 +153,23 @@ function feed(feeder, duration, next_state) {
 }
 
 function block0_await() {
-	const iti_var = 30000;
-	const iti_min = 60*par.feed_duration;
+        const iti_var = 30000;
+        const iti_min = 60*par.feed_duration;
 
-	if (state.block < 0) {
-		logger.info("entering block 0")
-		state.trial = 0;
-		t.trial_data(name, {comment: "new-block",
-							subject: par.subject,
-							experiment: "block-0"});
-		update_state({block: 0, trial: state.trial, phase: "starting", paused: false})
-	}
-	update_state({block: 0, trial: state.trial + 1, phase: "awaiting-feeding"})
-	const feeder = random_feeder();
-	const iti = Math.random() * iti_var + iti_min;
+        if (state.block < 0) {
+                logger.info("entering block 0")
+                state.trial = 0;
+                t.trial_data(name, {comment: "new-block",
+                                                        subject: par.subject,
+                                                        experiment: "block-0"});
+                update_state({block: 0, trial: state.trial, phase: "starting", paused: false})
+        }
+        update_state({block: 0, trial: state.trial + 1, phase: "awaiting-feeding"})
+        const feeder = random_feeder();
+        const iti = Math.random() * iti_var + iti_min;
     logger.debug("trial iti:", iti);
-	const next = (state.trial < par.block_trials) ? block0_await : block1_await;
-	const delay_next = _.partial(intertrial, iti, next)
+        const next = (state.trial < par.block_trials) ? block0_await : block1_await;
+        const delay_next = _.partial(intertrial, iti, next)
     t.trial_data(name, {program: name,
                         subject: par.subject,
                         block: state.block,
@@ -198,9 +198,9 @@ function block1_await() {
                             experiment: "block-1"});
     }
     update_state({block: 1, trial: state.trial + 1, phase: "awaiting-response"});
-    
+
     t.change_state(cue, { trigger: null, brightness: 1});
-    
+
     t.await("keys", blink_duration, _test, _exit);
 
     function _test(msg) {
@@ -243,7 +243,7 @@ function block2_await() {
     }
     update_state({ block: 2, trial: state.trial + 1, phase: "awaiting-response"});
     t.change_state(cue, { trigger: null, brightness: 1});
-    
+
     t.await("keys", null, function(msg) { return msg[key] }, _exit);
 
     function _exit() {
@@ -320,9 +320,10 @@ function block34_peck2(key) {
         if (state.block == 4 && state.trial == par.block_trials && !argv.F) {
             logger.info("shape completed!")
             if (!argv["no-notify"])
-                util.mail(os.hostname(), par.user, "shape completed for " + par.subject,
-                          "Subject " + par.subject + " completed shaping. Trials will continue to run.",
-                         _.partial(logger.info, "sent email to", par.user))
+                util.slack(format("shape completed for %s on %s. Trials will continue to run",
+                                  os.hostname(), par.subject),
+                           par.user,
+                           _.partial(logger.info, "sent message to", par.user))
         }
 
         t.trial_data(name, {program: name,

@@ -30,7 +30,7 @@ const argv = require("yargs")
 /* Parameters */
 const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     active: true,
     response_window: argv["response-window"],
     feed_duration: argv["feed-duration"],

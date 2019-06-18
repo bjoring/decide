@@ -23,7 +23,7 @@ const argv = require("yargs")
 
 const par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     active: true,
     block_trials: argv.trials,  // number of trials in blocks 2+
     cue_color: argv.color,
@@ -284,9 +284,10 @@ function block34_peck2(side) {
         if (state.block == 4 && state.trial == par.block_trials && !argv.F) {
             logger.info("shape completed!")
             if (!argv["no-notify"])
-                util.mail(os.hostname(), par.user, "shape completed for " + par.subject,
-                          "Subject " + par.subject + " completed shaping. Trials will continue to run.",
-                         _.partial(logger.info, "sent email to", par.user))
+                util.slack(format("shape completed for %s on %s. Trials will continue to run",
+                                  os.hostname(), par.subject),
+                           par.user,
+                           _.partial(logger.info, "sent message to", par.user))
         }
 
         next = (state.daytime) ? _.partial(intertrial, iti, next) : _.partial(sleeping, next);

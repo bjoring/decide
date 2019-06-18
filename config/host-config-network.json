@@ -1,12 +1,14 @@
 {
-    "addr": "http://192.168.2.1:8080/decide-host/api/",
-    "port_ctrl": 8000,
     "standalone": false,
-    "admins": ["dmeliza@gmail.com"],
+    "addr": "http://192.168.10.1:8080/decide-host/api/",
+    "heartbeat_interval": 3600000,
+    "port_ctrl": 8000,
     "log_local_trials": true,
     "log_local_events": false,
-    "send_emails": true,
-    "heartbeat_interval": 3600000,
+    "slack_transport": {
+        "hook": "https://hooks.slack.com/services/insert-webhook-url-here"
+    },
+    "admins": ["your@address.here"],
     "mail_transport": { "host": "192.168.10.1", "port": 25,
                         "tls": {"rejectUnauthorized": false}}
 }
