@@ -112,7 +112,7 @@
             "device": "/sys/class/gpio/gpiochip64",
             "keymap": {
                 "hopper": 6,
-                "peck_left": 7
+                "peck_left": 7,
                 "peck_center": 8,
                 "peck_right": 9
             }
