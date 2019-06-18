@@ -11,7 +11,7 @@ var name = "airpuff";
 var version = require('../package.json').version;
 
 var argv = require("yargs")
-    .usage("Run an air-puff style gng task.\nUsage: $0 [options] subject_id user@host.com stims.json")
+    .usage("Run an air-puff style gng task.\nUsage: $0 [options] subject_id @slack-id stims.json")
 .describe("escape-window", "escape window before puff duration (in ms)")
     .describe("puff-duration", "default puff duration for incorrect responses (in ms)")
     .describe("lightsout-duration", "default lights out duration for incorrect responses (in ms)")
@@ -30,7 +30,7 @@ var argv = require("yargs")
 /* Parameters */
 var par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     active: true,
     escape_window: argv["escape-window"],
     puff_duration: argv["puff-duration"],
@@ -136,19 +136,19 @@ t.connect(name, function(socket) {
     sock.on("reset-state", function(data, rep) { rep("ok") });
     sock.on("state-changed", function(data) { logger.debug("pub to airpuff: state-changed", data)});
     sock.on("state-changed", function(data) {
-	    if (data.name == "keys" && _.has(data, "peck_center")) {
-		perch_occupied = data.peck_center
-		    logger.debug("perch occupied is", perch_occupied)
-		    }
-	})
-	// update user and subject information:
-	t.change_state("experiment", par);
-    
+            if (data.name == "keys" && _.has(data, "peck_center")) {
+                perch_occupied = data.peck_center
+                    logger.debug("perch occupied is", perch_occupied)
+                    }
+        })
+        // update user and subject information:
+        t.change_state("experiment", par);
+
     // start state machine for monitoring daytime
     t.ephemera(t.state_changer(name, state));
     t.trial_data(name, {comment: "starting", subject: par.subject,
-		experiment: stimset.experiment,
-		version: version, params: par, stimset: stimset.config.stimuli});
+                experiment: stimset.experiment,
+                version: version, params: par, stimset: stimset.config.stimuli});
     // hourly heartbeat messages for the activity monitor
     t.heartbeat(name, {subject: par.subject});
     // initial state;
@@ -171,13 +171,13 @@ function await_init() { //perched) {
     update_state({phase: "awaiting-socialize"});
     next_state = (state.daytime) ? socialize : sleeping;
     if (!perch_occupied) {
-	logger.debug("not occupied, awaiting occupation");
-	t.await("keys", null, function(msg) {
-		return msg && msg[par.init_key]}, next_state); 
+        logger.debug("not occupied, awaiting occupation");
+        t.await("keys", null, function(msg) {
+                return msg && msg[par.init_key]}, next_state);
     }
      else {
-    	logger.debug("occupied, starting trial...");
-	socialize();
+        logger.debug("occupied, starting trial...");
+        socialize();
     }
 }
 
@@ -189,55 +189,55 @@ function socialize() {
     attempt_present_stim();
 
     function attempt_present_stim() {
-	logger.debug("Attempting present stim");
-	t.await("keys", 1000, _test, _exit);
-    
-	function _test(msg) {
-	    if (msg && !msg[par.init_key]) {//if there's a message and center_peck is false
-		logger.debug("the bird left");
-		still_on_perch = false; //the bird left
-	    //break;
-	    }
-	    else if (msg == null) {//if there's no message, it timed out
-		logger.debug("still_on_perch is", still_on_perch);
-		still_on_perch = true;
-		//calc whether or not to go to exit
-		rand = Math.random();
-		if (rand < par.prob_stim) {
-		    logger.debug("passed! go to present stim");
-		    passed = true;
-		}
-	    }
-	    else
-		logger.debug("logic error on message:", msg);
-	    return true;
-	}    
-	
-	function _exit() {
-	    if (still_on_perch && passed) {//if it passed probability to present stim, then go to present stim
-		update_state({trial: state.trial + 1,});	 
-		logger.debug("going to present stim");
-		present_stim();
-	    }
-	    else if (still_on_perch && !passed) {
-		logger.debug("repeating attempt_present_stim");
-		attempt_present_stim();
-	    }
-	    else if (!still_on_perch) {
-		logger.debug("returning to await_init");
-	    	await_init();
-	    }
-	}
+        logger.debug("Attempting present stim");
+        t.await("keys", 1000, _test, _exit);
+
+        function _test(msg) {
+            if (msg && !msg[par.init_key]) {//if there's a message and center_peck is false
+                logger.debug("the bird left");
+                still_on_perch = false; //the bird left
+            //break;
+            }
+            else if (msg == null) {//if there's no message, it timed out
+                logger.debug("still_on_perch is", still_on_perch);
+                still_on_perch = true;
+                //calc whether or not to go to exit
+                rand = Math.random();
+                if (rand < par.prob_stim) {
+                    logger.debug("passed! go to present stim");
+                    passed = true;
+                }
+            }
+            else
+                logger.debug("logic error on message:", msg);
+            return true;
+        }
+
+        function _exit() {
+            if (still_on_perch && passed) {//if it passed probability to present stim, then go to present stim
+                update_state({trial: state.trial + 1,});
+                logger.debug("going to present stim");
+                present_stim();
+            }
+            else if (still_on_perch && !passed) {
+                logger.debug("repeating attempt_present_stim");
+                attempt_present_stim();
+            }
+            else if (!still_on_perch) {
+                logger.debug("returning to await_init");
+                await_init();
+            }
+        }
     }
 }
-    
+
 function present_stim() {
     var stim = (state.correction) ? state.stimulus : stimset.next(par.rand_replace);
 
     logger.debug("next stim:", stim)
     update_state({phase: "presenting-stimulus", stimulus: stim })
     t.set_cues(stim.cue_stim, 1);
-    t.play_stims(stim.name, par.inter_stimulus_interval, stimset.root, await_response);    
+    t.play_stims(stim.name, par.inter_stimulus_interval, stimset.root, await_response);
 }
 
 function await_response() {
@@ -246,30 +246,30 @@ function await_response() {
     var stim = state.stimulus;
     update_state({phase: "awaiting-response", "last-trial": util.now()});
 
-    if (!perch_occupied) { 
-	logger.debug("bird left during stimulus");
-	decision = "escaped";
-	_exit();
-    } 
-    else {
-	logger.debug("bird still on perch after stimulus");
-	t.await("keys", par.escape_window, _test, _exit);
+    if (!perch_occupied) {
+        logger.debug("bird left during stimulus");
+        decision = "escaped";
+        _exit();
     }
-    
+    else {
+        logger.debug("bird still on perch after stimulus");
+        t.await("keys", par.escape_window, _test, _exit);
+    }
+
     function _test(msg) {
-	if (msg && !msg[par.init_key]) { //center peck becomes false
-	    decision = "escaped";
-	}
-	//else timeout occurred	
-	return true;
-    }    
+        if (msg && !msg[par.init_key]) { //center peck becomes false
+            decision = "escaped";
+        }
+        //else timeout occurred
+        return true;
+    }
 
     function _exit(time) {
         var conseq = "none";
         var resp = stim.responses[decision];
         logger.debug("response:", decision, resp);
-	// need to calculate reaction time relative to start of stimulus - TODO
-	// var rtime = (decision == "timeout") ? null : time - resp_start;
+        // need to calculate reaction time relative to start of stimulus - TODO
+        // var rtime = (decision == "timeout") ? null : time - resp_start;
         var rand = Math.random();
         var p_punish = 0 + (resp.p_punish || 0);
         if (rand < p_punish)
@@ -283,28 +283,28 @@ function await_response() {
                             category: stim.category,
                             response: decision,
                             correct: resp.correct,
-		    result: conseq,
-		    //	    rtime: rtime
-		    });
-	if (resp.correct ||
-	    (decision == "timeout" && !par.correct_timeout) ||
-	    (state.correction >= par.max_corrections))
-	    update_state({correction: 0});
-	else
-	    update_state({correction: state.correction + 1});
-	
-	if (conseq == "punish" && decision == "escaped")
-	    await_init();
-	else if (conseq == "punish" && decision == "timeout")
-	    lightsout();
+                    result: conseq,
+                    //      rtime: rtime
+                    });
+        if (resp.correct ||
+            (decision == "timeout" && !par.correct_timeout) ||
+            (state.correction >= par.max_corrections))
+            update_state({correction: 0});
+        else
+            update_state({correction: state.correction + 1});
+
+        if (conseq == "punish" && decision == "escaped")
+            await_init();
+        else if (conseq == "punish" && decision == "timeout")
+            lightsout();
         else {
-	    logger.debug("no consequences happened", conseq);	
-	    await_init();
-	}    
+            logger.debug("no consequences happened", conseq);
+            await_init();
+        }
     }
 }
 
-function puff() { 
+function puff() {
     update_state({phase: "puffing"});///, "last-puff": util.now()})
     _.delay(t.change_state, par.feed_delay,
             "feeder_left", { feeding: true, interval: par.puff_duration});
@@ -317,9 +317,9 @@ function lightsout() {
     update_state({phase: "lights-out"});
     t.change_state(obj, {clock_on: false, brightness: 0});
     _.delay(_exit, par.punish_duration);
-    function _exit() {  
-	t.change_state(obj, {clock_on: true});
-	puff();
+    function _exit() {
+        t.change_state(obj, {clock_on: true});
+        puff();
     }
 }
 

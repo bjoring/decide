@@ -11,7 +11,7 @@ var name = "preference";
 var version = require('../package.json').version;
 
 var argv = require("yargs")
-    .usage("Run a preference experiment.\nUsage: $0 [options] subject_id user@host.com stims.json")
+    .usage("Run a preference experiment.\nUsage: $0 [options] subject_id @slack-id stims.json")
     .describe("response-window", "response window duration (in ms)")
     .describe("feed-duration", "default feeding duration(in ms)")
     .describe("replace", "randomize trials with replacement")

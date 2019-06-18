@@ -14,7 +14,7 @@ const version = require('../package.json').version;
 let stim_prop;
 
 const argv = require("yargs")
-    .usage("Run an auditory restoration GNG task.\nUsage: $0 [options] subject_id user@host.com stims.json")
+    .usage("Run an auditory restoration GNG task.\nUsage: $0 [options] subject_id @slack-id stims.json")
 .describe("response-window", "response window duration (in ms)")
     .describe("feed-duration", "default feeding duration for correct responses (in ms)")
     .describe("replace", "randomize trials with replacement")

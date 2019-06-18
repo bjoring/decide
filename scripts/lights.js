@@ -13,7 +13,7 @@ const name = "lights";
 const version = require('../package.json').version;
 
 const argv = require("yargs")
-    .usage("Set light level according to sun position.\nUsage: $0 subject_id user@host.com")
+    .usage("Set light level according to sun position.\nUsage: $0 subject_id @slack-id")
     .demand(2)
     .argv;
 

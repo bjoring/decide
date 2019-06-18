@@ -11,7 +11,7 @@ var name = "airpuff";
 var version = require('../package.json').version;
 
 var argv = require("yargs")
-    .usage("Run an air-puff style gng task.\nUsage: $0 [options] subject_id user@host.com stims.json")
+    .usage("Run an air-puff style gng task.\nUsage: $0 [options] subject_id @slack-id stims.json")
 .describe("escape-window", "escape window before puff duration (in ms)")
     .describe("puff-duration", "default puff duration for incorrect responses (in ms)")
     .describe("lightsout-duration", "default lights out duration for incorrect responses (in ms)")
@@ -29,7 +29,7 @@ var argv = require("yargs")
 /* Parameters */
 var par = {
     subject: util.check_subject(argv._[0]), // sets the subject number
-    user: util.check_email(argv._[1]),
+    user: argv._[1],
     active: true,
     escape_window: argv["escape-window"],
     puff_duration: argv["puff-duration"],

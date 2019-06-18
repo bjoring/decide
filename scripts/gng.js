@@ -12,7 +12,7 @@ const name = "gng";
 const version = require('../package.json').version;
 
 const argv = require("yargs")
-    .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com stims.json")
+    .usage("Run a GNG or 2AC task.\nUsage: $0 [options] subject_id @slack-id stims.json")
 .describe("response-window", "response window duration (in ms)")
     .describe("feed-duration", "default feeding duration for correct responses (in ms)")
     .describe("lightsout-duration", "default lights out duration for incorrect responses (in ms)")

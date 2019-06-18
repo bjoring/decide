@@ -9,7 +9,7 @@ const name = "shape";
 const version = require('../package.json').version;
 
 const argv = require("yargs")
-    .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id user@host.com")
+    .usage("Shape subject for GNG or 2AC task.\nUsage: $0 [options] subject_id @slack-id")
     .describe("F", "skip immediately to holding pattern(block 4)")
     .describe("B", "skip immediately to specific block (1-4)")
     .describe("color", "set cue color: red, green, blue")
