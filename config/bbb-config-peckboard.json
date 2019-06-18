@@ -1,0 +1,120 @@
+[
+    {
+        "name": "aplayer",
+        "driver": "sound_jstim",
+        "params": {
+            "req": "ipc:///tmp/org.meliza.jill/default/jstimserver/req",
+            "pub": "ipc:///tmp/org.meliza.jill/default/jstimserver/pub",
+            "timeout": 1000
+        }
+    },
+    {
+        "name": "cape",
+        "driver": "eeprom",
+        "params": {
+            "bus_addr": "2-0054"
+        }
+    },
+    {
+        "name": "experiment",
+        "driver": "experiment",
+        "params": {}
+    },
+    {
+        "name": "cue_left_blue",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:left:blue"
+        }
+    },
+    {
+        "name": "cue_left_green",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:left:green"
+        }
+    },
+    {
+        "name": "cue_left_red",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:left:red"
+        }
+    },
+    {
+        "name": "cue_center_blue",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:center:blue"
+        }
+    },
+    {
+        "name": "cue_center_green",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:center:green"
+        }
+    },
+    {
+        "name": "cue_center_red",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:center:red"
+        }
+    },
+    {
+        "name": "cue_right_blue",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:right:blue"
+        }
+    },
+    {
+        "name": "cue_right_green",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:right:green"
+        }
+    },
+    {
+        "name": "cue_right_red",
+        "driver": "cue_leds",
+        "params": {
+            "device": "peckboard:right:red"
+        }
+    },
+    {
+        "name": "feeder_motor",
+        "driver": "feeder_leds",
+        "params": {
+            "device": "starboard:hopper:left",
+            "default_interval": 4000
+        }
+    },
+    {
+        "name": "house_lights",
+        "driver": "lights_leds",
+        "params": {
+            "clock_interval": 600000,
+            "day_start": 7,
+            "day_stop": 19,
+            "device": "starboard::lights",
+            "ephemera": true,
+            "lat": 38.03,
+            "lon": -78.51,
+            "max_brightness": 255
+        }
+    },
+    {
+        "name": "keys",
+        "driver": "key_peckboard",
+        "params": {
+            "device": "/sys/class/gpio/gpiochip496",
+            "keymap": {
+                "peck_left": 15,
+                "peck_center": 14,
+                "peck_right": 13
+            }
+        }
+    }
+]
