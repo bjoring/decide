@@ -21,6 +21,13 @@ const version = require('../package.json').version;
 const host_params = util.load_config("host-config.json");
 const bbb_params = util.load_config("bbb-config.json");
 
+const argv = require("yargs")
+      .usage("Start the controller interface.\nUsage: $0 [-u @slack-id]")
+      .describe("u", "set slack user id for notifications")
+      .array("u")
+      .demand(0)
+      .argv;
+
 logger.info("this is decide-ctrl, version", version);
 
 // *********************************
@@ -127,6 +134,7 @@ io.on("connection", function(socket) {
                 };
             }
             apparatus.register(client_key, proxy);
+            util.slack(format("%s was started on %s", client_key, os.hostname()), argv.u);
             rep("ok");
         }
     });
@@ -135,6 +143,7 @@ io.on("connection", function(socket) {
         rep = rep || function() {};
         if (client_key) {
             apparatus.unregister(client_key);
+            util.slack(format("%s was stopped on %s", client_key, os.hostname()), argv.u);
             client_key = null;
             rep("ok");
         }
@@ -282,7 +291,7 @@ function host_proxy(params, name, pub) {
 function notify(msg) {
     logger.warn(msg);
     util.slack(format("an error occurred on %s: %s", os.hostname(), msg),
-               apparatus.experimenter(),
+               _.union(argv.u, [apparatus.experimenter()]),
                function(err, info) {
                    if (!err) return;
                    const to = host_params.admins;
@@ -300,11 +309,14 @@ const host = apparatus.register("host", host_proxy);
 // initialize the apparatus
 apparatus.init(bbb_params);
 
+util.slack("decide-ctrl was started on " + os.hostname(), argv.u);
+
 function shutdown() {
     logger.debug("shutting down because of error or interrupt");
     // TODO: nicely tell experiment clients to shut down
     apparatus.shutdown();
     server.stop(function() {
+        util.slack("decide-ctrl was shut down on " + os.hostname(), argv.u);
         logger.info("finished processing all HTTP requests");
         logger.info("it's safe to kill this process with -9 now if it hangs");
     });
